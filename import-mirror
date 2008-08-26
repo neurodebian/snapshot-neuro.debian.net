@@ -26,6 +26,7 @@ require 'db'
 require 'db-config'
 require 'optparse'
 require 'find'
+require 'digest/sha1'
 
 def show_help(parser, code=0, io=STDOUT)
   program_name = File.basename($0, '.*')
@@ -38,7 +39,7 @@ ARGV.options do |opts|
   opts.on("-a", "--archive=<archivename>"  , String, "Name of the archive")      { |@archive| }
   opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
   opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
-  opts.on("-v", "--verbose"                , nil,    "Be verbose")               { @verbose = 1 }
+  opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |@verbose| }
 
   opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
   opts.parse!
@@ -48,7 +49,7 @@ show_help(ARGV.options, 1, STDERR) if ARGV.length > 0
 show_help(ARGV.options, 1, STDERR) unless @archive
 show_help(ARGV.options, 1, STDERR) unless @path
 @date = Time.now unless @date
-
+#@verbose = 1 if @verbose and not @verbose.kind_of?(Integer)
 
 
 def get_pk(db, table, field, value)
@@ -77,7 +78,7 @@ class NodeManager
   def new_mirror_run(archive, date)
     archive_id = get_pk(@db, 'archive', 'name', archive)
 
-    row = @db.query_row("SELECT run, mirrorrun_id FROM mirrorrun WHERE archive_id = ? ORDER BY run DESC", archive_id)
+    row = @db.query_row("SELECT run, mirrorrun_id FROM mirrorrun WHERE archive_id = ? ORDER BY run DESC LIMIT 1", archive_id)
     if row
       if Time.parse(row['run'].to_s) >= date
         STDERR.puts "Error:  Mirrorruns need to be imported in proper order.  "+
@@ -101,18 +102,47 @@ class NodeManager
 
 
 
+  def insert_node(parent)
+    node = { 'first' => @mirror_run,
+             'last' => @mirror_run,
+             'parent' => parent};
+    @db.insert_row('node', node);
+    node
+  end
 
+  def insert_file_or_symlink(fullpath, kind, value)
+    case kind
+      when "symlink"
+        key = "target"
+      when "file"
+        key = "hash"
+      else
+        throw "Unknown kind #{kind}"
+   end
+    parent = insert_directory(File.dirname(fullpath))
+    basename = File.basename(fullpath)
+    row = @db.query_row("SELECT node_id FROM #{kind} NATURAL JOIN node
+                         WHERE parent=? AND (last=? OR last=?) AND
+                         name=? AND #{key}=?",
+                         parent, @previous_run, @mirror_run,
+                         basename, value)
+    if row
+      r = @db.update('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
+      throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
+    else
+      node = insert_node(parent)
+      new = { 'name' => basename,
+              key => value,
+              'node_id' => node['node_id'] };
+      @db.insert_row(kind, new)
+    end
+  end
 
-  def NodeManager.get_node_id(dirpath)
-    return @@old_dirpath_id if @@old_dirpath == dirpath
-#    row = @db.query_row("SELECT #{pk} FROM #{table} WHERE #{field}=?", value)
-#  if row
-#    return row[pk]
-#  else
-#    r = { field => value }
-#    @db.insert_row( table, r )
-#    return r[pk]
-#  end
+  def insert_file(fullpath, hash)
+    insert_file_or_symlink(fullpath, "file", hash)
+  end
+  def insert_symlink(fullpath, target)
+    insert_file_or_symlink(fullpath, "symlink", target)
   end
 
   def insert_directory(fullpath)
@@ -123,14 +153,7 @@ class NodeManager
       throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
       return row['directory_id']
     else
-      node = { 'first' => @mirror_run,
-               'last' => @mirror_run };
-      if (fullpath == '/');
-        node['parent'] = -1;
-      else
-        node['parent'] = insert_directory(File.dirname(fullpath))
-      end
-      @db.insert_row('node', node);
+      node = insert_node( (fullpath == '/') ? -1 : insert_directory(File.dirname(fullpath)))
 
       directory = { 'path' => fullpath,
                     'node_id' => node['node_id'] };
@@ -164,11 +187,14 @@ Dir.chdir(@path)
 nm = NodeManager.new($db, @archive, @date)
 Find.find('.') do |realpath|
   nicepath = fixupPath realpath
+  puts "Doing #{nicepath}" if @verbose >= 2
   if FileTest.symlink?(realpath)
+    nm.insert_symlink(nicepath, File.readlink(realpath))
   elsif FileTest.directory?(realpath)
-    puts "Doing #{nicepath}" if @verbose >= 1
+    puts "Doing #{nicepath}" if @verbose == 1
     nm.insert_directory(nicepath)
   elsif FileTest.file?(realpath)
+    nm.insert_symlink(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
   else
     STDERR.puts "Ignoring non-regular file #{nicepath}"
   end
