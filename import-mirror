@@ -194,7 +194,7 @@ Find.find('.') do |realpath|
     puts "Doing #{nicepath}" if @verbose == 1
     nm.insert_directory(nicepath)
   elsif FileTest.file?(realpath)
-    nm.insert_symlink(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
+    nm.insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
   else
     STDERR.puts "Ignoring non-regular file #{nicepath}"
   end
