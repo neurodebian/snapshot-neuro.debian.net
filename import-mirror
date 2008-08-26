@@ -40,6 +40,7 @@ ARGV.options do |opts|
   opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
   opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
   opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |$verbose| }
+  opts.on("-v", "--quick"                  , nil,    "quick (Ignore files older than last run)") { |$quick| }
 
   opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
   opts.parse!
@@ -81,14 +82,17 @@ class NodeManager
 
     row = @db.query_row("SELECT run, mirrorrun_id FROM mirrorrun WHERE archive_id = ? ORDER BY run DESC LIMIT 1", archive_id)
     if row
-      if Time.parse(row['run'].to_s) >= date
+      prev = Time.parse(row['run'].to_s)
+      if prev >= date
         STDERR.puts "Error:  Mirrorruns need to be imported in proper order.  "+
                     "The latest import is from #{row['run']} whereas this one is from #{date}."
         exit(1)
       end
       @previous_run = row['mirrorrun_id']
+      @previous_run_time = prev
     else
       @previous_run = -1
+      @previous_run_time = nil
     end
 
     r = { 'archive_id' => archive_id, 'run' => date }
@@ -107,26 +111,24 @@ class NodeManager
   end
 
   def insert_tree(path)
-    olddir = Dir.chdir(path)
-    Find.find('.') do |realpath|
-      insert(realpath)
-    end
-    Dir.chdir(olddir)
-  end
+    Dir.chdir(path) do
+      Find.find('.') do |realpath|
+        s = File::Stat.new(realpath)
+        nicepath = fixupPath realpath
 
-  # insert file/symlink/dir pointed to by realpath into the DB
-  def insert(realpath)
-    nicepath = fixupPath realpath
-    puts "Doing #{nicepath}" if $verbose >= 2
-    if FileTest.symlink?(realpath)
-      insert_symlink(nicepath, File.readlink(realpath))
-    elsif FileTest.directory?(realpath)
-      puts "Doing #{nicepath}" if $verbose == 1
-      insert_directory(nicepath)
-    elsif FileTest.file?(realpath)
-      insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
-    else
-      STDERR.puts "Ignoring non-regular file #{nicepath}"
+        puts "Doing #{nicepath}" if $verbose >= 2
+        if s.symlink?
+          insert_symlink(nicepath, File.readlink(realpath))
+        elsif s.directory?
+          puts "Doing #{nicepath}" if $verbose == 1
+          insert_directory(nicepath)
+        elsif s.file?
+          insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
+        else
+          STDERR.puts "Ignoring non-regular file #{nicepath}"
+        end
+
+      end
     end
   end
 
