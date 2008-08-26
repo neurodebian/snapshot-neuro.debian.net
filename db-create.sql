@@ -1,35 +1,40 @@
-CREATE TABLE mirror (
-	id	SERIAL	PRIMARY KEY,
-	name	VARCHAR(80)	NOT NULL,
+CREATE TABLE archive (
+	archive_id	SERIAL	PRIMARY KEY,
+	name		VARCHAR(80)	NOT NULL,
 	UNIQUE(name)
 );
 
 CREATE TABLE mirrorrun (
-	id		SERIAL		PRIMARY KEY,
-	mirror_id	INTEGER		NOT NULL REFERENCES mirror(id),
+	mirrorrun_id	SERIAL		PRIMARY KEY,
+	archive_id	INTEGER		NOT NULL REFERENCES archive(archive_id),
 	run		TIMESTAMP	NOT NULL
 );
 
-CREATE TABLE path (
-	id		SERIAL		PRIMARY KEY,
-	path		VARCHAR(250)	NOT NULL,
-	UNIQUE(path)
+CREATE TABLE node (
+	node_id		SERIAL		PRIMARY KEY,
+	parent		INTEGER		NOT NULL,
+	first		INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id),
+	last		INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id)
 );
 
+CREATE TABLE directory (
+	directory_id	SERIAL		PRIMARY KEY,
+	path		VARCHAR(250)	NOT NULL,
+	node_id		INTEGER		REFERENCES node(node_id)
+);
+
+ALTER TABLE node ADD FOREIGN KEY (parent) REFERENCES directory(directory_id) DEFERRABLE INITIALLY DEFERRED;
+
 CREATE TABLE file (
-	id		SERIAL		PRIMARY KEY,
+	file_id		SERIAL		PRIMARY KEY,
 	name		VARCHAR(50)	NOT NULL,
 	hash		CHAR(40)	NOT NULL,
-	path_id		INTEGER		NOT NULL REFERENCES path(id),
-	added		INTEGER		NOT NULL REFERENCES mirrorrun(id),
-	removed		INTEGER		NOT NULL REFERENCES mirrorrun(id)
+	node_id		INTEGER		REFERENCES node(node_id)
 );
 
 CREATE TABLE symlink (
-	id		SERIAL		PRIMARY KEY,
+	symlink_id	SERIAL		PRIMARY KEY,
 	name		VARCHAR(50)	NOT NULL,
 	target		VARCHAR(250)	NOT NULL,
-	path_id		INTEGER		NOT NULL REFERENCES path(id),
-	added		INTEGER		NOT NULL REFERENCES mirrorrun(id),
-	removed		INTEGER		NOT NULL REFERENCES mirrorrun(id)
+	node_id		INTEGER		REFERENCES node(node_id)
 );
