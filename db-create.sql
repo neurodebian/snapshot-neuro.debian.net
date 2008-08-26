@@ -1,0 +1,35 @@
+CREATE TABLE mirror (
+	id	SERIAL	PRIMARY KEY,
+	name	VARCHAR(80)	NOT NULL,
+	UNIQUE(name)
+);
+
+CREATE TABLE mirrorrun (
+	id		SERIAL		PRIMARY KEY,
+	mirror_id	INTEGER		NOT NULL REFERENCES mirror(id),
+	run		TIMESTAMP	NOT NULL
+);
+
+CREATE TABLE path (
+	id		SERIAL		PRIMARY KEY,
+	path		VARCHAR(250)	NOT NULL,
+	UNIQUE(path)
+);
+
+CREATE TABLE file (
+	id		SERIAL		PRIMARY KEY,
+	name		VARCHAR(50)	NOT NULL,
+	hash		CHAR(40)	NOT NULL,
+	path_id		INTEGER		NOT NULL REFERENCES path(id),
+	added		INTEGER		NOT NULL REFERENCES mirrorrun(id),
+	removed		INTEGER		NOT NULL REFERENCES mirrorrun(id)
+);
+
+CREATE TABLE symlink (
+	id		SERIAL		PRIMARY KEY,
+	name		VARCHAR(50)	NOT NULL,
+	target		VARCHAR(250)	NOT NULL,
+	path_id		INTEGER		NOT NULL REFERENCES path(id),
+	added		INTEGER		NOT NULL REFERENCES mirrorrun(id),
+	removed		INTEGER		NOT NULL REFERENCES mirrorrun(id)
+);
