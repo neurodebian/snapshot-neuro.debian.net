@@ -27,14 +27,14 @@ ALTER TABLE node ADD FOREIGN KEY (parent) REFERENCES directory(directory_id) DEF
 
 CREATE TABLE file (
 	file_id		SERIAL		PRIMARY KEY,
-	name		VARCHAR(50)	NOT NULL,
+	name		VARCHAR(128)	NOT NULL,
 	hash		CHAR(40)	NOT NULL,
 	node_id		INTEGER		REFERENCES node(node_id)
 );
 
 CREATE TABLE symlink (
 	symlink_id	SERIAL		PRIMARY KEY,
-	name		VARCHAR(50)	NOT NULL,
+	name		VARCHAR(128)	NOT NULL,
 	target		VARCHAR(250)	NOT NULL,
 	node_id		INTEGER		REFERENCES node(node_id)
 );
