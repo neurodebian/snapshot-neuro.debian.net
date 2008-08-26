@@ -67,9 +67,10 @@ end
 
 
 class NodeManager
-  def initialize(db, archive, date)
+  def initialize(db, archive, date, path)
     @db = db;
     new_mirror_run(archive, date)
+    insert_tree(path)
   end
 
   # Add a new mirror run entry into the mirrorun table,
@@ -103,6 +104,14 @@ class NodeManager
     p[0 .. 0]='' if p[0 .. 0] == '.'
     p='/' if p == ''
     p
+  end
+
+  def insert_tree(path)
+    olddir = Dir.chdir(path)
+    Find.find('.') do |realpath|
+      insert(realpath)
+    end
+    Dir.chdir(olddir)
   end
 
   # insert file/symlink/dir pointed to by realpath into the DB
@@ -193,11 +202,7 @@ $db = Db.new($CONFIG['database']['dbhost'], $CONFIG['database']['dbname'], $CONF
 
 
 $db.transaction_begin
-Dir.chdir(@path)
-nm = NodeManager.new($db, @archive, @date)
-Find.find('.') do |realpath|
-  nm.insert(realpath)
-end
+NodeManager.new($db, @archive, @date, @path)
 $db.transaction_commit
 
 
