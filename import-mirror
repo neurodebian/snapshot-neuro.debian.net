@@ -1,0 +1,182 @@
+#!/usr/bin/ruby
+
+# Copyright (c) 2008 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+require "yaml"
+
+require 'db'
+require 'db-config'
+require 'optparse'
+require 'find'
+
+def show_help(parser, code=0, io=STDOUT)
+  program_name = File.basename($0, '.*')
+  io.puts "Usage: #{program_name} --archive=<archivename> --path=<path>"
+  io.puts parser.summarize
+  exit(code)
+end
+@verbose = 0;
+ARGV.options do |opts|
+  opts.on("-a", "--archive=<archivename>"  , String, "Name of the archive")      { |@archive| }
+  opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
+  opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
+  opts.on("-v", "--verbose"                , nil,    "Be verbose")               { @verbose = 1 }
+
+  opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
+  opts.parse!
+end
+
+show_help(ARGV.options, 1, STDERR) if ARGV.length > 0
+show_help(ARGV.options, 1, STDERR) unless @archive
+show_help(ARGV.options, 1, STDERR) unless @path
+@date = Time.now unless @date
+
+
+
+def get_pk(db, table, field, value)
+  pk = table+'_id'
+  row = db.query_row("SELECT #{pk} FROM #{table} WHERE #{field}=?", value)
+  if row
+    return row[pk]
+  else
+    r = { field => value }
+    db.insert_row( table, r )
+    return r[pk]
+  end
+end
+
+
+
+class NodeManager
+  def initialize(db, archive, date)
+    @db = db;
+    new_mirror_run(archive, date)
+  end
+
+  # Add a new mirror run entry into the mirrorun table,
+  # verifying that this run is strictly later than any previously imported runs.
+  # sets @previous_run and @mirror_run to the appropriate values.
+  def new_mirror_run(archive, date)
+    archive_id = get_pk(@db, 'archive', 'name', archive)
+
+    row = @db.query_row("SELECT run, mirrorrun_id FROM mirrorrun WHERE archive_id = ? ORDER BY run DESC", archive_id)
+    if row
+      if Time.parse(row['run'].to_s) >= date
+        STDERR.puts "Error:  Mirrorruns need to be imported in proper order.  "+
+                    "The latest import is from #{row['run']} whereas this one is from #{date}."
+        exit(1)
+      end
+      @previous_run = row['mirrorrun_id']
+    else
+      @previous_run = -1
+    end
+
+    r = { 'archive_id' => archive_id, 'run' => date }
+    @db.insert_row( 'mirrorrun', r )
+
+    @mirror_run = r['mirrorrun_id']
+  end
+
+
+
+
+
+
+
+
+
+  def NodeManager.get_node_id(dirpath)
+    return @@old_dirpath_id if @@old_dirpath == dirpath
+#    row = @db.query_row("SELECT #{pk} FROM #{table} WHERE #{field}=?", value)
+#  if row
+#    return row[pk]
+#  else
+#    r = { field => value }
+#    @db.insert_row( table, r )
+#    return r[pk]
+#  end
+  end
+
+  def insert_directory(fullpath)
+    row = @db.query_row("SELECT node_id,directory_id FROM directory NATURAL JOIN node
+                         WHERE path=? AND (last=? OR last=?)", fullpath, @previous_run, @mirror_run)
+    if row
+      r = @db.update('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
+      throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
+      return row['directory_id']
+    else
+      node = { 'first' => @mirror_run,
+               'last' => @mirror_run };
+      if (fullpath == '/');
+        node['parent'] = -1;
+      else
+        node['parent'] = insert_directory(File.dirname(fullpath))
+      end
+      @db.insert_row('node', node);
+
+      directory = { 'path' => fullpath,
+                    'node_id' => node['node_id'] };
+      @db.insert_row('directory', directory);
+
+      if (fullpath == '/')
+        r = @db.update('node',
+                       { 'parent' => directory['directory_id'] },
+                       { 'node_id' => node['node_id'] });
+        throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
+      end
+      return directory['directory_id']
+    end
+  end
+end
+
+$db = Db.new($CONFIG['database']['dbhost'], $CONFIG['database']['dbname'], $CONFIG['database']['user'], $CONFIG['database']['password'])
+
+def fixupPath(path)
+  p = path.clone
+  # Cut off leading dot
+  p[0 .. 0]='' if p[0 .. 0] == '.'
+  # Make sure we still have a path tho
+  p='/' if p == ''
+  p
+end
+
+
+$db.transaction_begin
+Dir.chdir(@path)
+nm = NodeManager.new($db, @archive, @date)
+Find.find('.') do |realpath|
+  nicepath = fixupPath realpath
+  if FileTest.symlink?(realpath)
+  elsif FileTest.directory?(realpath)
+    puts "Doing #{nicepath}" if @verbose >= 1
+    nm.insert_directory(nicepath)
+  elsif FileTest.file?(realpath)
+  else
+    STDERR.puts "Ignoring non-regular file #{nicepath}"
+  end
+end
+$db.transaction_commit
+
+
+
+# vim:set et:
+# vim:set shiftwidth=2:
+# vim:set ts=2:
