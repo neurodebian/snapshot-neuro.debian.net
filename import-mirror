@@ -34,12 +34,12 @@ def show_help(parser, code=0, io=STDOUT)
   io.puts parser.summarize
   exit(code)
 end
-@verbose = 0;
+$verbose = 0;
 ARGV.options do |opts|
   opts.on("-a", "--archive=<archivename>"  , String, "Name of the archive")      { |@archive| }
   opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
   opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
-  opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |@verbose| }
+  opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |$verbose| }
 
   opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
   opts.parse!
@@ -49,7 +49,7 @@ show_help(ARGV.options, 1, STDERR) if ARGV.length > 0
 show_help(ARGV.options, 1, STDERR) unless @archive
 show_help(ARGV.options, 1, STDERR) unless @path
 @date = Time.now unless @date
-#@verbose = 1 if @verbose and not @verbose.kind_of?(Integer)
+#$verbose = 1 if $verbose and not $verbose.kind_of?(Integer)
 
 
 def get_pk(db, table, field, value)
@@ -96,11 +96,30 @@ class NodeManager
     @mirror_run = r['mirrorrun_id']
   end
 
+  # find gives us paths starting with ./ (since we run it for .)
+  # remove the leading dot, but turn just the '.' into a '/'.
+  def fixupPath(path)
+    p = path.clone
+    p[0 .. 0]='' if p[0 .. 0] == '.'
+    p='/' if p == ''
+    p
+  end
 
-
-
-
-
+  # insert file/symlink/dir pointed to by realpath into the DB
+  def insert(realpath)
+    nicepath = fixupPath realpath
+    puts "Doing #{nicepath}" if $verbose >= 2
+    if FileTest.symlink?(realpath)
+      insert_symlink(nicepath, File.readlink(realpath))
+    elsif FileTest.directory?(realpath)
+      puts "Doing #{nicepath}" if $verbose == 1
+      insert_directory(nicepath)
+    elsif FileTest.file?(realpath)
+      insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
+    else
+      STDERR.puts "Ignoring non-regular file #{nicepath}"
+    end
+  end
 
   def insert_node(parent)
     node = { 'first' => @mirror_run,
@@ -172,32 +191,12 @@ end
 
 $db = Db.new($CONFIG['database']['dbhost'], $CONFIG['database']['dbname'], $CONFIG['database']['user'], $CONFIG['database']['password'])
 
-def fixupPath(path)
-  p = path.clone
-  # Cut off leading dot
-  p[0 .. 0]='' if p[0 .. 0] == '.'
-  # Make sure we still have a path tho
-  p='/' if p == ''
-  p
-end
-
 
 $db.transaction_begin
 Dir.chdir(@path)
 nm = NodeManager.new($db, @archive, @date)
 Find.find('.') do |realpath|
-  nicepath = fixupPath realpath
-  puts "Doing #{nicepath}" if @verbose >= 2
-  if FileTest.symlink?(realpath)
-    nm.insert_symlink(nicepath, File.readlink(realpath))
-  elsif FileTest.directory?(realpath)
-    puts "Doing #{nicepath}" if @verbose == 1
-    nm.insert_directory(nicepath)
-  elsif FileTest.file?(realpath)
-    nm.insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
-  else
-    STDERR.puts "Ignoring non-regular file #{nicepath}"
-  end
+  nm.insert(realpath)
 end
 $db.transaction_commit
 
