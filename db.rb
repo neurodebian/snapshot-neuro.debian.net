@@ -98,6 +98,7 @@ class Db
 	def update_one(table, values, keys)
 		r = update(table, values, keys)
 		throw "Updated #{r} datasets instead of exactly 1 in table #{table}" unless r == 1;
+		return r
 	end
 	def insert(table, values)
 		cols = values.keys
