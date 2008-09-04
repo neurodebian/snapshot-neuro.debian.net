@@ -95,6 +95,10 @@ class Db
 		throw "Ref not defined" unless values[pk_name]
 		return update(table, values.clone.delete_if{|k,v| k == pk_name}, { pk_name => values[pk_name] });
 	end
+	def update_one(table, values, keys)
+		r = update(table, values, keys)
+		throw "Updated #{r} datasets instead of exactly 1 in table #{table}" unless r == 1;
+	end
 	def insert(table, values)
 		cols = values.keys
 		vals = values.values

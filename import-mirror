@@ -157,8 +157,7 @@ class NodeManager
                          parent, @previous_run, @mirror_run,
                          basename, value)
     if row
-      r = @db.update('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
-      throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
+      @db.update_one('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
     else
       node = insert_node(parent)
       new = { 'name' => basename,
@@ -179,8 +178,7 @@ class NodeManager
     row = @db.query_row("SELECT node_id,directory_id FROM directory NATURAL JOIN node
                          WHERE path=? AND (last=? OR last=?)", fullpath, @previous_run, @mirror_run)
     if row
-      r = @db.update('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
-      throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
+      @db.update_one('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
       return row['directory_id']
     else
       node = insert_node( (fullpath == '/') ? -1 : insert_directory(File.dirname(fullpath)))
@@ -190,10 +188,9 @@ class NodeManager
       @db.insert_row('directory', directory);
 
       if (fullpath == '/')
-        r = @db.update('node',
+        r = @db.update_one('node',
                        { 'parent' => directory['directory_id'] },
                        { 'node_id' => node['node_id'] });
-        throw "Updated #{r} datasets instead of exactly 1" unless r == 1;
       end
       return directory['directory_id']
     end
