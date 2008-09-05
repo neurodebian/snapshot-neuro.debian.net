@@ -123,7 +123,7 @@ class NodeManager
           puts "Doing #{nicepath}" if $verbose == 1
           insert_directory(nicepath)
         elsif s.file?
-          insert_file(nicepath, Digest::SHA1.hexdigest( File.open(realpath).read ))
+          insert_file(nicepath, s, realpath)
         else
           STDERR.puts "Ignoring non-regular file #{nicepath}"
         end
@@ -140,46 +140,80 @@ class NodeManager
     node
   end
 
-  def insert_file_or_symlink(fullpath, kind, value)
-    case kind
-      when "symlink"
-        key = "target"
-      when "file"
-        key = "hash"
-      else
-        throw "Unknown kind #{kind}"
-   end
+  def insert_file(fullpath, stat, realpath)
     parent = insert_directory(File.dirname(fullpath))
     basename = File.basename(fullpath)
-    row = @db.query_row("SELECT node_id FROM #{kind} NATURAL JOIN node
-                         WHERE parent=? AND (last=? OR last=?) AND
-                         name=? AND #{key}=?",
-                         parent, @previous_run, @mirror_run,
-                         basename, value)
-    if row
-      @db.update_one('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
+    size = stat.size
+
+    if ($quick and
+        @previous_run_time and
+        @previous_run_time > stat.ctime and
+        @previous_run_time > stat.mtime)
+      extra_where = ""
+      extra_arg = []
     else
-      node = insert_node(parent)
-      new = { 'name' => basename,
-              key => value,
-              'node_id' => node['node_id'] };
-      @db.insert_row(kind, new)
+      hash = Digest::SHA1.hexdigest( File.open(realpath).read )
+      extra_where = " AND hash=?"
+      extra_arg = [ hash ]
+    end
+
+    r = @db.do("UPDATE node SET last=?
+                FROM file
+                WHERE node.node_id = file.node_id AND
+                parent=? AND (last=? OR last=?) AND
+                name=? AND size=? #{extra_where}",
+                @mirror_run,
+                parent, @previous_run, @mirror_run,
+                basename, size, *extra_arg)
+    case r
+      when 0:
+        hash = Digest::SHA1.hexdigest( File.open(realpath).read ) unless hash
+        node = insert_node(parent)
+        new = { 'name' => basename,
+                'hash' => hash,
+                'size' => size,
+                'node_id' => node['node_id'] };
+        @db.insert_row('file', new)
+      when 1: # nothing
+      else
+        throw "Did not update exactly zero or one element."
     end
   end
 
-  def insert_file(fullpath, hash)
-    insert_file_or_symlink(fullpath, "file", hash)
-  end
   def insert_symlink(fullpath, target)
-    insert_file_or_symlink(fullpath, "symlink", target)
+    parent = insert_directory(File.dirname(fullpath))
+    basename = File.basename(fullpath)
+    r = @db.do("UPDATE node SET last=?
+                FROM symlink
+                WHERE node.node_id = symlink.node_id AND
+                parent=? AND (last=? OR last=?) AND
+                name=? AND target=?",
+                @mirror_run,
+                parent, @previous_run, @mirror_run,
+                basename, target)
+    case r
+      when 0:
+        node = insert_node(parent)
+        new = { 'name' => basename,
+                'target' => target,
+                'node_id' => node['node_id'] };
+        @db.insert_row('symlink', new)
+      when 1: # nothing
+      else
+        throw "Did not update exactly zero or one element."
+    end
   end
 
   def insert_directory(fullpath)
-    row = @db.query_row("SELECT node_id,directory_id FROM directory NATURAL JOIN node
-                         WHERE path=? AND (last=? OR last=?)", fullpath, @previous_run, @mirror_run)
-    if row
-      @db.update_one('node', { 'last' => @mirror_run }, { 'node_id' => row['node_id'] });
-      return row['directory_id']
+    r = @db.query_row("UPDATE node SET last=?
+                       FROM directory
+                       WHERE node.node_id = directory.node_id AND
+                         path=? AND (last=? OR last=?)
+                       RETURNING directory_id",
+                       @mirror_run,
+                       fullpath, @previous_run, @mirror_run)
+    if r
+      return r['directory_id']
     else
       node = insert_node( (fullpath == '/') ? -1 : insert_directory(File.dirname(fullpath)))
 
