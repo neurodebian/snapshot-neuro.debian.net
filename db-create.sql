@@ -18,6 +18,19 @@ CREATE TABLE node (
 );
 -- FIXME: add a trigger that checks that first->archive_id == last->archive_id
 
+CREATE VIEW node_with_ts AS
+	SELECT node_id,
+	       parent,
+	       first_run.run AS first_run,
+	       first_run.archive_id,
+	       last_run.run AS last_run
+	FROM node,
+	     (SELECT * FROM mirrorrun) AS first_run,
+	     (SELECT * FROM mirrorrun) AS last_run
+	WHERE first_run.mirrorrun_id=node.first
+	  AND last_run.mirrorrun_id=node.last;
+
+
 CREATE TABLE directory (
 	directory_id	SERIAL		PRIMARY KEY,
 	path		VARCHAR(250)	NOT NULL,
