@@ -27,6 +27,7 @@ require 'db-config'
 require 'optparse'
 require 'find'
 require 'digest/sha1'
+require "ftools"
 
 def show_help(parser, code=0, io=STDOUT)
   program_name = File.basename($0, '.*')
@@ -37,6 +38,7 @@ end
 $verbose = 0;
 ARGV.options do |opts|
   opts.on("-a", "--archive=<archivename>"  , String, "Name of the archive")      { |@archive| }
+  opts.on("-f", "--farm=<dir>"             , String, "Location of the hash farm"){ |$farm| }
   opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
   opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
   opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |$verbose| }
@@ -48,9 +50,15 @@ end
 
 show_help(ARGV.options, 1, STDERR) if ARGV.length > 0
 show_help(ARGV.options, 1, STDERR) unless @archive
+show_help(ARGV.options, 1, STDERR) unless $farm
 show_help(ARGV.options, 1, STDERR) unless @path
 @date = Time.now unless @date
 #$verbose = 1 if $verbose and not $verbose.kind_of?(Integer)
+
+unless File.directory?($farm)
+  Stderr.puts "#{$farm} is not a directory"
+  exit(1)
+end
 
 
 def get_pk(db, table, field, value)
@@ -140,6 +148,19 @@ class NodeManager
     node
   end
 
+  def store_file(source, hash)
+    target = $farm
+
+    h = hash
+    2.times do
+      target = target + '/' + h[0..1]
+      h = h[2..-1]
+      Dir.mkdir(target) unless File.directory?(target)
+    end
+    target = target + '/' + hash
+    File.copy(source, target) unless File.exists?(target)
+  end
+
   def insert_file(fullpath, stat, realpath)
     parent = insert_directory(File.dirname(fullpath))
     basename = File.basename(fullpath)
@@ -174,6 +195,7 @@ class NodeManager
                 'size' => size,
                 'node_id' => node['node_id'] };
         @db.insert_row('file', new)
+        store_file(realpath, hash)
       when 1: # nothing
       else
         throw "Did not update exactly zero or one element."
