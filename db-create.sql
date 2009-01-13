@@ -39,3 +39,10 @@ CREATE TABLE symlink (
 	target		VARCHAR(250)	NOT NULL,
 	node_id		INTEGER		REFERENCES node(node_id)
 );
+
+
+CREATE INDEX node_idx_parent ON node(parent);
+CREATE INDEX directory_idx_path ON directory(path);
+CREATE INDEX file_idx_name ON file(name);
+CREATE INDEX symlink_idx_name ON symlink(name);
+
