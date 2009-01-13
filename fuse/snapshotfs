@@ -48,32 +48,65 @@ class SnapshotDB():
       return map(lambda x: x[0], all)
 
 
-class Root():
-   def __init__(self, db):
-      self.db = db
-      self.load_archives()
+def split_path(path):
+   path_elements = path.split('/',2)[1:]
+   if len(path_elements) == 1:
+      subpath = '/'
+   else:
+      subpath = '/'+path_elements[1]
+   return(path_elements[0], subpath)
 
-   def load_archives(self):
-      self.archives = self.db.query_firsts('SELECT name FROM archive')
+
+class FSStaticElement():
+   def __init__(self):
+      self.elements = {}
 
    def getattr(self, path):
-      path_elements = path.split('/',2)[1:]
-      if path_elements[0] == '':
-         return DirStat(len(self.archives))
-      elif path_elements[0] in self.archives:
-         if len(path_elements) == 1:
-            return DirStat() # unknown # of subdirs
-         else:
-            return -errno.ENOENT #XXX
+      (first, subpath) = split_path(path)
+      if first == '':
+         return DirStat(len(self.elements))
+      elif first in self.elements:
+         return self.elements[ first ].getattr(subpath)
       return -errno.ENOENT
 
    def readdir(self, path, offset):
-      path_elements = path.split('/',2)[1:]
-      dirents = [ '.', '..' ]
-      if path_elements[0] == '':
-         dirents.extend(self.archives)
-      #elif path_elements[0] in self.archives:
-      return dirents
+      (first, subpath) = split_path(path)
+      if first == '':
+         return self.elements.keys()
+      elif first in self.elements:
+         return self.elements[ first ].readdir(subpath, offset)
+      return -errno.ENOENT
+
+class Archive(FSStaticElement):
+   def __init__(self, db, id):
+      FSStaticElement.__init__(self)
+      self.db = db
+      self.id = id
+      self.load_elements()
+
+   def load_elements(self):
+      list = self.db.query("""SELECT mirrorrun_id, to_char(run, 'YYYYMMDD"T"HH24MISS')
+                              FROM mirrorrun
+                              WHERE archive_id=%(id)s""", {'id': self.id})
+      for e in list:
+         id = e[0]
+         timestamp = e[1]
+         self.elements[timestamp] = FSStaticElement() #FSStaticElement(self.db, id)
+
+
+class Root(FSStaticElement):
+   def __init__(self, db):
+      FSStaticElement.__init__(self)
+      self.db = db
+      self.load_elements()
+
+   def load_elements(self):
+      list = self.db.query('SELECT archive_id, name FROM archive')
+      for e in list:
+         id = e[0]
+         name = e[1]
+         self.elements[name] = Archive(self.db, id)
+
 
 class SnapshotFS(fuse.Fuse):
    def __init__(self, root, *args, **kw):
@@ -84,7 +117,9 @@ class SnapshotFS(fuse.Fuse):
       return self.root.getattr(path)
 
    def readdir(self, path, offset):
-      for r in self.root.readdir(path, offset):
+      dirents = [ '.', '..' ]
+      dirents.extend( self.root.readdir(path, offset) )
+      for r in dirents:
          yield fuse.Direntry(r)
 
    def readlink(self, path):
