@@ -267,11 +267,13 @@ class MirrorRun():
 class FSStaticElement():
    def __init__(self):
       self.elements = {}
+      self.ctime = 0
+      self.mtime = 0
 
    def getattr(self, path):
       (first, subpath) = split_path(path)
       if first == '':
-         return DirStat(len(self.elements))
+         return DirStat(len(self.elements), self.ctime, self.mtime)
       elif first in self.elements:
          return self.elements[ first ].getattr(subpath)
       return -errno.ENOENT
@@ -293,10 +295,12 @@ class FSStaticElement():
       return -errno.ENOENT
 
 class Archive(FSStaticElement):
-   def __init__(self, db, id):
+   def __init__(self, db, id, first_run, last_run):
       FSStaticElement.__init__(self)
       self.db = db
       self.id = id
+      self.ctime = first_run
+      self.mtime = last_run
       self.load_elements()
 
    def load_elements(self):
@@ -313,14 +317,24 @@ class Root(FSStaticElement):
    def __init__(self, db):
       FSStaticElement.__init__(self)
       self.db = db
+      result = self.db.query("""SELECT extract(epoch FROM min(run)) as first_run,
+                                       extract(epoch FROM max(run)) as last_run
+                                FROM mirrorrun""")
+      self.ctime = result[0][0]
+      self.mtime = result[0][1]
       self.load_elements()
 
    def load_elements(self):
-      list = self.db.query('SELECT archive_id, name FROM archive')
+      list = self.db.query("""SELECT archive_id, name,
+                                     extract(epoch FROM (SELECT min(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)) AS first_run,
+                                     extract(epoch FROM (SELECT max(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)) AS last_run
+                              FROM archive""")
       for e in list:
          id = e[0]
          name = e[1]
-         self.elements[name] = Archive(self.db, id)
+         first_run = e[2]
+         last_run = e[2]
+         self.elements[name] = Archive(self.db, id, first_run, last_run)
 
 
 class SnapshotFS(fuse.Fuse):
