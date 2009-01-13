@@ -16,6 +16,7 @@ CREATE TABLE node (
 	first		INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id),
 	last		INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id)
 );
+-- FIXME: add a trigger that checks that first->archive_id == last->archive_id
 
 CREATE TABLE directory (
 	directory_id	SERIAL		PRIMARY KEY,
