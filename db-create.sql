@@ -45,5 +45,6 @@ CREATE TABLE symlink (
 CREATE INDEX node_idx_parent ON node(parent);
 CREATE INDEX directory_idx_path ON directory(path);
 CREATE INDEX file_idx_name ON file(name);
+CREATE INDEX file_idx_node_id ON file(node_id);
 CREATE INDEX symlink_idx_name ON symlink(name);
 
