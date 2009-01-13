@@ -25,7 +25,7 @@ class MyStat(fuse.Stat):
       self.st_nlink = 1
 
 class DirStat(MyStat):
-   def __init__(self, subdirs=None):
+   def __init__(self, subdirs=None, ctime=0, mtime=0):
       MyStat.__init__(self)
       self.st_mode = stat.S_IFDIR | 0755
       if subdirs is None:
@@ -33,6 +33,16 @@ class DirStat(MyStat):
       else:
          self.st_nlink = 2+subdirs
       self.st_size = 4096
+      self.st_ctime = ctime
+      self.st_mtime = mtime
+
+class SymlinkStat(MyStat):
+   def __init__(self, len, ctime=0, mtime=0):
+      MyStat.__init__(self)
+      self.st_mode = stat.S_ILNK | 0777
+      self.st_size = len
+      self.st_ctime = ctime
+      self.st_mtime = mtime
 
 class SnapshotDB():
    def __init__(self):
@@ -56,21 +66,174 @@ def split_path(path):
       subpath = '/'+path_elements[1]
    return(path_elements[0], subpath)
 
+class SnapshotFile():
+   def __init__(self, db, parent_dir, timestamp, name):
+      self.db = db
+      self.parent_dir = parent_dir
+      self.timestamp = timestamp
+      self.name = name
+
+      list = self.db.query("""SELECT hash,
+                                     extract(epoch from first_run) as ctime,
+                                     extract(epoch from last_run) as mtime
+                              FROM file NATURAL JOIN node_with_ts
+                              WHERE parent=%(parent_dir)s
+                                AND first_run <= %(timestamp)s
+                                AND last_run  >= %(timestamp)s
+                                AND name = %(name)s
+                           """,
+                           {'parent_dir': self.parent_dir,
+                            'timestamp': self.timestamp,
+                            'name': name});
+      if len(list) == 0:
+         raise IOError(errno.ENOENT, 'No such directory')
+      elif len(list) >= 1:
+          raise IOError(errno.EIO, 'Multiple hits for regular file - FS corrupt?')
+
+      self.hash = list[0][0]
+      self.ctime = list[0][1]
+      self.mtime = list[0][1]
+
+   def getattr(self):
+      return FileStat(len(hash), ctime, mtime)
+   def readlink(self):
+      return hash
+
+
+class SnapshotSymlink():
+   def __init__(self, db, parent_dir, timestamp, name):
+      self.db = db
+      self.parent_dir = parent_dir
+      self.timestamp = timestamp
+      self.name = name
+
+      list = self.db.query("""SELECT target,
+                                     extract(epoch from first_run) as ctime,
+                                     extract(epoch from last_run) as mtime
+                              FROM symlink NATURAL JOIN node_with_ts
+                              WHERE parent=%(parent_dir)s
+                                AND first_run <= %(timestamp)s
+                                AND last_run  >= %(timestamp)s
+                                AND name = %(name)s
+                           """,
+                           {'parent_dir': self.parent_dir,
+                            'timestamp': self.timestamp,
+                            'name': name});
+      if len(list) == 0:
+         raise IOError(errno.ENOENT, 'No such directory')
+      elif len(list) >= 1:
+          raise IOError(errno.EIO, 'Multiple hits for symlink - FS corrupt?')
+
+      self.target = list[0][0]
+      self.ctime = list[0][1]
+      self.mtime = list[0][1]
+
+   def getattr(self):
+      return SymlinkStat(len(target), ctime, mtime)
+   def readlink(self):
+      return target
+
+
+class SnapshotDirectory():
+   def __init__(self, db, archive_id, timestamp, path):
+      self.db = db
+      self.archive_id = archive_id
+      self.timestamp = timestamp
+      self.path = path
+
+      list = self.db.query("""SELECT directory_id,
+                                     extract(epoch from first_run) as ctime,
+                                     extract(epoch from last_run) as mtime
+                              FROM directory NATURAL JOIN node_with_ts
+                              WHERE path=%(path)s
+                                AND archive_id = %(archive_id)s
+                                AND first_run <= %(timestamp)s
+                                AND last_run  >= %(timestamp)s""",
+                           {'archive_id': self.archive_id,
+                            'path': self.path,
+                            'timestamp': self.timestamp})
+      if len(list) == 0:
+         raise IOError(errno.ENOENT, 'No such directory')
+      elif len(list) > 1:
+         raise IOError(errno.EIO, 'Multiple hits for directory - FS corrupt?')
+
+      self.directory_id = list[0][0]
+      self.ctime = list[0][1]
+      self.mtime = list[0][2]
+
+   def getattr(self, element=None):
+      if element is None:
+         # the getattr is about the directory itself
+         st = DirStat(self.ctime, self.mtime)
+         return st
+      else:
+         # not this directory but an element (not a subdir) in it
+
+         # so maybe it's a regular file
+         try:
+            return SnapshotFile(self.db, self.directory_id, self.timestamp, element).getattr()
+         except IOError, e:
+            if e.errno != errno.ENOENT:
+               raise
+
+         # or maybe it's a symlink:
+         try:
+            return SnapshotSymlink(self.db, self.directory_id, self.timestamp, element).getattr()
+         except IOError, e:
+            if e.errno != errno.ENOENT:
+               raise
+
+         return -errno.ENOENT
+
+   def readdir(self, offset):
+      # all subdirs:
+      subdirs = self.db.query_firsts("""SELECT path
+                                        FROM directory NATURAL JOIN node_with_ts
+                                        WHERE parent=%(parent_dir)s
+                                          AND directory_id <> parent
+                                          AND first_run <= %(timestamp)s
+                                          AND last_run  >= %(timestamp)s
+                                     """,
+                                    # the / directory has itself listed as parent - we never want to
+                                    # get that returned
+                                     {'parent_dir': self.directory_id,
+                                      'timestamp': self.timestamp});
+      others = self.db.query_firsts("""  SELECT name FROM file NATURAL JOIN node_with_ts
+                                         WHERE parent=%(parent_dir)s
+                                           AND first_run <= %(timestamp)s
+                                           AND last_run  >= %(timestamp)s
+                                       UNION ALL
+                                         SELECT name FROM symlink NATURAL JOIN node_with_ts
+                                         WHERE parent=%(parent_dir)s
+                                           AND first_run <= %(timestamp)s
+                                           AND last_run  >= %(timestamp)s
+                                    """,
+                                    {'parent_dir': self.directory_id,
+                                     'timestamp': self.timestamp});
+      subdirs = map(lambda x: os.path.basename(x), subdirs)
+      subdirs.extend(others)
+      return subdirs
+
 
 class MirrorRun():
-   def __init__(self, db, id):
+   def __init__(self, db, archive_id, timestamp):
       self.db = db
-      self.id = id
+      self.archive_id = archive_id
+      self.timestamp = timestamp
 
    def getattr(self, path):
-      if path=='/':
-         return DirStat() # XXX
-      return -errno.ENOENT
+      try:
+         return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).getattr()
+      except IOError, e:
+         if e.errno != errno.ENOENT:
+            raise
+
+         parentpath = os.path.dirname(path)
+         basename = os.path.basename(path)
+         return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).getattr(basename)
 
    def readdir(self, path, offset):
-      if path=='/':
-         return []
-      return -errno.ENOENT
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).readdir(offset)
 
 class FSStaticElement():
    def __init__(self):
@@ -100,13 +263,13 @@ class Archive(FSStaticElement):
       self.load_elements()
 
    def load_elements(self):
-      list = self.db.query("""SELECT mirrorrun_id, to_char(run, 'YYYYMMDD"T"HH24MISS')
+      list = self.db.query("""SELECT run, to_char(run, 'YYYYMMDD"T"HH24MISS')
                               FROM mirrorrun
                               WHERE archive_id=%(id)s""", {'id': self.id})
       for e in list:
-         id = e[0]
-         timestamp = e[1]
-         self.elements[timestamp] = MirrorRun(self.db, id)
+         timestamp = e[0]
+         pretty_timestamp = e[1]
+         self.elements[pretty_timestamp] = MirrorRun(self.db, self.id, timestamp)
 
 
 class Root(FSStaticElement):
