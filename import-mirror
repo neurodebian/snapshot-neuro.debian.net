@@ -40,7 +40,7 @@ ARGV.options do |opts|
   opts.on("-p", "--path=<path>"            , String, "Path to the ftp root")     { |@path| }
   opts.on("-d", "--date=<path>"            , String, "Date of this archive run") { |@date| }
   opts.on("-v", "--verbose=<n>"            , Integer, "Be verbose")               { |$verbose| }
-  opts.on("-v", "--quick"                  , nil,    "quick (Ignore files older than last run)") { |$quick| }
+  opts.on("-q", "--quick"                  , nil,    "quick (Ignore files older than last run)") { |$quick| }
 
   opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
   opts.parse!
