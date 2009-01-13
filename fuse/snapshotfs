@@ -10,6 +10,11 @@ fuse.fuse_python_api = (0, 2)
 
 connectstring = "dbname='snapshot' user='snapshot' host='localhost' password='x'"
 
+def make_farm_link(hash):
+   prefix1 = hash[0:2]
+   prefix2 = hash[2:4]
+   return os.path.join("/srv/snapshot/farm", prefix1, prefix2, hash)
+
 class MyStat(fuse.Stat):
    def __init__(self):
       self.st_ino = 0
@@ -39,7 +44,7 @@ class DirStat(MyStat):
 class SymlinkStat(MyStat):
    def __init__(self, len, ctime=0, mtime=0):
       MyStat.__init__(self)
-      self.st_mode = stat.S_ILNK | 0777
+      self.st_mode = stat.S_IFLNK | 0777
       self.st_size = len
       self.st_ctime = ctime
       self.st_mtime = mtime
@@ -87,17 +92,18 @@ class SnapshotFile():
                             'name': name});
       if len(list) == 0:
          raise IOError(errno.ENOENT, 'No such directory')
-      elif len(list) >= 1:
-          raise IOError(errno.EIO, 'Multiple hits for regular file - FS corrupt?')
+      elif len(list) > 1:
+         raise IOError(errno.EIO, 'Multiple hits for regular file - FS corrupt?')
 
       self.hash = list[0][0]
       self.ctime = list[0][1]
       self.mtime = list[0][1]
+      self.target = make_farm_link(self.hash)
 
    def getattr(self):
-      return FileStat(len(hash), ctime, mtime)
+      return SymlinkStat(len(self.target), self.ctime, self.mtime)
    def readlink(self):
-      return hash
+      return self.target
 
 
 class SnapshotSymlink():
@@ -121,17 +127,17 @@ class SnapshotSymlink():
                             'name': name});
       if len(list) == 0:
          raise IOError(errno.ENOENT, 'No such directory')
-      elif len(list) >= 1:
-          raise IOError(errno.EIO, 'Multiple hits for symlink - FS corrupt?')
+      elif len(list) > 1:
+         raise IOError(errno.EIO, 'Multiple hits for symlink - FS corrupt?')
 
       self.target = list[0][0]
       self.ctime = list[0][1]
       self.mtime = list[0][1]
 
    def getattr(self):
-      return SymlinkStat(len(target), ctime, mtime)
+      return SymlinkStat(len(self.target), self.ctime, self.mtime)
    def readlink(self):
-      return target
+      return self.target
 
 
 class SnapshotDirectory():
@@ -161,27 +167,25 @@ class SnapshotDirectory():
       self.ctime = list[0][1]
       self.mtime = list[0][2]
 
-   def getattr(self, element=None):
-      if element is None:
+   def getattr(self, name=None):
+      if name is None:
          # the getattr is about the directory itself
-         st = DirStat(self.ctime, self.mtime)
+         st = DirStat(None, self.ctime, self.mtime)
          return st
       else:
-         # not this directory but an element (not a subdir) in it
+         # not this directory but a element (not a subdir) in it
 
          # so maybe it's a regular file
          try:
-            return SnapshotFile(self.db, self.directory_id, self.timestamp, element).getattr()
+            return SnapshotFile(self.db, self.directory_id, self.timestamp, name).getattr()
          except IOError, e:
-            if e.errno != errno.ENOENT:
-               raise
+            if e.errno != errno.ENOENT: raise
 
          # or maybe it's a symlink:
          try:
-            return SnapshotSymlink(self.db, self.directory_id, self.timestamp, element).getattr()
+            return SnapshotSymlink(self.db, self.directory_id, self.timestamp, name).getattr()
          except IOError, e:
-            if e.errno != errno.ENOENT:
-               raise
+            if e.errno != errno.ENOENT: raise
 
          return -errno.ENOENT
 
@@ -214,6 +218,18 @@ class SnapshotDirectory():
       subdirs.extend(others)
       return subdirs
 
+   def readlink(self, name):
+         try:
+            return SnapshotFile(self.db, self.directory_id, self.timestamp, name).readlink()
+         except IOError, e:
+            if e.errno != errno.ENOENT: raise
+
+         try:
+            return SnapshotSymlink(self.db, self.directory_id, self.timestamp, name).readlink()
+         except IOError, e:
+            if e.errno != errno.ENOENT: raise
+
+         return -errno.ENOENT
 
 class MirrorRun():
    def __init__(self, db, archive_id, timestamp):
@@ -225,15 +241,19 @@ class MirrorRun():
       try:
          return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).getattr()
       except IOError, e:
-         if e.errno != errno.ENOENT:
-            raise
+         if e.errno != errno.ENOENT: raise
 
-         parentpath = os.path.dirname(path)
-         basename = os.path.basename(path)
-         return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).getattr(basename)
+      parentpath = os.path.dirname(path)
+      basename = os.path.basename(path)
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).getattr(basename)
 
    def readdir(self, path, offset):
       return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).readdir(offset)
+
+   def readlink(self, path):
+      parentpath = os.path.dirname(path)
+      basename = os.path.basename(path)
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).readlink(basename)
 
 class FSStaticElement():
    def __init__(self):
@@ -253,6 +273,14 @@ class FSStaticElement():
          return self.elements.keys()
       elif first in self.elements:
          return self.elements[ first ].readdir(subpath, offset)
+      return -errno.ENOENT
+
+   def readlink(self, path):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return -errno.EINVAL
+      elif first in self.elements:
+         return self.elements[ first ].readlink(subpath)
       return -errno.ENOENT
 
 class Archive(FSStaticElement):
@@ -301,7 +329,7 @@ class SnapshotFS(fuse.Fuse):
          yield fuse.Direntry(r)
 
    def readlink(self, path):
-      return hello_str
+      return self.root.readlink(path)
 
 def main():
    db = SnapshotDB()
