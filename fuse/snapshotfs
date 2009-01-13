@@ -49,6 +49,15 @@ class SymlinkStat(MyStat):
       self.st_ctime = ctime
       self.st_mtime = mtime
 
+class FileStat(MyStat):
+   def __init__(self, size=0, ctime=0, mtime=0):
+      MyStat.__init__(self)
+      self.st_mode = stat.S_IFREG | 0644
+      self.st_size = size
+      self.st_ctime = ctime
+      self.st_mtime = mtime
+
+
 class SnapshotDB():
    def __init__(self):
       self.db=psycopg2.connect(connectstring)
@@ -315,11 +324,19 @@ class Root(FSStaticElement):
 
 
 class SnapshotFS(fuse.Fuse):
-   def __init__(self, root, *args, **kw):
+   def __init__(self, db, *args, **kw):
       fuse.Fuse.__init__(self, *args, **kw)
-      self.root = root
+      self.db = db
+      self.reload_database()
+
+   def reload_database(self):
+      print "Reloading cached entries"
+      self.root = Root(self.db)
 
    def getattr(self, path):
+      if path == '/.ctrl-reload-database':
+         self.reload_database()
+         return FileStat()
       return self.root.getattr(path)
 
    def readdir(self, path, offset):
@@ -333,9 +350,8 @@ class SnapshotFS(fuse.Fuse):
 
 def main():
    db = SnapshotDB()
-   root = Root(db)
 
-   server = SnapshotFS(root, dash_s_do='setsingle')
+   server = SnapshotFS(db, dash_s_do='setsingle')
    server.parse(errex=1)
    server.main()
 
