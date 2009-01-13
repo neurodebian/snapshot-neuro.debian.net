@@ -121,7 +121,7 @@ class NodeManager
   def insert_tree(path)
     Dir.chdir(path) do
       Find.find('.') do |realpath|
-        s = File::Stat.new(realpath)
+        s = File.lstat(realpath)
         nicepath = fixupPath realpath
 
         puts "Doing #{nicepath}" if $verbose >= 2
