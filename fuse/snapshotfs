@@ -57,6 +57,21 @@ def split_path(path):
    return(path_elements[0], subpath)
 
 
+class MirrorRun():
+   def __init__(self, db, id):
+      self.db = db
+      self.id = id
+
+   def getattr(self, path):
+      if path=='/':
+         return DirStat() # XXX
+      return -errno.ENOENT
+
+   def readdir(self, path, offset):
+      if path=='/':
+         return []
+      return -errno.ENOENT
+
 class FSStaticElement():
    def __init__(self):
       self.elements = {}
@@ -91,7 +106,7 @@ class Archive(FSStaticElement):
       for e in list:
          id = e[0]
          timestamp = e[1]
-         self.elements[timestamp] = FSStaticElement() #FSStaticElement(self.db, id)
+         self.elements[timestamp] = MirrorRun(self.db, id)
 
 
 class Root(FSStaticElement):
