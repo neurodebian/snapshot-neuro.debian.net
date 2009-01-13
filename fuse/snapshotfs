@@ -1,0 +1,106 @@
+#!/usr/bin/python
+
+import os
+import stat
+import errno
+import fuse
+import psycopg2
+
+fuse.fuse_python_api = (0, 2)
+
+connectstring = "dbname='snapshot' user='snapshot' host='localhost' password='x'"
+
+class MyStat(fuse.Stat):
+   def __init__(self):
+      self.st_ino = 0
+      self.st_dev = 0
+      self.st_uid = 0
+      self.st_gid = 0
+      self.st_atime = 0
+      self.st_mtime = 0
+      self.st_ctime = 0
+
+      self.st_mode = 0
+      self.st_size = 0
+      self.st_nlink = 1
+
+class DirStat(MyStat):
+   def __init__(self, subdirs=None):
+      MyStat.__init__(self)
+      self.st_mode = stat.S_IFDIR | 0755
+      if subdirs is None:
+         self.st_nlink = 1 # unknown
+      else:
+         self.st_nlink = 2+subdirs
+      self.st_size = 4096
+
+class SnapshotDB():
+   def __init__(self):
+      self.db=psycopg2.connect(connectstring)
+
+   def query(self, *args, **kw):
+      c = self.db.cursor()
+      c.execute(*args, **kw)
+      return c.fetchall()
+
+   def query_firsts(self, *args, **kw):
+      all = self.query(*args, **kw)
+      return map(lambda x: x[0], all)
+
+
+class Root():
+   def __init__(self, db):
+      self.db = db
+      self.load_archives()
+
+   def load_archives(self):
+      self.archives = self.db.query_firsts('SELECT name FROM archive')
+
+   def getattr(self, path):
+      path_elements = path.split('/',2)[1:]
+      if path_elements[0] == '':
+         return DirStat(len(self.archives))
+      elif path_elements[0] in self.archives:
+         if len(path_elements) == 1:
+            return DirStat() # unknown # of subdirs
+         else:
+            return -errno.ENOENT #XXX
+      return -errno.ENOENT
+
+   def readdir(self, path, offset):
+      path_elements = path.split('/',2)[1:]
+      dirents = [ '.', '..' ]
+      if path_elements[0] == '':
+         dirents.extend(self.archives)
+      #elif path_elements[0] in self.archives:
+      return dirents
+
+class SnapshotFS(fuse.Fuse):
+   def __init__(self, root, *args, **kw):
+      fuse.Fuse.__init__(self, *args, **kw)
+      self.root = root
+
+   def getattr(self, path):
+      return self.root.getattr(path)
+
+   def readdir(self, path, offset):
+      for r in self.root.readdir(path, offset):
+         yield fuse.Direntry(r)
+
+   def readlink(self, path):
+      return hello_str
+
+def main():
+   db = SnapshotDB()
+   root = Root(db)
+
+   server = SnapshotFS(root, dash_s_do='setsingle')
+   server.parse(errex=1)
+   server.main()
+
+if __name__ == '__main__':
+   main()
+
+# vim:set et:
+# vim:set ts=3:
+# vim:set shiftwidth=3:
