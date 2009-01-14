@@ -78,6 +78,8 @@ end
 class NodeManager
   def initialize(db, archive, date, path)
     @db = db;
+    @dir_mapping = {}
+
     new_mirror_run(archive, date)
     insert_tree(path)
   end
@@ -107,6 +109,7 @@ class NodeManager
     @db.insert_row( 'mirrorrun', r )
 
     @mirror_run = r['mirrorrun_id']
+    @dir_mapping = {}
   end
 
   # find gives us paths starting with ./ (since we run it for .)
@@ -227,6 +230,8 @@ class NodeManager
   end
 
   def insert_directory(fullpath)
+    return @dir_mapping[fullpath] if @dir_mapping.has_key?(fullpath)
+
     r = @db.query_row("UPDATE node SET last=?
                        FROM directory
                        WHERE node.node_id = directory.node_id AND
@@ -235,7 +240,8 @@ class NodeManager
                        @mirror_run,
                        fullpath, @previous_run, @mirror_run)
     if r
-      return r['directory_id']
+      @dir_mapping[fullpath] = r['directory_id']
+      return @dir_mapping[fullpath]
     else
       node = insert_node( (fullpath == '/') ? -1 : insert_directory(File.dirname(fullpath)))
 
@@ -248,7 +254,8 @@ class NodeManager
                        { 'parent' => directory['directory_id'] },
                        { 'node_id' => node['node_id'] });
       end
-      return directory['directory_id']
+      @dir_mapping[fullpath] = directory['directory_id']
+      return @dir_mapping[fullpath]
     end
   end
 end
