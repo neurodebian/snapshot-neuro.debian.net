@@ -337,8 +337,8 @@ class Root(FSStaticElement):
    def __init__(self, db):
       FSStaticElement.__init__(self)
       self.db = db
-      result = self.db.query("""SELECT extract(epoch FROM min(run)) as first_run,
-                                       extract(epoch FROM max(run)) as last_run
+      result = self.db.query("""SELECT coalesce(extract(epoch FROM min(run)), 0) AS first_run,
+                                       coalesce(extract(epoch FROM max(run)), 0) AS last_run
                                 FROM mirrorrun""")
       self.ctime = result[0][0]
       self.mtime = result[0][1]
@@ -346,14 +346,14 @@ class Root(FSStaticElement):
 
    def load_elements(self):
       list = self.db.query("""SELECT archive_id, name,
-                                     extract(epoch FROM (SELECT min(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)) AS first_run,
-                                     extract(epoch FROM (SELECT max(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)) AS last_run
+                                     coalesce(extract(epoch FROM (SELECT min(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)), 0) AS first_run,
+                                     coalesce(extract(epoch FROM (SELECT max(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)), 0) AS last_run
                               FROM archive""")
       for e in list:
          id = e[0]
          name = e[1]
          first_run = e[2]
-         last_run = e[2]
+         last_run = e[3]
          self.elements[name] = Archive(self.db, id, first_run, last_run)
 
 
