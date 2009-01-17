@@ -44,7 +44,7 @@ The way snapshot currently stores data is actually quite simple:
 
    Each of those nodes has a reference to its parent directory in
    order to reconstruct the original filesystem structure.  A node
-   also contains pointers to the first and the last mirrorin it appeared
+   also contains pointers to the first and the last mirrorrun it appeared
    in.  Some files, like Packages.gz files, will probably only exist
    for a single mirrorun while other files like actual packages or
    the root directory (/) exist for many, or even all of the mirroruns
