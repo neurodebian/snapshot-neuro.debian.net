@@ -51,7 +51,7 @@ The way snapshot currently stores data is actually quite simple:
    for a given archive.
 
 
-Currently apart from directly querying the SQL there's a python
+Currently - apart from directly querying the SQL - there's a python
 implementation of a snapshotfs fuse file system.  It's not really
 built to scale well, but for now it's one way to access the data.
 
