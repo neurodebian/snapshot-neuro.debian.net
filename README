@@ -28,7 +28,7 @@ The way snapshot currently stores data is actually quite simple:
 
  - The rest is stored in a postgresql database.  This database has a
    concept of an _archive_ ("debian", "debian-security", "backports.org",
-   etc.).  Each archive has any number of "mirrorun" entries.  These
+   etc.).  Each archive has any number of _mirrorun_ entries.  These
    correspond to one import of that mirror into the database.
 
    An actual represented filesystem tree consists of _node_s.  Each node
