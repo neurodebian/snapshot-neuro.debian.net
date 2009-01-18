@@ -69,6 +69,10 @@ or anywhere.  This probably should be something that builds on
 top of the basic snapshot, but that doesn't mean it couldn't live
 in the same database.
 
+We might also need this for cases where packages are removed from
+the archive because we aren't allowed to redistribute them.  Then
+we could set all those files to locked/unreadable/whatever.
+
 Another thing would be to teach the system about releases so that
 one can get "sarge r2" from the system.  Again, it should be
 able to build on top of what is already there.
