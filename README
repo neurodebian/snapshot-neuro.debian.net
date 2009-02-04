@@ -1,0 +1,78 @@
+This is an implementation for a possible snapshot.debian.org service.
+It's not yet finished, it's more a prototype/proof of concept to show
+and learn what we want and can provide.  So far it seems to actually work.
+
+The goal of snapshot.d.o is to collect a history of how our archives
+(the main debian.org archive, security, volatile etc) looked at any
+point in time.  It should allow users to say get the vim package that
+was in testing on the 13th of January 2009.
+
+The way snapshot currently stores data is actually quite simple:
+ - The actual files' content is stored in the "farm".  Here each file
+   is stored under a name that depends on its content: its sha1-hashsum.
+   For reasons that weasel no longer is sure actually still apply nowadays
+   the filesystem tree that houses those file is hashed also.
+
+   A typical farm looks like this:
+	.
+	./00
+	./00/00
+	./00/00/00000dd4ba37c55ce75c8cad71f03e85ee09a370
+	./00/03
+	./00/03/000354b82181fbb7de26f2060bda3d96bbff28d5
+	./00/03/00037ab88f67808c40f741bdc678254ce560df24
+	./00/06
+	./00/06/000648707e514afd7b7d4912f4062c13062012ba
+  (not very well filled yet)
+
+
+ - The rest is stored in a postgresql database.  This database has a
+   concept of an _archive_ ("debian", "debian-security", "backports.org",
+   etc.).  Each archive has any number of _mirrorun_ entries.  These
+   correspond to one import of that mirror into the database.
+
+   An actual represented filesystem tree consists of _node_s.  Each node
+   corresponds to an item in an imported archive tree.
+   A node is either a _directory_, a regular _file_, or a _symlink_. No
+   other filetypes are currently supported - and we probably don't need
+   much else.
+
+   A directory node stores the full path from the archive root.  A
+   regular file knows its original (base)name, its size, and its sha1
+   hashsum (so we can find it in the farm).  And a symlink knows its
+   original base(name) and its target (i.e. what it points to).
+
+   Each of those nodes has a reference to its parent directory in
+   order to reconstruct the original filesystem structure.  A node
+   also contains pointers to the first and the last mirrorrun it appeared
+   in.  Some files, like Packages.gz files, will probably only exist
+   for a single mirrorun while other files like actual packages or
+   the root directory (/) exist for many, or even all of the mirroruns
+   for a given archive.
+
+
+Currently - apart from directly querying the SQL - there's a python
+implementation of a snapshotfs fuse file system.  It's not really
+built to scale well, but for now it's one way to access the data.
+
+Hopefully somebody can be found to build a nice web frontent to this
+stuff.
+
+
+So far our snapshot implementation is pretty agnositc as to what
+kind of data we take snapshots of.  It could just as well be
+your home directory or the bugs database.
+As another improvement it might be nice to introduce the concept
+of packages to snapshot, so that users can query the system for
+all versions of a package that ever existed in a specific archive
+or anywhere.  This probably should be something that builds on
+top of the basic snapshot, but that doesn't mean it couldn't live
+in the same database.
+
+We might also need this for cases where packages are removed from
+the archive because we aren't allowed to redistribute them.  Then
+we could set all those files to locked/unreadable/whatever.
+
+Another thing would be to teach the system about releases so that
+one can get "sarge r2" from the system.  Again, it should be
+able to build on top of what is already there.
