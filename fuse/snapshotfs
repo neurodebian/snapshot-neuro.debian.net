@@ -25,6 +25,7 @@ import stat
 import errno
 import fuse
 import psycopg2
+import psycopg2.extras
 
 fuse.fuse_python_api = (0, 2)
 
@@ -82,7 +83,7 @@ class SnapshotDB():
       self.db=psycopg2.connect(connectstring)
 
    def query(self, *args, **kw):
-      c = self.db.cursor()
+      c = self.db.cursor(cursor_factory=psycopg2.extras.DictCursor)
       c.execute(*args, **kw)
       return c.fetchall()
 
@@ -123,9 +124,9 @@ class SnapshotFile():
       elif len(list) > 1:
          raise IOError(errno.EIO, 'Multiple hits for regular file - FS corrupt?')
 
-      self.hash = list[0][0]
-      self.ctime = list[0][1]
-      self.atime = list[0][2]
+      self.hash = list[0]['hash']
+      self.ctime = list[0]['ctime']
+      self.atime = list[0]['atime']
       self.target = make_farm_link(self.hash)
 
    def getattr(self):
@@ -158,9 +159,9 @@ class SnapshotSymlink():
       elif len(list) > 1:
          raise IOError(errno.EIO, 'Multiple hits for symlink - FS corrupt?')
 
-      self.target = list[0][0]
-      self.ctime = list[0][1]
-      self.atime = list[0][2]
+      self.target = list[0]['target']
+      self.ctime = list[0]['ctime']
+      self.atime = list[0]['atime']
 
    def getattr(self):
       return SymlinkStat(len(self.target), self.ctime, self.atime)
@@ -192,10 +193,10 @@ class SnapshotDirectory():
       elif len(list) > 1:
          raise IOError(errno.EIO, 'Multiple hits for directory - FS corrupt?')
 
-      self.directory_id = list[0][0]
-      self.ctime = list[0][1]
-      self.mtime = list[0][2]
-      self.atime = list[0][3]
+      self.directory_id = list[0]['directory_id']
+      self.ctime = list[0]['ctime']
+      self.mtime = list[0]['mtime']
+      self.atime = list[0]['atime']
 
    def getattr(self, name=None):
       if name is None:
@@ -327,12 +328,12 @@ class Archive(FSStaticElement):
       self.load_elements()
 
    def load_elements(self):
-      list = self.db.query("""SELECT run, to_char(run, 'YYYYMMDD"T"HH24MISS')
+      list = self.db.query("""SELECT run, to_char(run, 'YYYYMMDD"T"HH24MISS') AS timestamp
                               FROM mirrorrun
                               WHERE archive_id=%(id)s""", {'id': self.id})
       for e in list:
-         timestamp = e[0]
-         pretty_timestamp = e[1]
+         timestamp = e['run']
+         pretty_timestamp = e['timestamp']
          self.elements[pretty_timestamp] = MirrorRun(self.db, self.id, timestamp)
 
 
@@ -343,9 +344,9 @@ class Root(FSStaticElement):
       result = self.db.query("""SELECT coalesce(extract(epoch FROM min(run)), 0) AS first_run,
                                        coalesce(extract(epoch FROM max(run)), 0) AS last_run
                                 FROM mirrorrun""")
-      self.ctime = result[0][0]
-      self.mtime = result[0][1]
-      self.atime = result[0][1]
+      self.ctime = result[0]['first_run']
+      self.mtime = result[0]['last_run']
+      self.atime = result[0]['last_run']
       self.load_elements()
 
    def load_elements(self):
@@ -354,10 +355,10 @@ class Root(FSStaticElement):
                                      coalesce(extract(epoch FROM (SELECT max(run) FROM mirrorrun WHERE mirrorrun.archive_id=archive.archive_id)), 0) AS last_run
                               FROM archive""")
       for e in list:
-         id = e[0]
-         name = e[1]
-         first_run = e[2]
-         last_run = e[3]
+         id = e['archive_id']
+         name = e['name']
+         first_run = e['first_run']
+         last_run = e['last_run']
          self.elements[name] = Archive(self.db, id, first_run, last_run)
 
 
