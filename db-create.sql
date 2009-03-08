@@ -61,3 +61,31 @@ CREATE INDEX file_idx_name ON file(name);
 CREATE INDEX file_idx_node_id ON file(node_id);
 CREATE INDEX symlink_idx_name ON symlink(name);
 
+
+
+-- proof of concept function
+-- drop FUNCTION readdir (integer, timestamp);
+-- CREATE FUNCTION readdir(p integer, ts timestamp) RETURNS SETOF VARCHAR(128) AS $$
+-- BEGIN
+--         RETURN QUERY
+--                 SELECT substring(path, '[^/]*$')::VARCHAR(128) 
+--                   FROM directory NATURAL JOIN node_with_ts
+--                   WHERE parent=p
+--                     AND directory_id <> parent
+--                     AND first_run <= ts
+--                     AND last_run  >= ts
+--                 UNION ALL
+--                 SELECT name 
+--                   FROM file NATURAL JOIN node_with_ts
+--                   WHERE parent=p
+--                     AND first_run <= ts
+--                     AND last_run  >= ts
+--                 UNION ALL
+--                 SELECT name
+--                   FROM symlink NATURAL JOIN node_with_ts
+--                   WHERE parent=p
+--                     AND first_run <= ts
+--                     AND last_run  >= ts;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
