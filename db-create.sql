@@ -1,3 +1,6 @@
+-- ####################################################################
+-- the filesystem
+-- ####################################################################
 CREATE TABLE archive (
 	archive_id	SERIAL	PRIMARY KEY,
 	name		VARCHAR(80)	NOT NULL,
@@ -88,4 +91,41 @@ CREATE INDEX symlink_idx_name ON symlink(name);
 --                     AND last_run  >= ts;
 -- END;
 -- $$ LANGUAGE plpgsql;
+
+
+
+
+
+-- ####################################################################
+-- packages
+-- ####################################################################
+-- we try to keep the filesystem part independent from this
+CREATE TABLE srcpkg (
+	srcpkg_id	SERIAL		PRIMARY KEY,
+	name		VARCHAR(128)	NOT NULL,
+	version		DEBVERSION	NOT NULL
+);
+CREATE TABLE binpkg (
+	binpkg_id	SERIAL		PRIMARY KEY,
+	name		VARCHAR(128)	NOT NULL,
+	version		DEBVERSION	NOT NULL,
+	srcpkg_id	INTEGER		NOT NULL REFERENCES srcpkg(srcpkg_id)
+);
+CREATE INDEX srcpkg_idx_name ON srcpkg(name);
+CREATE INDEX binpkg_idx_name ON binpkg(name);
+
+CREATE TABLE file_srcpkg_mapping (
+	file_id		INTEGER		NOT NULL REFERENCES file(file_id),
+	srcpkg_id	INTEGER		NOT NULL REFERENCES srcpkg(srcpkg_id),
+	UNIQUE(file_id)
+);
+CREATE INDEX file_srcpkg_mapping_idx_srcpkg_id ON file_srcpkg_mapping(srcpkg_id);
+
+CREATE TABLE file_binpkg_mapping (
+	file_id		INTEGER		NOT NULL REFERENCES file(file_id),
+	binpkg_id	INTEGER		NOT NULL REFERENCES binpkg(binpkg_id),
+	architecture	VARCHAR(10)	NOT NULL,
+	UNIQUE(file_id)
+);
+CREATE INDEX file_binpkg_mapping_idx_binpkg_id ON file_binpkg_mapping(binpkg_id);
 
