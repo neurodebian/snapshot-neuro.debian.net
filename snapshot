@@ -188,7 +188,7 @@ class Snapshot:
         sys.stdout.write("\n".join(map(lambda x: x['name'], list)+['']))
 
     def add_archive(self, options):
-        if not 'name' in options:
+        if options['name'] is None:
             log.error("New --name not given")
             sys.exit(1)
         self.db.begin()
@@ -197,6 +197,9 @@ class Snapshot:
         self.db.commit()
 
     def fs_list(self, options):
+        if options['path'] is None:
+            log.error("--path not given")
+            sys.exit(1)
         for l in FSReader(options['path']):
             print l
 
