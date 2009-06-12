@@ -86,19 +86,61 @@ class SnapshotDB:
     def commit(self):
         self.execute("COMMIT")
 
+class TreeImporter:
+    def __init__(self):
+        self
+
+class FSReader:
+    """FSReader gets a path to a place on the local filesystem.  It
+       recurses through it, building a list of elements in this tree
+       """
+    def __init__(self, path):
+        oldcwd = os.getcwd()
+        os.chdir(path)
+        self.recurse(".")
+        os.chdir(oldcwd)
+
+    def fixup_path(self, path):
+        if path == '.':
+            return '/'
+        elif path[0:1] == ".":
+            return path[1:]
+        else:
+            raise "Unexpected path(%s) for fixup"%(path)
+
+    def recurse(self, root):
+        pretty_root = self.fixup_path(root)
+        print "d %s"%(pretty_root)
+        for filename in os.listdir(root):
+            pathname = os.path.join(root, filename)
+            pretty_path = os.path.join(pretty_root, filename)
+
+            statinfo = os.lstat(pathname)
+            mode = statinfo[stat.ST_MODE]
+
+            if stat.S_ISDIR(mode):
+                self.recurse(pathname)
+            elif stat.S_ISLNK(mode):
+                print "l %s %s"%(pretty_path, os.readlink(pathname))
+            elif stat.S_ISREG(mode):
+                print "- %s %d"%(pretty_path, statinfo[stat.ST_SIZE])
+            else:
+                log.warn("Ignoring %s which has unknown type", pathname)
+
+
 class Snapshot:
-    def __init__(self, log, db, config):
-        self.log = log
+    def __init__(self, db, config):
         self.db = db
         #self.config = config['snapshot']
 
     def run(self, options):
         actions = { 'list-archives': self.list_archives,
-                    'add-archive'  : self.add_archive
+                    'add-archive'  : self.add_archive,
+                    'fs-list'      : self.fs_list,
                   }
 
         if not options['action'] in actions:
-            self.log.error("Unknown action %s"%options['action'])
+            log.error("Unknown action %s"%options['action'])
             sys.exit(1)
         actions[options['action']](options)
 
@@ -108,22 +150,25 @@ class Snapshot:
 
     def add_archive(self, options):
         if not 'name' in options:
-            self.log.error("New --name not given")
+            log.error("New --name not given")
             sys.exit(1)
         self.db.begin()
         self.db.execute("""INSERT INTO archive (name) VALUES (%(name)s)""", {'name': options['name']})
-        self.log.info("Added new archive %s."%options['name'])
+        log.info("Added new archive %s."%options['name'])
         self.db.commit()
 
+    def fs_list(self, options):
+        FSReader(options['path'])
 
 def main():
     longopts = []
     longopts.append("help")
-    longopts.append("config=")
+    longopts.append("configfile=")
     longopts.append("quiet")
     longopts.append("stdout")
     longopts.append("action=")
     longopts.append("name=")
+    longopts.append("path=")
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hqs", longopts)
     except getopt.GetoptError, err:
@@ -134,7 +179,8 @@ def main():
         'quiet':      0,
         'stdout':     False,
         'configfile': None,
-        'action':     None
+        'action':     None,
+        'path':       None,
         }
     for opt, arg in opts:
         if opt in ("--help", "-h"):
@@ -143,12 +189,9 @@ def main():
             options['quiet'] = options['quiet'] + 1
         elif opt in ("--stdout", "-s"):
             options['stdout'] = True
-        elif opt in ("--config"):
-            options['configfile'] = arg
-        elif opt in ("--action"):
-            options['action'] = arg
-        elif opt in ("--name"):
-            options['name'] = arg
+        else:
+            if opt[0:2] == "--" and opt[2:] in options:
+                options[ opt[2:] ] = arg
 
     if len(args) > 0:
         usage(True)
@@ -163,6 +206,8 @@ def main():
         sys.stderr.write("Config file does not define log keywords\n")
         sys.exit(1)
     setupLogger(config['log'], options['stdout'], options['quiet'])
+
+    global log
     log = logging.getLogger("Main")
 
     if not 'db' in config:
@@ -170,7 +215,7 @@ def main():
         sys.exit(1)
     db = SnapshotDB(config['db'])
 
-    snapshot = Snapshot(log,db,config)
+    snapshot = Snapshot(db,config)
     snapshot.run(options)
 
 if __name__ == "__main__":
