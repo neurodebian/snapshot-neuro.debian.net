@@ -1,0 +1,168 @@
+#!/usr/bin/python
+
+# Copyright (c) 2009 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import errno
+import getopt
+import logging
+import logging.handlers
+import os
+import stat
+import sys
+import yaml
+
+import psycopg2
+import psycopg2.extras
+
+def usage(err = False):
+    if err:
+        f = sys.stderr
+        exit = 1
+    else:
+        f = sys.stdout
+        exit = 0
+    f.write("Usage: %s --config=<f> --action=list-archives\n" % (sys.argv[0]))
+    f.write("       %s --config=<f> --action=add-archive name=<name>\n" % (sys.argv[0]))
+    f.write("       %s --help|-h\n" % (sys.argv[0]))
+    f.write("Options: --quiet --stdout\n")
+    sys.exit(exit)
+
+def readConfig(conffile):
+    return yaml.load(open(conffile).read())
+
+def setupLogger(conf, stdout, quiet):
+    if quiet >= 2:
+        loglevel = level=logging.WARN
+    elif quiet >= 1:
+        loglevel = level=logging.INFO
+    else:
+        loglevel = level=logging.DEBUG
+    logging.getLogger('').setLevel(loglevel)
+
+    if stdout:
+        handler = logging.StreamHandler()
+    else:
+        handler = logging.handlers.TimedRotatingFileHandler(conf['filename'], 'midnight', 1, conf['keep'])
+    handler.setFormatter( logging.Formatter('%(asctime)s %(levelname)s %(name)s: %(message)s') )
+    logging.getLogger('').addHandler(handler)
+
+class SnapshotDB:
+    def __init__(self, conf):
+        self.db=psycopg2.connect(conf['connectstring'])
+
+    def execute(self, *args, **kw):
+        c = self.db.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        c.execute(*args, **kw)
+        return c
+
+    def query(self, *args, **kw):
+        c = self.execute(*args, **kw)
+        return c.fetchall()
+
+    def query_firsts(self, *args, **kw):
+        all = self.query(*args, **kw)
+        return map(lambda x: x[0], all)
+
+    def begin(self):
+        self.execute("BEGIN")
+    def commit(self):
+        self.execute("COMMIT")
+
+
+def list_archives(log, db, config, options):
+    list = db.query("""SELECT name FROM archive ORDER BY name""")
+    sys.stdout.write("\n".join(map(lambda x: x['name'], list)+['']))
+
+def add_archive(log, db, config, options):
+    if not 'name' in options:
+        log.error("New --name not given")
+        sys.exit(1)
+    db.begin()
+    db.execute("""INSERT INTO archive (name) VALUES (%(name)s)""", {'name': options['name']})
+    db.commit()
+
+def main():
+    longopts = []
+    longopts.append("help")
+    longopts.append("config=")
+    longopts.append("quiet")
+    longopts.append("stdout")
+    longopts.append("action=")
+    longopts.append("name=")
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hqs", longopts)
+    except getopt.GetoptError, err:
+        print str(err)
+        usage(True)
+
+    options = {
+        'quiet':      0,
+        'stdout':     False,
+        'configfile': None,
+        'action':     None
+        }
+    for opt, arg in opts:
+        if opt in ("--help", "-h"):
+            usage()
+        elif opt in ("--quiet", "-q"):
+            options['quiet'] = options['quiet'] + 1
+        elif opt in ("--stdout", "-s"):
+            options['stdout'] = True
+        elif opt in ("--config"):
+            options['configfile'] = arg
+        elif opt in ("--action"):
+            options['action'] = arg
+        elif opt in ("--name"):
+            options['name'] = arg
+
+    if len(args) > 0:
+        usage(True)
+
+    if options['configfile'] is None:
+        usage(True)
+    if options['action'] is None:
+        usage(True)
+
+    config = readConfig(options['configfile'])
+    if not 'log' in config:
+        sys.stderr.write("Config file does not define log keywords\n")
+        sys.exit(1)
+    setupLogger(config['log'], options['stdout'], options['quiet'])
+    log = logging.getLogger("Main")
+
+    if not 'db' in config:
+        log.error("Config file does not define db keywords")
+        sys.exit(1)
+    db = SnapshotDB(config['db'])
+
+    actions = { 'list-archives': list_archives,
+                'add-archive'  : add_archive
+              }
+    if not options['action'] in actions:
+        log.error("Unknown action %s"%options['action'])
+        sys.exit(1)
+    actions[options['action']](log, db, config, options)
+
+if __name__ == "__main__":
+   main()
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
