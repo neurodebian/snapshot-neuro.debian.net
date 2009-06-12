@@ -90,15 +90,12 @@ class TreeImporter:
     def __init__(self):
         self
 
-class FSReader:
-    """FSReader gets a path to a place on the local filesystem.  It
-       recurses through it, building a list of elements in this tree
-       """
-    def __init__(self, path):
-        oldcwd = os.getcwd()
-        os.chdir(path)
-        self.recurse(".")
-        os.chdir(oldcwd)
+class FSNode(dict):
+    def __init__(self, type, path):
+        super(FSNode, self).__init__()
+
+        self['type'] = type
+        self['path'] = self.fixup_path(path)
 
     def fixup_path(self, path):
         if path == '.':
@@ -108,25 +105,59 @@ class FSReader:
         else:
             raise "Unexpected path(%s) for fixup"%(path)
 
-    def recurse(self, root):
-        pretty_root = self.fixup_path(root)
-        print "d %s"%(pretty_root)
-        for filename in os.listdir(root):
-            pathname = os.path.join(root, filename)
-            pretty_path = os.path.join(pretty_root, filename)
+class FSNodeDirectory(FSNode):
+    def __init__(self, path):
+        super(FSNodeDirectory, self).__init__('d', path)
 
-            statinfo = os.lstat(pathname)
+class FSNodeSymlink(FSNode):
+    def __init__(self, path, target):
+        super(FSNodeSymlink, self).__init__('l', path)
+        self['target'] = target
+
+class FSNodeRegular(FSNode):
+    def __init__(self, path, size, mtime, ctime, digest=None):
+        super(FSNodeRegular, self).__init__('l', path)
+        self['size'] = size
+        self['time'] = max(mtime, ctime)
+        if digest is not None:
+            self['digest'] = digest
+
+
+class FSReader:
+    """FSReader gets a path to a place on the local filesystem.  It
+       recurses through it, building a list of elements in this tree
+       """
+    def __init__(self, path):
+        oldcwd = os.getcwd()
+        self.root = path
+
+    def append(self, type, path, **kw):
+        h = { 'type': type,
+              'path': path }
+        for key in kw:
+            h[key] = kw[key]
+        self.filelist.append(h)
+
+    def recurse(self, path = '.'):
+        fullpath = os.path.join(self.root, path)
+
+        yield FSNodeDirectory(path)
+        for filename in os.listdir(fullpath):
+            element = os.path.join(path, filename)
+            trueelement = os.path.join(self.root, element)
+
+            statinfo = os.lstat(trueelement)
             mode = statinfo[stat.ST_MODE]
 
             if stat.S_ISDIR(mode):
-                self.recurse(pathname)
+                for i in self.recurse(element):
+                    yield i
             elif stat.S_ISLNK(mode):
-                print "l %s %s"%(pretty_path, os.readlink(pathname))
+                yield FSNodeSymlink(element, os.readlink(trueelement))
             elif stat.S_ISREG(mode):
-                print "- %s %d"%(pretty_path, statinfo[stat.ST_SIZE])
+                yield FSNodeRegular(element, statinfo[stat.ST_SIZE], statinfo[stat.ST_MTIME], statinfo[stat.ST_CTIME])
             else:
-                log.warn("Ignoring %s which has unknown type", pathname)
-
+                log.warn("Ignoring %s which has unknown type", element)
 
 class Snapshot:
     def __init__(self, db, config):
@@ -158,7 +189,8 @@ class Snapshot:
         self.db.commit()
 
     def fs_list(self, options):
-        FSReader(options['path'])
+        for l in FSReader(options['path']).recurse():
+            print l
 
 def main():
     longopts = []
