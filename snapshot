@@ -86,18 +86,35 @@ class SnapshotDB:
     def commit(self):
         self.execute("COMMIT")
 
+class Snapshot:
+    def __init__(self, log, db, config):
+        self.log = log
+        self.db = db
+        #self.config = config['snapshot']
 
-def list_archives(log, db, config, options):
-    list = db.query("""SELECT name FROM archive ORDER BY name""")
-    sys.stdout.write("\n".join(map(lambda x: x['name'], list)+['']))
+    def run(self, options):
+        actions = { 'list-archives': self.list_archives,
+                    'add-archive'  : self.add_archive
+                  }
 
-def add_archive(log, db, config, options):
-    if not 'name' in options:
-        log.error("New --name not given")
-        sys.exit(1)
-    db.begin()
-    db.execute("""INSERT INTO archive (name) VALUES (%(name)s)""", {'name': options['name']})
-    db.commit()
+        if not options['action'] in actions:
+            self.log.error("Unknown action %s"%options['action'])
+            sys.exit(1)
+        actions[options['action']](options)
+
+    def list_archives(self, options):
+        list = self.db.query("""SELECT name FROM archive ORDER BY name""")
+        sys.stdout.write("\n".join(map(lambda x: x['name'], list)+['']))
+
+    def add_archive(self, options):
+        if not 'name' in options:
+            self.log.error("New --name not given")
+            sys.exit(1)
+        self.db.begin()
+        self.db.execute("""INSERT INTO archive (name) VALUES (%(name)s)""", {'name': options['name']})
+        self.log.info("Added new archive %s."%options['name'])
+        self.db.commit()
+
 
 def main():
     longopts = []
@@ -153,13 +170,8 @@ def main():
         sys.exit(1)
     db = SnapshotDB(config['db'])
 
-    actions = { 'list-archives': list_archives,
-                'add-archive'  : add_archive
-              }
-    if not options['action'] in actions:
-        log.error("Unknown action %s"%options['action'])
-        sys.exit(1)
-    actions[options['action']](log, db, config, options)
+    snapshot = Snapshot(log,db,config)
+    snapshot.run(options)
 
 if __name__ == "__main__":
    main()
