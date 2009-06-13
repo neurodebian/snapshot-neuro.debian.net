@@ -73,13 +73,26 @@ class SnapshotDB:
         c.execute(*args, **kw)
         return c
 
-    def query(self, *args, **kw):
+    def query_all(self, *args, **kw):
         c = self.execute(*args, **kw)
         return c.fetchall()
 
-    def query_firsts(self, *args, **kw):
-        all = self.query(*args, **kw)
-        return map(lambda x: x[0], all)
+    def query_iter(self, *args, **kw):
+        c = self.execute(*args, **kw)
+        while True:
+            row = c.fetchone()
+            if row is None:
+                break
+            yield row
+
+    def query_row(self, *args, **kw):
+        c = self.execute(*args, **kw)
+        result = c.fetchone()
+        if not result is None:
+            next = c.fetchone()
+            if not next is None:
+                raise "More than one returned in query_row() call"
+        return result
 
     def begin(self):
         self.execute("BEGIN")
@@ -97,7 +110,7 @@ class SnapshotDB:
             return
         else:
             query += " RETURNING %s"%(",".join(returning))
-            return self.query(query, values)
+            return self.query_row(query, values)
 
     def get_primarykey_name(self, table):
         # XXX
@@ -109,7 +122,7 @@ class SnapshotDB:
             insert(table, values)
         else:
             results = self.insert(table, values, [pk_name])
-            values[pk_name] = results[0][pk_name]
+            values[pk_name] = results[pk_name]
 
 class TreeImporter:
     def __init__(self):
@@ -199,7 +212,7 @@ class DBImporter:
     def insert_node(self, parent):
         node = { 'first': self.mirror_run,
                  'last': self.mirror_run,
-                  'parent': parent}
+                 'parent': parent}
         self.db.insert_row('node', node)
 
     def imporx(self):
@@ -222,8 +235,8 @@ class Snapshot:
         actions[options['action']](options)
 
     def list_archives(self, options):
-        list = self.db.query("""SELECT name FROM archive ORDER BY name""")
-        sys.stdout.write("\n".join(map(lambda x: x['name'], list)+['']))
+        for row in self.db.query_iter("""SELECT name FROM archive ORDER BY name"""):
+            sys.stdout.write(row['name']+"\n")
 
     def add_archive(self, options):
         if options['name'] is None:
