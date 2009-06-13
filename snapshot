@@ -86,6 +86,31 @@ class SnapshotDB:
     def commit(self):
         self.execute("COMMIT")
 
+    def insert(self, table, values, returning=None):
+        cols = values.keys()
+        maps = map( lambda x: "%%(%s)s"%x, cols )
+
+        query = "INSERT INTO %s (%s) VALUES (%s)"%(table, ",".join(cols), ",".join(maps))
+
+        if returning is None:
+            self.execute(query, values)
+            return
+        else:
+            query += " RETURNING %s"%(",".join(returning))
+            return self.query(query, values)
+
+    def get_primarykey_name(self, table):
+        # XXX
+        return table+"_id"
+
+    def insert_row(self, table, values):
+        pk_name = self.get_primarykey_name(table);
+        if pk_name in values:
+            insert(table, values)
+        else:
+            results = self.insert(table, values, [pk_name])
+            values[pk_name] = results[0][pk_name]
+
 class TreeImporter:
     def __init__(self):
         self
@@ -166,6 +191,19 @@ class FSReader:
             else:
                 log.warn("Ignoring %s which has unknown type", element)
 
+class DBImporter:
+    def __init__(self, db, archive, reader):
+        self.db = db
+        self.reader = path
+
+    def insert_node(self, parent):
+        node = { 'first': self.mirror_run,
+                 'last': self.mirror_run,
+                  'parent': parent}
+        self.db.insert_row('node', node)
+
+    def imporx(self):
+        pass
 
 class Snapshot:
     def __init__(self, db, config):
@@ -192,7 +230,7 @@ class Snapshot:
             log.error("New --name not given")
             sys.exit(1)
         self.db.begin()
-        self.db.execute("""INSERT INTO archive (name) VALUES (%(name)s)""", {'name': options['name']})
+        self.db.insert_row('archive', {'name': options['name']})
         log.info("Added new archive %s."%options['name'])
         self.db.commit()
 
@@ -224,12 +262,13 @@ def main():
         'configfile': None,
         'action':     None,
         'path':       None,
+        'name':       None,
         }
     for opt, arg in opts:
         if opt in ("--help", "-h"):
             usage()
         elif opt in ("--quiet", "-q"):
-            options['quiet'] = options['quiet'] + 1
+            options['quiet'] += 1
         elif opt in ("--stdout", "-s"):
             options['stdout'] = True
         else:
