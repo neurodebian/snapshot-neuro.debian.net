@@ -40,7 +40,7 @@ def usage(err = False):
         f = sys.stdout
         exit = 0
     f.write("Usage: %s --config=<f> --action=list-archives\n" % (sys.argv[0]))
-    f.write("       %s --config=<f> --action=add-archive name=<name>\n" % (sys.argv[0]))
+    f.write("       %s --config=<f> --action=add-archive archive=<archive>\n" % (sys.argv[0]))
     f.write("       %s --help|-h\n" % (sys.argv[0]))
     f.write("Options: --quiet --stdout\n")
     sys.exit(exit)
@@ -101,16 +101,17 @@ class SnapshotDB:
 
     def insert(self, table, values, returning=None):
         cols = values.keys()
-        maps = map( lambda x: "%%(%s)s"%x, cols )
+        vals = values.values()
+        paramplaces = ['%s'] * len(cols)
 
-        query = "INSERT INTO %s (%s) VALUES (%s)"%(table, ",".join(cols), ",".join(maps))
+        query = "INSERT INTO %s (%s) VALUES (%s)"%(table, ",".join(cols), ",".join(paramplaces))
 
         if returning is None:
-            self.execute(query, values)
+            self.execute(query, vals)
             return
         else:
             query += " RETURNING %s"%(",".join(returning))
-            return self.query_row(query, values)
+            return self.query_row(query, vals)
 
     def get_primarykey_name(self, table):
         # XXX
@@ -204,10 +205,16 @@ class FSReader:
             else:
                 log.warn("Ignoring %s which has unknown type", element)
 
-class DBImporter:
+class SnapshotImporter:
     def __init__(self, db, archive, reader):
         self.db = db
-        self.reader = path
+        self.reader = reader
+
+        archive_row = self.db.query_row('SELECT archive_id FROM archive WHERE name=%s', [archive])
+        if archive_row is None:
+            log.error("Unknown archive %s"%archive)
+            sys.exit(1)
+        print archive_row['archive_id']
 
     def insert_node(self, parent):
         node = { 'first': self.mirror_run,
@@ -227,6 +234,7 @@ class Snapshot:
         actions = { 'list-archives': self.list_archives,
                     'add-archive'  : self.add_archive,
                     'fs-list'      : self.fs_list,
+                    'import-tree'  : self.import_tree,
                   }
 
         if not options['action'] in actions:
@@ -239,12 +247,12 @@ class Snapshot:
             sys.stdout.write(row['name']+"\n")
 
     def add_archive(self, options):
-        if options['name'] is None:
-            log.error("New --name not given")
+        if options['archive'] is None:
+            log.error("New --archive not given")
             sys.exit(1)
         self.db.begin()
-        self.db.insert_row('archive', {'name': options['name']})
-        log.info("Added new archive %s."%options['name'])
+        self.db.insert_row('archive', {'name': options['archive']})
+        log.info("Added new archive %s."%options['archive'])
         self.db.commit()
 
     def fs_list(self, options):
@@ -254,6 +262,16 @@ class Snapshot:
         for l in FSReader(options['path']):
             print l
 
+    def import_tree(self, options):
+        if options['path'] is None:
+            log.error("--path not given")
+            sys.exit(1)
+        if options['archive'] is None:
+            log.error("--archive not given")
+            sys.exit(1)
+        reader = FSReader(options['path'])
+        importer = SnapshotImporter(self.db, options['archive'], reader)
+
 def main():
     longopts = []
     longopts.append("help")
@@ -261,8 +279,8 @@ def main():
     longopts.append("quiet")
     longopts.append("stdout")
     longopts.append("action=")
-    longopts.append("name=")
     longopts.append("path=")
+    longopts.append("archive=")
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hqs", longopts)
     except getopt.GetoptError, err:
@@ -275,7 +293,7 @@ def main():
         'configfile': None,
         'action':     None,
         'path':       None,
-        'name':       None,
+        'archive':    None,
         }
     for opt, arg in opts:
         if opt in ("--help", "-h"):
