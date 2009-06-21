@@ -108,6 +108,56 @@ class SnapshotDB
 	end
 end
 
+class FSNode
+	def initialize(type, path)
+		@data = {}
+		@type = type
+		@path = _fixup_path(path)
+	end
+
+	def _fixup_path(path)
+		return '/' if path == '.'
+		return path[1..-1] if path[0..0] == '.'
+		raise "Unexpected path(#{path}) for fixup"
+	end
+
+	def to_s
+		"#{@type} #{@path}"
+	end
+end
+
+class FSNodeDirectory < FSNode
+	def initialize(path)
+		super('d', path)
+	end
+
+end
+
+class FSNodeSymlink < FSNode
+	def initialize(path, target)
+		super('l', path)
+		@target = target
+	end
+	def to_s
+		super + " #{@target}"
+	end
+end
+
+class FSNodeRegular < FSNode
+	def initialize(path, statinfo, digest=nil)
+		super('-', path)
+		@size = statinfo.size
+		@time = [statinfo.mtime, statinfo.ctime].max
+		@digest = digest if digest
+	end
+
+	def to_s
+		@digest.nil? ?
+			(super + " #{@size} #{@time}") :
+			(super + " #{@size} #{@time} #{@digest}")
+	end
+end
+
 class FSReader
 	def initialize(path)
 		@root = path
@@ -115,7 +165,7 @@ class FSReader
 
 	def list(path='.')
 		realpath = "#{@root}/#{path}"
-		yield "d #{path}"
+		yield FSNodeDirectory.new(path)
 
 		Dir.foreach(realpath) do |filename|
 			next if %w{. ..}.include? filename
@@ -124,11 +174,11 @@ class FSReader
 
 			statinfo = File.lstat(trueelement)
 			if statinfo.symlink?
-				yield "l #{element}"
+				yield FSNodeSymlink.new(element, File.readlink(trueelement))
 			elsif statinfo.directory?
 				list(element) { |e| yield e}
 			elsif statinfo.file?
-				yield "- #{element}"
+				yield FSNodeRegular.new(element, statinfo)
 			else
 				$logger.warn("Ignoring #{element} which has unknown file type.")
 			end
