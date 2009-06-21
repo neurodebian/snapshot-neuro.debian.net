@@ -23,6 +23,7 @@
 
 require 'optparse'
 require 'yaml'
+require 'dbi'
 require 'logger'
 
 def show_help(parser, code=0, io=STDOUT)
@@ -32,7 +33,7 @@ end
 
 options = {}
 ARGV.options do |opts|
-	opts.on_tail("-l", "--config=<f>"   , String, "Config file")                 { |options['config']| }
+	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                 { |options['config']| }
 	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
 	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
 	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
@@ -48,13 +49,28 @@ end
 
 class SnapshotDB
 	def initialize(conf)
-		@db =
+		@db = DBI.connect("dbi:Pg:#{conf['database']}:#{conf['host']}", conf['user'], conf['password'])
+		@db['AutoCommit'] = false
+	end
+
+	def query(query, *params)
+		sth = @db.execute(query, *params)
+		while row = sth.fetch_hash
+			yield row
+		end
+		sth.finish
 	end
 end
 
 class Snapshot
-	def initialize(db, conf)
-		@db = db
+	def initialize(conf)
+		@db = SnapshotDB.new(conf['db'])
+	end
+
+	def list_archives()
+		@db.query("SELECT name FROM archive ORDER BY name") { |row|
+			puts row['name']
+		}
 	end
 end
 
@@ -89,12 +105,20 @@ end
 
 
 
-show_help(ARGV.options, 1, STDERR) unless ARGV.length == 0
 show_help(ARGV.options, 1, STDERR) unless options['config']
+show_help(ARGV.options, 1, STDERR) unless ARGV.length == 1
+action = ARGV.shift
 
 config = loadConfig(options['config'])
 $log = makeLogger(config['log'], options)
+snapshot = Snapshot.new(config)
 
+case action
+	when "list-archives"
+		snapshot.list_archives
+	else
+		barf("Unknown action #{action}.")
+end
 
 # vim:set ts=4:
 # vim:set shiftwidth=4:
