@@ -25,6 +25,7 @@ require 'optparse'
 require 'yaml'
 require 'dbi'
 require 'logger'
+require 'digest/sha1'
 
 def barf(str)
 	STDERR.puts str
@@ -57,11 +58,11 @@ class SnapshotDB
 	end
 
 	def insert(table, values, returning=nil)
-		cols = values.keys()
+		cols = values.keys().join(',')
 		vals = values.values()
-		qmarks = ['?'] * cols.length
+		qmarks = (['?'] * values.length).join(',')
 
-		query = "INSERT INTO #{table} (#{cols.join(',')}) VALUES (#{qmarks.join(',')})"
+		query = "INSERT INTO #{table} (#{cols}) VALUES (#{qmarks})"
 
 		if returning.nil?
 			dbdo(query, vals)
@@ -81,6 +82,24 @@ class SnapshotDB
 			results = insert(table, values, [pk_name])
 			values[pk_name] = results[pk_name]
 		end
+		values
+	end
+
+	def update_one(table, set, where, returning=nil)
+		setclause = set.each_key.collect { |k| "#{k}=?" }.join(",")
+		whereclause = where.each_key.collect { |k| where[k].nil? ? "#{k} IS NULL" : "#{k}=?" }.join(" AND ")
+
+		query = "UPDATE #{table} SET #{setclause} WHERE #{whereclause}"
+
+		params = set.values + where.values.compact
+		unless returning
+			return dbdo(query, *params)
+		else
+			returning = [returning] unless returning.kind_of?(Array)
+			query += " RETURNING #{returning.join(',')}"
+			return query_row(query, *params)
+		end
+
 	end
 
 	def query(query, *params)
@@ -109,10 +128,17 @@ class SnapshotDB
 end
 
 class FSNode
-	def initialize(type, path)
+	def initialize(type, path, parent=nil)
 		@data = {}
 		@type = type
 		@path = _fixup_path(path)
+		@name = File.basename(@path)
+		@parent = parent
+		unless @parent.nil?
+			unless @parent.kind_of? FSNodeDirectory
+				raise "FSNode got a parent of wrong type (#{parent.class})."
+			end
+		end
 	end
 
 	def _fixup_path(path)
@@ -124,28 +150,65 @@ class FSNode
 	def to_s
 		"#{@type} #{@path}"
 	end
+
+	def new_db_node(db, mirrorrun_id)
+		node = { 'first'  => mirrorrun_id,
+		         'last'   => mirrorrun_id
+		       }
+		if @parent.nil?
+			node['parent'] = -1
+		else
+			node['parent'] = @parent.directory_id
+		end
+		db.insert_row('node', node)
+		return node['node_id']
+	end
 end
 
 class FSNodeDirectory < FSNode
-	def initialize(path)
-		super('d', path)
+	attr_reader :directory_id
+
+	def initialize(path, parent=nil)
+		super('d', path, parent)
 	end
 
+	def insert(db, mirrorrun_id)
+		new_node_id = new_db_node(db, mirrorrun_id)
+		dir = { 'path'    => @path,
+		        'node_id' => new_node_id
+		      }
+		db.insert_row('directory', dir)
+		@directory_id = dir['directory_id']
+		if @parent.nil?
+			updated = db.update_one('node', { 'parent' => @directory_id }, { 'node_id' => new_node_id })
+			throw "Did not update parent of / node.  WTF." unless updated == 1
+		end
+	end
 end
 
 class FSNodeSymlink < FSNode
-	def initialize(path, target)
-		super('l', path)
+	def initialize(path, target, parent=nil)
+		super('l', path, parent)
 		@target = target
 	end
 	def to_s
 		super + " #{@target}"
 	end
+
+	def insert(db, mirrorrun_id)
+		new_node_id = new_db_node(db, mirrorrun_id)
+		dir = { 'name'    => @name,
+		        'target'  => @target,
+		        'node_id' => new_node_id
+		      }
+		db.insert_row('symlink', dir)
+	end
 end
 
 class FSNodeRegular < FSNode
-	def initialize(path, statinfo, digest=nil)
-		super('-', path)
+	def initialize(path, truepath, statinfo, parent=nil, digest=nil)
+		super('-', path, parent)
+		@truepath = truepath
 		@size = statinfo.size
 		@time = [statinfo.mtime, statinfo.ctime].max
 		@digest = digest if digest
@@ -156,6 +219,17 @@ class FSNodeRegular < FSNode
 			(super + " #{@size} #{@time}") :
 			(super + " #{@size} #{@time} #{@digest}")
 	end
+
+	def insert(db, mirrorrun_id)
+		new_node_id = new_db_node(db, mirrorrun_id)
+		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
+		dir = { 'name'    => @name,
+		        'size'    => @size,
+		        'hash'    => @digest,
+		        'node_id' => new_node_id
+		      }
+		db.insert_row('file', dir)
+	end
 end
 
 class FSReader
@@ -163,9 +237,10 @@ class FSReader
 		@root = path
 	end
 
-	def list(path='.')
+	def each_node(path='.', parent=nil)
 		realpath = "#{@root}/#{path}"
-		yield FSNodeDirectory.new(path)
+		dir = FSNodeDirectory.new(path, parent)
+		yield dir
 
 		Dir.foreach(realpath) do |filename|
 			next if %w{. ..}.include? filename
@@ -174,11 +249,11 @@ class FSReader
 
 			statinfo = File.lstat(trueelement)
 			if statinfo.symlink?
-				yield FSNodeSymlink.new(element, File.readlink(trueelement))
+				yield FSNodeSymlink.new(element, File.readlink(trueelement), dir)
 			elsif statinfo.directory?
-				list(element) { |e| yield e}
+				each_node(element, dir) { |e| yield e}
 			elsif statinfo.file?
-				yield FSNodeRegular.new(element, statinfo)
+				yield FSNodeRegular.new(element, trueelement, statinfo, dir)
 			else
 				$logger.warn("Ignoring #{element} which has unknown file type.")
 			end
@@ -186,6 +261,42 @@ class FSReader
 	end
 end
 
+class SnapshotImporter
+	def initialize(db, archive, path, date)
+		@db = db
+		r = @db.query_row('SELECT archive_id FROM archive WHERE name=?', archive)
+		barf("Archive #{archive} does not exist") if archive.nil?
+		@archive = archive
+		@archive_id = r['archive_id']
+		@fs = FSReader.new(path)
+		@date = date.nil? ? Time.new() : Time.parse(date)
+	end
+
+	def insert_node(parent, mirrorrun_id)
+		node = { 'first'  => mirrorrun_id,
+		         'last'   => mirrorrun_id,
+		         'parent' => parent
+		       }
+		@db.insert_row('node', node)
+		return node['node_id']
+	end
+
+	def import
+		@db.begin
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>@archive_id, 'run'=>@date})['mirrorrun_id']
+		$logger.info("New mirrorrun #{mirrorrun_id} for #{@archive}")
+
+		@fs.each_node do |fsnode|
+			fsnode.insert(@db, mirrorrun_id)
+			$logger.debug("Importing #{fsnode}")
+		end
+		@db.query('SELECT * from node where parent=-1') do |r|
+			puts r.inspect
+		end
+		@db.commit
+	end
+
+end
 
 class Snapshot
 	def initialize(conf)
@@ -209,7 +320,14 @@ class Snapshot
 	def fs_list(options)
 		barf("No path name given") unless options['path']
 		fs = FSReader.new(options['path'])
-		fs.list() { |p| puts p }
+		fs.each_node() { |p| puts p }
+	end
+
+	def import(options)
+		barf("No path name given") unless options['path']
+		barf("No archive name given") unless options['archive']
+		fs = SnapshotImporter.new(@db, options['archive'], options['path'], options['date'])
+		fs.import
 	end
 end
 
@@ -251,6 +369,7 @@ def show_help(parser, code=0, io=STDOUT)
 	io.puts "    list-archives                    List all known archives"
 	io.puts "    add-archive                      Add a new archive"
 	io.puts "    fs-list                          List a directory recursively"
+	io.puts "    import                           Import a directory"
 	io.puts "  Options:"
 	io.puts parser.summarize
 	exit(code)
@@ -263,7 +382,8 @@ ARGV.options do |opts|
 	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
 	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
 	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
-	opts.on_tail("-p", "--path=<a>"     , String, "Path to recurse/import")                         { |options['path']| }
+	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         { |options['path']| }
+	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  { |options['date']| }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
@@ -287,6 +407,8 @@ case action
 		snapshot.add_archive(options)
 	when "fs-list"
 		snapshot.fs_list(options)
+	when "import"
+		snapshot.import(options)
 	else
 		barf("Unknown action #{action}.")
 end

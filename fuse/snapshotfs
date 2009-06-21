@@ -29,7 +29,7 @@ import psycopg2.extras
 
 fuse.fuse_python_api = (0, 2)
 
-connectstring = "dbname='snapshot' user='snapshot' host='localhost' password='x'"
+connectstring = "dbname='snapshotpy' user='snapshot' host='localhost' password='x'"
 
 def make_farm_link(hash):
    prefix1 = hash[0:2]
