@@ -108,6 +108,35 @@ class SnapshotDB
 	end
 end
 
+class FSReader
+	def initialize(path)
+		@root = path
+	end
+
+	def list(path='.')
+		realpath = "#{@root}/#{path}"
+		yield "d #{path}"
+
+		Dir.foreach(realpath) do |filename|
+			next if %w{. ..}.include? filename
+			element = "#{path}/#{filename}"
+			trueelement = "#{@root}/#{element}"
+
+			statinfo = File.lstat(trueelement)
+			if statinfo.symlink?
+				yield "l #{element}"
+			elsif statinfo.directory?
+				list(element) { |e| yield e}
+			elsif statinfo.file?
+				yield "- #{element}"
+			else
+				$logger.warn("Ignoring #{element} which has unknown file type.")
+			end
+		end
+	end
+end
+
+
 class Snapshot
 	def initialize(conf)
 		@db = SnapshotDB.new(conf['db'])
@@ -126,7 +155,14 @@ class Snapshot
 		@db.commit
 		$logger.info("Added new archive #{options['archive']}.")
 	end
+
+	def fs_list(options)
+		barf("No path name given") unless options['path']
+		fs = FSReader.new(options['path'])
+		fs.list() { |p| puts p }
+	end
 end
+
 
 def makeLogger(conf, options)
 	if options['log-to-stderr']
@@ -164,6 +200,7 @@ def show_help(parser, code=0, io=STDOUT)
 	io.puts "  Where action is one of the following:"
 	io.puts "    list-archives                    List all known archives"
 	io.puts "    add-archive                      Add a new archive"
+	io.puts "    fs-list                          List a directory recursively"
 	io.puts "  Options:"
 	io.puts parser.summarize
 	exit(code)
@@ -175,7 +212,8 @@ ARGV.options do |opts|
 	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
 	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
 	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
-	opts.on_tail("-v", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
+	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
+	opts.on_tail("-p", "--path=<a>"     , String, "Path to recurse/import")                         { |options['path']| }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
@@ -197,6 +235,8 @@ case action
 		snapshot.list_archives
 	when "add-archive"
 		snapshot.add_archive(options)
+	when "fs-list"
+		snapshot.fs_list(options)
 	else
 		barf("Unknown action #{action}.")
 end
