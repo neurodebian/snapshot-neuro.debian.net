@@ -26,22 +26,6 @@ require 'yaml'
 require 'dbi'
 require 'logger'
 
-def show_help(parser, code=0, io=STDOUT)
-	io.puts parser.help
-	exit(code)
-end
-
-options = {}
-ARGV.options do |opts|
-	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                 { |options['config']| }
-	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
-	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
-	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
-
-	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
-	opts.parse!
-end
-
 def barf(str)
 	STDERR.puts str
 	exit 1
@@ -49,16 +33,78 @@ end
 
 class SnapshotDB
 	def initialize(conf)
-		@db = DBI.connect("dbi:Pg:#{conf['database']}:#{conf['host']}", conf['user'], conf['password'])
-		@db['AutoCommit'] = false
+		@dbh = DBI.connect("dbi:Pg:#{conf['database']}:#{conf['host']}", conf['user'], conf['password'], 'AutoCommit'=>false)
+	end
+
+	def get_primarykey_name(table);
+		# XXX
+		return table+'_id';
+	end
+
+
+	def begin()
+		@dbh.do("BEGIN")
+	end
+	def commit()
+		@dbh.do("COMMIT")
+	end
+
+	def dbdo(query, *args)
+		@dbh.do(query, *args)
+	end
+	def execute(query, *args)
+		@dbh.execute(query, *args)
+	end
+
+	def insert(table, values, returning=nil)
+		cols = values.keys()
+		vals = values.values()
+		qmarks = ['?'] * cols.length
+
+		query = "INSERT INTO #{table} (#{cols.join(',')}) VALUES (#{qmarks.join(',')})"
+
+		if returning.nil?
+			dbdo(query, vals)
+			return nil
+		else
+			returning = [returning] unless returning.kind_of?(Array)
+			query += " RETURNING #{returning.join(',')}"
+			return query_row(query, *vals)
+		end
+	end
+
+	def insert_row(table, values)
+		pk_name = get_primarykey_name(table)
+		if values.has_key?(pk_name)
+			insert(table, values)
+		else
+			results = insert(table, values, [pk_name])
+			values[pk_name] = results[pk_name]
+		end
 	end
 
 	def query(query, *params)
-		sth = @db.execute(query, *params)
+		sth = execute(query, *params)
 		while row = sth.fetch_hash
 			yield row
 		end
 		sth.finish
+	end
+
+	def query_row(query, *params)
+		sth = execute(query, *params)
+
+		row = sth.fetch_hash
+		if row == nil
+			sth.finish
+			return nil
+		elsif sth.fetch_hash != nil
+			sth.finish
+			raise "More than one result when querying for #{query}."
+		else
+			sth.finish
+			return row
+		end
 	end
 end
 
@@ -72,10 +118,18 @@ class Snapshot
 			puts row['name']
 		}
 	end
+
+	def add_archive(options)
+		barf("No archive name given") unless options['archive']
+		@db.begin
+		@db.insert_row('archive', {'name' => options['archive']})
+		@db.commit
+		$logger.info("Added new archive #{options['archive']}.")
+	end
 end
 
 def makeLogger(conf, options)
-	if options['log-to-sdterr']
+	if options['log-to-stderr']
 		logger = Logger.new(STDOUT)
 	else
 		barf("Configuration does not have a log->filename.") unless conf and conf['filename']
@@ -104,18 +158,45 @@ def loadConfig(file)
 end
 
 
+def show_help(parser, code=0, io=STDOUT)
+	program_name = File.basename($0, '.*')
+	io.puts "Usage: #{program_name} [options] <action>"
+	io.puts "  Where action is one of the following:"
+	io.puts "    list-archives                    List all known archives"
+	io.puts "    add-archive                      Add a new archive"
+	io.puts "  Options:"
+	io.puts parser.summarize
+	exit(code)
+end
+
+options = {}
+ARGV.options do |opts|
+	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                 { |options['config']| }
+	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
+	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
+	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
+	opts.on_tail("-v", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
+
+	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
+	opts.parse!
+end
+
+
+
 
 show_help(ARGV.options, 1, STDERR) unless options['config']
 show_help(ARGV.options, 1, STDERR) unless ARGV.length == 1
 action = ARGV.shift
 
 config = loadConfig(options['config'])
-$log = makeLogger(config['log'], options)
+$logger = makeLogger(config['log'], options)
 snapshot = Snapshot.new(config)
 
 case action
 	when "list-archives"
 		snapshot.list_archives
+	when "add-archive"
+		snapshot.add_archive(options)
 	else
 		barf("Unknown action #{action}.")
 end
