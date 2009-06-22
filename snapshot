@@ -51,10 +51,24 @@ class SnapshotDB
 	end
 
 	def dbdo(query, *args)
-		@dbh.do(query, *args)
+		begin
+			@dbh.do(query, *args)
+		rescue DBI::ProgrammingError
+			STDERR.puts("DB Error: #{$!}")
+			STDERR.puts("Query: #{query}")
+			STDERR.puts("Arguments: #{args.join(', ')}")
+			raise
+		end
 	end
 	def execute(query, *args)
-		@dbh.execute(query, *args)
+		begin
+			@dbh.execute(query, *args)
+		rescue DBI::ProgrammingError
+			STDERR.puts("DB Error: #{$!}")
+			STDERR.puts("Query: #{query}")
+			STDERR.puts("Arguments: #{args.join(', ')}")
+			raise
+		end
 	end
 
 	def insert(table, values, returning=nil)
@@ -137,8 +151,8 @@ class FSNode
 		if @parent.nil?
 			raise "No parent but we are not /." unless @path == "/"
 			@parent = self
-		else
-			raise "FSNode got a parent of wrong type (#{parent.class})." unless @parent.kind_of? FSNodeDirectory
+		elsif not @parent.kind_of? FSNodeDirectory
+			raise "FSNode got a parent of wrong type (#{parent.class})."
 		end
 	end
 
@@ -160,6 +174,52 @@ class FSNode
 		db.insert_row('node', node)
 		return node['node_id']
 	end
+
+
+	def update_one_side(db, mirrorrun_id, lastnext, lastnext_id, table, whereclause, whereparams, isrootdir)
+		query = "UPDATE node SET #{lastnext}=?
+		         FROM #{table}
+		         WHERE node.node_id = #{table}.node_id " +
+		         (isrootdir ? "" : "AND parent=? ") +
+		         "AND #{lastnext}=? AND
+		         #{whereclause}"
+		args = [mirrorrun_id] +
+		       (isrootdir ? [] : [@parent.directory_id()]) +
+		       [lastnext_id] +
+		       whereparams
+
+		if self.kind_of? FSNodeDirectory
+			query += ' RETURNING directory_id'
+			r = db.query_row(query, *args)
+			@directory_id = r['directory_id'] if r
+			return r
+		else
+			r = db.dbdo(query, *args)
+			raise "Did not update exactly zero or one element." if r and r>1
+			return r
+		end
+	end
+
+	def insert(db, mirrorrun_id)
+		new_node_id = new_db_node(db, mirrorrun_id)
+		insert_elem(db, new_node_id)
+	end
+
+	def update_or_insert(db, mirrorrun_id, prev_run, next_run)
+		table, whereclause, whereparams = already_exists_args
+		isrootdir = @parent == self
+
+		[ ['last', prev_run], ['first', next_run] ].each do |lastnext, lastnext_id|
+			next if lastnext_id.nil?
+			r = update_one_side(db, mirrorrun_id, lastnext, lastnext_id, table, whereclause, whereparams, isrootdir)
+			return if r
+		end
+
+		#XXX
+		# boxed case still missing
+
+		insert(db, mirrorrun_id)
+	end
 end
 
 class FSNodeDirectory < FSNode
@@ -167,17 +227,21 @@ class FSNodeDirectory < FSNode
 		super('d', path, parent)
 	end
 
-	def directory_id(db)
+	def directory_id(db=nil)
 		return @directory_id if @directory_id
+		throw "This should only be required for the / directory.  This is #{@path}." unless @path == "/"
 		@directory_id = db.query_row("SELECT nextval(pg_get_serial_sequence('directory', 'directory_id')) AS newref")['newref']
 		$logger.debug("Making up directory_id for #{@path}.  It's #{@directory_id}.")
 		return @directory_id
 	end
 
-	def insert(db, mirrorrun_id)
-		new_node_id = new_db_node(db, mirrorrun_id)
+	def already_exists_args()
+		return 'directory', "path=?", [@path]
+	end
+
+	def insert_elem(db, node_id)
 		dir = { 'path'    => @path,
-		        'node_id' => new_node_id
+		        'node_id' => node_id
 		      }
 		dir['directory_id'] = @directory_id if @directory_id
 		db.insert_row('directory', dir)
@@ -194,13 +258,16 @@ class FSNodeSymlink < FSNode
 		super + " #{@target}"
 	end
 
-	def insert(db, mirrorrun_id)
-		new_node_id = new_db_node(db, mirrorrun_id)
-		dir = { 'name'    => @name,
-		        'target'  => @target,
-		        'node_id' => new_node_id
-		      }
-		db.insert_row('symlink', dir)
+	def already_exists_args()
+		return 'symlink', "name=? AND target=?", [@name, @target]
+	end
+
+	def insert_elem(db, node_id)
+		elem = { 'name'    => @name,
+		         'target'  => @target,
+		         'node_id' => node_id
+		       }
+		db.insert_row('symlink', elem)
 	end
 end
 
@@ -219,15 +286,22 @@ class FSNodeRegular < FSNode
 			(super + " #{@size} #{@time} #{@digest}")
 	end
 
-	def insert(db, mirrorrun_id)
-		new_node_id = new_db_node(db, mirrorrun_id)
+	def already_exists_args()
+		if @digest.nil?
+			return 'file', "name=? AND size=?", [@name, @size]
+		else
+			return 'file', "name=? AND size=? AND hash=?", [@name, @size, @digest]
+		end
+	end
+
+	def insert_elem(db, node_id)
 		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
-		dir = { 'name'    => @name,
-		        'size'    => @size,
-		        'hash'    => @digest,
-		        'node_id' => new_node_id
-		      }
-		db.insert_row('file', dir)
+		elem = { 'name'    => @name,
+		         'size'    => @size,
+		         'hash'    => @digest,
+		         'node_id' => node_id
+		       }
+		db.insert_row('file', elem)
 	end
 end
 
@@ -271,22 +345,28 @@ class SnapshotImporter
 		@date = date.nil? ? Time.new() : Time.parse(date)
 	end
 
-	def insert_node(parent, mirrorrun_id)
-		node = { 'first'  => mirrorrun_id,
-		         'last'   => mirrorrun_id,
-		         'parent' => parent
-		       }
-		@db.insert_row('node', node)
-		return node['node_id']
-	end
-
 	def import
 		@db.begin
 		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>@archive_id, 'run'=>@date})['mirrorrun_id']
+
+		row = @db.query_row("SELECT
+		                       (SELECT count(*) FROM mirrorrun WHERE archive_id=?
+		                        AND run=(SELECT run FROM mirrorrun WHERE mirrorrun_id=?)) AS count,
+		                       (SELECT mirrorrun_id FROM mirrorrun WHERE archive_id=?
+		                        AND run>(SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
+		                        ORDER BY run
+		                        LIMIT 1) AS next,
+		                       (SELECT mirrorrun_id FROM mirrorrun WHERE archive_id=?
+		                        AND run<(SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
+		                        ORDER BY run DESC
+		                        LIMIT 1) AS prev
+		                    ", @archive_id, mirrorrun_id, @archive_id, mirrorrun_id, @archive_id, mirrorrun_id);
+		barf("Cannot have two runs for the same archive at the same time.") if row['count'] > 1
+		next_run, prev_run = row['next'], row['prev']
 		$logger.info("New mirrorrun #{mirrorrun_id} for #{@archive}")
 
 		@fs.each_node do |fsnode|
-			fsnode.insert(@db, mirrorrun_id)
+			fsnode.update_or_insert(@db, mirrorrun_id, prev_run, next_run)
 			$logger.debug("Importing #{fsnode}")
 		end
 		@db.query('SELECT * from node where parent=-1') do |r|
