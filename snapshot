@@ -176,28 +176,44 @@ class FSNode
 	end
 
 
+	def update_common(db, query, args)
+		if self.kind_of? FSNodeDirectory
+			query += ' RETURNING directory_id'
+			r = db.query_row(query, *args)
+			@directory_id = r['directory_id'] if r
+			return !r.nil?
+		else
+			r = db.dbdo(query, *args)
+			raise "Did not update exactly zero or one element." if r and r>1
+			return r == 1
+		end
+	end
+
 	def update_one_side(db, mirrorrun_id, lastnext, lastnext_id, table, whereclause, whereparams, isrootdir)
 		query = "UPDATE node SET #{lastnext}=?
 		         FROM #{table}
 		         WHERE node.node_id = #{table}.node_id " +
 		         (isrootdir ? "" : "AND parent=? ") +
-		         "AND #{lastnext}=? AND
-		         #{whereclause}"
+		         "AND #{lastnext}=?
+		         AND #{whereclause}"
 		args = [mirrorrun_id] +
 		       (isrootdir ? [] : [@parent.directory_id()]) +
 		       [lastnext_id] +
 		       whereparams
+		return update_common(db, query, args)
+	end
 
-		if self.kind_of? FSNodeDirectory
-			query += ' RETURNING directory_id'
-			r = db.query_row(query, *args)
-			@directory_id = r['directory_id'] if r
-			return r
-		else
-			r = db.dbdo(query, *args)
-			raise "Did not update exactly zero or one element." if r and r>1
-			return r
-		end
+	def update_boxed(db, table, whereclause, whereparams, isrootdir)
+		# if we have a mirrorun in the past and one in the future
+		# then this element might already be covered by a node that starts
+		# in the past and ends in the future.
+		query = "DELETE FROM nodes_window USING #{table}
+		         WHERE nodes_window.node_id = #{table}.node_id " +
+		         (isrootdir ? "" : "AND parent=? ") +
+		         "AND #{whereclause}"
+		args = (isrootdir ? [] : [@parent.directory_id()]) + whereparams
+
+		return update_common(db, query, args)
 	end
 
 	def insert(db, mirrorrun_id)
@@ -215,8 +231,8 @@ class FSNode
 			return if r
 		end
 
-		#XXX
-		# boxed case still missing
+		r = update_boxed(db, table, whereclause, whereparams, isrootdir)
+		return if r
 
 		insert(db, mirrorrun_id)
 	end
@@ -361,17 +377,30 @@ class SnapshotImporter
 		                        ORDER BY run DESC
 		                        LIMIT 1) AS prev
 		                    ", @archive_id, mirrorrun_id, @archive_id, mirrorrun_id, @archive_id, mirrorrun_id);
-		barf("Cannot have two runs for the same archive at the same time.") if row['count'] > 1
+		barf("Cannot have two runs for the same archive at the exact same time.") if row['count'] > 1
 		next_run, prev_run = row['next'], row['prev']
 		$logger.info("New mirrorrun #{mirrorrun_id} for #{@archive}")
+
+		@db.dbdo('CREATE TEMPORARY TABLE nodes_window AS
+		           SELECT node_id, parent FROM node_with_ts
+		           WHERE archive_id = ?
+		             AND first_run < (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
+		             AND last_run  > (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)',
+		         @archive_id, mirrorrun_id, mirrorrun_id)
 
 		@fs.each_node do |fsnode|
 			fsnode.update_or_insert(@db, mirrorrun_id, prev_run, next_run)
 			$logger.debug("Importing #{fsnode}")
 		end
-		@db.query('SELECT * from node where parent=-1') do |r|
-			puts r.inspect
+
+		@db.query("SELECT node_id FROM nodes_window") do |row|
+			puts "duplicate node_id #{row['node_id']}"
+			# XXX
+			# FIXME
+			barf("not implemented yet")
 		end
+
+		@db.dbdo("DROP TABLE nodes_window")
 		@db.commit
 	end
 
