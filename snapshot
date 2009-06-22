@@ -65,7 +65,7 @@ class SnapshotDB
 		query = "INSERT INTO #{table} (#{cols}) VALUES (#{qmarks})"
 
 		if returning.nil?
-			dbdo(query, vals)
+			dbdo(query, *vals)
 			return nil
 		else
 			returning = [returning] unless returning.kind_of?(Array)
@@ -134,10 +134,11 @@ class FSNode
 		@path = _fixup_path(path)
 		@name = File.basename(@path)
 		@parent = parent
-		unless @parent.nil?
-			unless @parent.kind_of? FSNodeDirectory
-				raise "FSNode got a parent of wrong type (#{parent.class})."
-			end
+		if @parent.nil?
+			raise "No parent but we are not /." unless @path == "/"
+			@parent = self
+		else
+			raise "FSNode got a parent of wrong type (#{parent.class})." unless @parent.kind_of? FSNodeDirectory
 		end
 	end
 
@@ -155,21 +156,22 @@ class FSNode
 		node = { 'first'  => mirrorrun_id,
 		         'last'   => mirrorrun_id
 		       }
-		if @parent.nil?
-			node['parent'] = -1
-		else
-			node['parent'] = @parent.directory_id
-		end
+		node['parent'] = @parent.directory_id(db)
 		db.insert_row('node', node)
 		return node['node_id']
 	end
 end
 
 class FSNodeDirectory < FSNode
-	attr_reader :directory_id
-
 	def initialize(path, parent=nil)
 		super('d', path, parent)
+	end
+
+	def directory_id(db)
+		return @directory_id if @directory_id
+		@directory_id = db.query_row("SELECT nextval(pg_get_serial_sequence('directory', 'directory_id')) AS newref")['newref']
+		$logger.debug("Making up directory_id for #{@path}.  It's #{@directory_id}.")
+		return @directory_id
 	end
 
 	def insert(db, mirrorrun_id)
@@ -177,12 +179,9 @@ class FSNodeDirectory < FSNode
 		dir = { 'path'    => @path,
 		        'node_id' => new_node_id
 		      }
+		dir['directory_id'] = @directory_id if @directory_id
 		db.insert_row('directory', dir)
 		@directory_id = dir['directory_id']
-		if @parent.nil?
-			updated = db.update_one('node', { 'parent' => @directory_id }, { 'node_id' => new_node_id })
-			throw "Did not update parent of / node.  WTF." unless updated == 1
-		end
 	end
 end
 
