@@ -29,7 +29,7 @@ require 'digest/sha1'
 require 'ftools'
 
 def barf(str)
-	STDERR.puts str
+	$logger.error(str)
 	exit 1
 end
 
@@ -63,8 +63,9 @@ class FileBackend < StorageBackend
 end
 
 class SnapshotDB
-	def initialize(conf)
+	def initialize(conf, logger)
 		@dbh = DBI.connect("dbi:Pg:#{conf['database']}:#{conf['host']}", conf['user'], conf['password'], 'AutoCommit'=>false)
+		@logger = logger
 	end
 
 	def get_primarykey_name(table);
@@ -84,9 +85,9 @@ class SnapshotDB
 		begin
 			@dbh.do(query, *args)
 		rescue DBI::ProgrammingError
-			STDERR.puts("DB Error: #{$!}")
-			STDERR.puts("Query: #{query}")
-			STDERR.puts("Arguments: #{args.join(', ')}")
+			@logger.warn("DB Error: #{$!}")
+			@logger.warn("Query: #{query}")
+			@logger.warn("Arguments: #{args.join(', ')}")
 			raise
 		end
 	end
@@ -94,9 +95,9 @@ class SnapshotDB
 		begin
 			@dbh.execute(query, *args)
 		rescue DBI::ProgrammingError
-			STDERR.puts("DB Error: #{$!}")
-			STDERR.puts("Query: #{query}")
-			STDERR.puts("Arguments: #{args.join(', ')}")
+			@logger.warn("DB Error: #{$!}")
+			@logger.warn("Query: #{query}")
+			@logger.warn("Arguments: #{args.join(', ')}")
 			raise
 		end
 	end
