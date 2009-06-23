@@ -99,7 +99,7 @@ class SnapshotDB
 		values
 	end
 
-	def update_one(table, set, where, returning=nil)
+	def update(table, set, where, returning=nil)
 		setclause = set.each_key.collect { |k| "#{k}=?" }.join(",")
 		whereclause = where.each_key.collect { |k| where[k].nil? ? "#{k} IS NULL" : "#{k}=?" }.join(" AND ")
 
@@ -113,7 +113,13 @@ class SnapshotDB
 			query += " RETURNING #{returning.join(',')}"
 			return query_row(query, *params)
 		end
+	end
 
+	def update_one(table, set, where)
+		r = update(table, set, where)
+
+		raise "Did not update exactly one row in update_one" unless r==1
+		return r
 	end
 
 	def query(query, *params)
@@ -245,7 +251,7 @@ class FSNodeDirectory < FSNode
 
 	def directory_id(db=nil)
 		return @directory_id if @directory_id
-		throw "This should only be required for the / directory.  This is #{@path}." unless @path == "/"
+		raise "This should only be required for the / directory.  This is #{@path}." unless @path == "/"
 		@directory_id = db.query_row("SELECT nextval(pg_get_serial_sequence('directory', 'directory_id')) AS newref")['newref']
 		$logger.debug("Making up directory_id for #{@path}.  It's #{@directory_id}.")
 		return @directory_id
@@ -288,12 +294,13 @@ class FSNodeSymlink < FSNode
 end
 
 class FSNodeRegular < FSNode
-	def initialize(path, truepath, statinfo, parent=nil, digest=nil)
+	def initialize(path, truepath, statinfo, parent=nil)
 		super('-', path, parent)
 		@truepath = truepath
 		@size = statinfo.size
 		@time = [statinfo.mtime, statinfo.ctime].max
-		@digest = digest if digest
+
+		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
 	end
 
 	def to_s
@@ -311,7 +318,6 @@ class FSNodeRegular < FSNode
 	end
 
 	def insert_elem(db, node_id)
-		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
 		elem = { 'name'    => @name,
 		         'size'    => @size,
 		         'hash'    => @digest,
@@ -361,6 +367,54 @@ class SnapshotImporter
 		@date = date.nil? ? Time.new() : Time.parse(date)
 	end
 
+	# if we insert a new mirrorrun in time between existing mirrorruns
+	# then it can happen that a specific file/dir/symlink existed in the
+	# past and exists in the future, but does not currently exist.
+	# in such cases we have to split existing nodes in the DB in two.
+	def split_boxed_missing(mirrorrun_id, prev_run, next_run)
+		# This code path is probably slightly tested at best
+		# It will not get much practice
+
+		handled = 0
+		changed_parents = {}
+
+		[ ['directory', %w(path) ],
+		  ['symlink' , %w(name target)],
+		  ['file', %w(name size hash)]
+		].each do |type, items|
+			query = "SELECT #{type}.#{type}_id, "+(items.collect{|i| "#{type}.#{i}, "}.join(""))+
+			        "node.node_id, node.parent, node.first, node.last
+					 FROM nodes_window JOIN node ON nodes_window.node_id = node.node_id
+					                   JOIN #{type} ON node.node_id = #{type}.node_id"
+
+			query += " ORDER BY path" if type == "directory"
+
+			@db.query(query) do |row|
+				@db.update_one('node', {'last' => prev_run}, {'node_id' => row['node_id']})
+
+				# we would need to handle parent == self crap
+				throw "Cannot split the / node." if type == 'directory' and row['path'] == "/"
+
+				$logger.debug "Splitting #{row.inspect}"
+				new_parent = (changed_parents[row['parent']] or row['parent'])
+				new_node = {'parent' => new_parent, 'first' => next_run, 'last' => row['last']}
+				@db.insert_row('node', new_node)
+
+				new_elem = {}
+				items.each { |k| new_elem[k] = row[k] }
+				new_elem['node_id'] = new_node['node_id']
+				@db.insert_row(type, new_elem)
+
+				changed_parents[ row['directory_id'] ] = new_elem['directory_id'] if type == "directory"
+
+				handled += 1
+			end
+		end
+
+		row = @db.query_row("SELECT count(*) AS count FROM nodes_window")
+		raise "Did not process correct amount of elements in nodes_window table." if row['count'] != handled
+	end
+
 	def import
 		@db.begin
 		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>@archive_id, 'run'=>@date})['mirrorrun_id']
@@ -393,12 +447,7 @@ class SnapshotImporter
 			$logger.debug("Importing #{fsnode}")
 		end
 
-		@db.query("SELECT node_id FROM nodes_window") do |row|
-			puts "duplicate node_id #{row['node_id']}"
-			# XXX
-			# FIXME
-			barf("not implemented yet")
-		end
+		split_boxed_missing(mirrorrun_id, prev_run, next_run)
 
 		@db.dbdo("DROP TABLE nodes_window")
 		@db.commit
