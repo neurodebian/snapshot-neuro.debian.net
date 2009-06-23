@@ -99,6 +99,11 @@ CREATE INDEX symlink_idx_name ON symlink(name);
 -- ####################################################################
 -- packages
 -- ####################################################################
+CREATE TABLE indexed_mirrorrun (
+	mirrorrun_id	INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id),
+	source		VARCHAR(10)
+);
+
 -- we try to keep the filesystem part independent from this
 CREATE TABLE srcpkg (
 	srcpkg_id	SERIAL		PRIMARY KEY,
@@ -124,7 +129,7 @@ CREATE INDEX file_srcpkg_mapping_idx_srcpkg_id ON file_srcpkg_mapping(srcpkg_id)
 CREATE TABLE file_binpkg_mapping (
 	file_id		INTEGER		NOT NULL REFERENCES file(file_id),
 	binpkg_id	INTEGER		NOT NULL REFERENCES binpkg(binpkg_id),
-	architecture	VARCHAR(10)	NOT NULL,
+	architecture	VARCHAR(16)	NOT NULL,
 	UNIQUE(file_id)
 );
 CREATE INDEX file_binpkg_mapping_idx_binpkg_id ON file_binpkg_mapping(binpkg_id);
