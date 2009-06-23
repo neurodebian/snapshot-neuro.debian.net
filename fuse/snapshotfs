@@ -20,21 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import stat
 import errno
 import fuse
+import os
 import psycopg2
 import psycopg2.extras
+import stat
+import sys
+import yaml
 
 fuse.fuse_python_api = (0, 2)
 
-connectstring = "dbname='snapshotpy' user='snapshot' host='localhost' password='x'"
+class StorageBackend:
+   def store(self, source, digest):
+      raise "Not implemented"
 
-def make_farm_link(hash):
-   prefix1 = hash[0:2]
-   prefix2 = hash[2:4]
-   return os.path.join("/srv/snapshot/farm", prefix1, prefix2, hash)
+   def retreive(self, digest):
+      raise "Not implemented"
+
+class FileBackend(StorageBackend):
+   def __init__(self, config):
+      for kw in ('farmpath',):
+         if not kw in config:
+            sys.stderr.write("Snapshot config file does not define %s keywords\n"%kw)
+            sys.exit(1)
+      self.farmpath = config['farmpath']
+
+   def make_symlink(self, digest):
+      prefix1 = digest[0:2]
+      prefix2 = digest[2:4]
+      return os.path.join(self.farmpath, prefix1, prefix2, digest)
+
 
 class MyStat(fuse.Stat):
    def __init__(self):
@@ -79,8 +95,12 @@ class FileStat(MyStat):
 
 
 class SnapshotDB:
-   def __init__(self):
-      self.db=psycopg2.connect(connectstring)
+   def __init__(self, config):
+      for kw in ('connectstring',):
+         if not kw in config:
+            sys.stderr.write("Database config file does not define %s keywords\n"%kw)
+            sys.exit(1)
+      self.db=psycopg2.connect(config['connectstring'])
 
    def query(self, *args, **kw):
       c = self.db.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -127,7 +147,7 @@ class SnapshotFile:
       self.hash = list[0]['hash']
       self.ctime = list[0]['ctime']
       self.atime = list[0]['atime']
-      self.target = make_farm_link(self.hash)
+      self.target = storage.make_symlink(self.hash)
 
    def getattr(self):
       return SymlinkStat(len(self.target), self.ctime, self.atime)
@@ -387,9 +407,37 @@ class SnapshotFS(fuse.Fuse):
    def readlink(self, path):
       return self.root.readlink(path)
 
-def main():
-   db = SnapshotDB()
+def usage(err = False):
+    if err:
+        f = sys.stderr
+        exit = 1
+    else:
+        f = sys.stdout
+        exit = 0
+    f.write("Usage: %s <config.yaml> [fuse options] <mountpoint>\n" % (sys.argv[0]))
+    sys.exit(exit)
 
+def readConfig(conffile):
+    return yaml.load(open(conffile).read())
+
+def main():
+   if len(sys.argv) <= 1:
+      usage(True)
+   opt1 = sys.argv[1]
+   del sys.argv[1]
+   if opt1 == "-h" or opt1 == "--help":
+      usage(False)
+
+   config = readConfig(opt1)
+
+   for kw in 'snapshot', 'db':
+      if not kw in config:
+         sys.stderr.write("Config file does not define %s keywords\n"%kw)
+         sys.exit(1)
+
+   db = SnapshotDB(config['db'])
+   global storage
+   storage = FileBackend(config['snapshot'])
    server = SnapshotFS(db, dash_s_do='setsingle')
    server.parse(errex=1)
    server.main()
