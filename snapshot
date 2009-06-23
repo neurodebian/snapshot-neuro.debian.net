@@ -26,10 +26,40 @@ require 'yaml'
 require 'dbi'
 require 'logger'
 require 'digest/sha1'
+require 'ftools'
 
 def barf(str)
 	STDERR.puts str
 	exit 1
+end
+
+
+class StorageBackend
+	def store(source, digest)
+		throw "Not implemented"
+	end
+	def retreive(digest)
+		throw "Not implemented"
+	end
+end
+
+class FileBackend < StorageBackend
+	def initialize(farmpath)
+		@farmpath = farmpath
+	end
+	def store(source, digest)
+		target = @farmpath
+		h = digest
+
+		2.times do
+		  target = target + '/' + h[0..1]
+		  h = h[2..-1]
+		  Dir.mkdir(target) unless File.directory?(target)
+		end
+
+		target = target + '/' + digest
+		File.copy(source, target) unless File.exists?(target)
+	end
 end
 
 class SnapshotDB
@@ -347,6 +377,8 @@ class FSNodeRegular < FSNode
 		         'node_id' => node_id
 		       }
 		db.insert_row('file', elem)
+
+		$storage.store(@truepath, @digest)
 	end
 end
 
@@ -592,6 +624,9 @@ action = ARGV.shift
 
 config = loadConfig(options['config'])
 $logger = makeLogger(config['log'], options)
+
+barf("Configuration does not have a snapshot->farmpath.") unless config and config['snapshot'] and config['snapshot']['farmpath']
+$storage = FileBackend.new(config['snapshot']['farmpath'])
 snapshot = Snapshot.new(config)
 
 case action
