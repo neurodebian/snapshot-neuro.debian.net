@@ -120,17 +120,22 @@ CREATE INDEX srcpkg_idx_name ON srcpkg(name);
 CREATE INDEX binpkg_idx_name ON binpkg(name);
 
 CREATE TABLE file_srcpkg_mapping (
-	file_id		INTEGER		NOT NULL REFERENCES file(file_id),
 	srcpkg_id	INTEGER		NOT NULL REFERENCES srcpkg(srcpkg_id),
-	UNIQUE(file_id)
+	-- hash is not unique, it might exist in different archives (e.g. archive.d.o and ftp.d.o)
+	-- also, it cannot REFERENCES file(hash) since hash is not unique in the file table either
+	hash		CHAR(40)	NOT NULL,
+	UNIQUE(srcpkg_id, hash)
 );
 CREATE INDEX file_srcpkg_mapping_idx_srcpkg_id ON file_srcpkg_mapping(srcpkg_id);
+CREATE INDEX file_srcpkg_mapping_idx_hash ON file_srcpkg_mapping(hash);
 
 CREATE TABLE file_binpkg_mapping (
-	file_id		INTEGER		NOT NULL REFERENCES file(file_id),
 	binpkg_id	INTEGER		NOT NULL REFERENCES binpkg(binpkg_id),
+	-- hash is not unique, it might exist in different archives (e.g. archive.d.o and ftp.d.o)
+	-- also, it cannot REFERENCES file(hash) since hash is not unique in the file table either
+	hash		CHAR(40)	NOT NULL,
 	architecture	VARCHAR(16)	NOT NULL,
-	UNIQUE(file_id)
+	UNIQUE(binpkg_id, hash)
 );
 CREATE INDEX file_binpkg_mapping_idx_binpkg_id ON file_binpkg_mapping(binpkg_id);
-
+CREATE INDEX file_binpkg_mapping_idx_hash ON file_binpkg_mapping(hash);
