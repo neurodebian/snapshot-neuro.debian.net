@@ -425,12 +425,13 @@ class FSReader
 end
 
 class SnapshotImporter
-	def initialize(db, archive, path, date, quick)
+	def initialize(db, archive, path, date, quick, timetravel)
 		@db = db
 		@archive = archive
 		@path = path
 		@date = date.nil? ? Time.new() : Time.parse(date)
 		@quick = quick
+		@timetravel = timetravel
 	end
 
 	# if we insert a new mirrorrun in time between existing mirrorruns
@@ -513,6 +514,7 @@ class SnapshotImporter
 		         archive_id, mirrorrun_id, mirrorrun_id)
 
 		barf("Quick imports are probably not safe when we have imports from the future already in the DB.") if next_run and @quick
+		barf("Enable --timetravel if you want to import archives older than the newest in the DB.") if next_run and not @timetravel
 		$logger.info("New mirrorrun #{mirrorrun_id} for #{@archive}")
 
 		quick_cutoff_time = nil
@@ -694,7 +696,7 @@ class PackageIndexer
 	end
 
 	def index
-		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun)") do |row|
+		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
 			@db.begin
 			source = index_mirrorrun(row['mirrorrun_id'])
 			@db.insert('indexed_mirrorrun', {' mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
@@ -732,7 +734,7 @@ class Snapshot
 	def import(options)
 		barf("No path name given") unless options['path']
 		barf("No archive name given") unless options['archive']
-		fs = SnapshotImporter.new(@db, options['archive'], options['path'], options['date'], options['quick'])
+		fs = SnapshotImporter.new(@db, options['archive'], options['path'], options['date'], options['quick'], options['timetravel'])
 		fs.import
 	end
 
@@ -795,7 +797,8 @@ ARGV.options do |opts|
 	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
 	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         { |options['path']| }
 	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  { |options['date']| }
-	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash)")  { |options['quick']| }
+	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  { |options['quick']| }
+	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  { |options['timetravel']| }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
