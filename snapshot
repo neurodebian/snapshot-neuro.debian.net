@@ -535,20 +535,23 @@ class SnapshotImporter
 end
 
 class PackageIndexer
-	def initialize(db)
+	def initialize(db, quick)
 		@db = db
+		@quick = quick
+
 		@sourcepkgs = {}
 		@binarypkgs = {}
 	end
 
-	def get_file_digest(mirrorrun_id, filename)
-		row = @db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash",
-			mirrorrun_id, File.dirname(filename), File.basename(filename))
+	def get_file_digest(mirrorrun_id, filename, quick)
+		row = quick ?
+			@db.query_row("SELECT get_file_from_mirrorrun_with_path_first(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename)) :
+			@db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename))
 		return row['hash']
 	end
 
-	def open_file(mirrorrun_id, filename)
-		digest = get_file_digest(mirrorrun_id, filename)
+	def open_file(mirrorrun_id, filename, quick=nil)
+		digest = get_file_digest(mirrorrun_id, filename, quick)
 		return nil if digest.nil?
 		return $storage.open(digest)
 	end
@@ -616,9 +619,9 @@ class PackageIndexer
 				throw "Invalud type #{type}"
 		end
 
-		digest = get_file_digest(mirrorrun_id, path)
+		digest = get_file_digest(mirrorrun_id, path, @quick)
 		unless digest
-			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})")
+			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") unless @quick
 			return
 		end
 
@@ -684,12 +687,17 @@ class PackageIndexer
 				insert_bin_file(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
 			end
 		end
+		source = "index"
+		source += '(Q)' if @quick
+		puts source
+		return source
 	end
 
 	def index
 		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun)") do |row|
 			@db.begin
-			index_mirrorrun(row['mirrorrun_id'])
+			source = index_mirrorrun(row['mirrorrun_id'])
+			@db.insert('indexed_mirrorrun', {' mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
 			@db.commit
 		end
 	end
@@ -728,8 +736,8 @@ class Snapshot
 		fs.import
 	end
 
-	def index(index)
-		pi = PackageIndexer.new(@db)
+	def index(options)
+		pi = PackageIndexer.new(@db, options['quick'])
 		pi.index
 	end
 end
