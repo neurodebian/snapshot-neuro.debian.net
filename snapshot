@@ -26,6 +26,7 @@ require 'yaml'
 require 'dbi'
 require 'logger'
 require 'digest/sha1'
+require 'digest/md5'
 require 'ftools'
 
 def barf(str)
@@ -48,7 +49,7 @@ class FileBackend < StorageBackend
 		@farmpath = farmpath
 	end
 
-	def get_path(digest, mkdir=false)
+	def _get_path(digest, mkdir=false)
 		target = @farmpath
 		h = digest
 
@@ -63,13 +64,17 @@ class FileBackend < StorageBackend
 	end
 
 	def store(source, digest)
-		target = get_path(digest, true)
+		target = _get_path(digest, true)
 		File.copy(source, target) unless File.exists?(target)
 	end
 
 	def open(digest)
-		target = get_path(digest, true)
+		target = _get_path(digest)
 		return File.new(target)
+	end
+
+	def get_path_to(digest)
+		return _get_path(digest)
 	end
 end
 
@@ -545,14 +550,14 @@ class PackageIndexer
 		@binarypkgs = {}
 	end
 
-	def get_file_digest(mirrorrun_id, filename, quick)
+	def get_file_digest(mirrorrun_id, filename, quick=false)
 		row = quick ?
 			@db.query_row("SELECT get_file_from_mirrorrun_with_path_first(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename)) :
 			@db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename))
 		return row['hash']
 	end
 
-	def open_file(mirrorrun_id, filename, quick=nil)
+	def open_file(mirrorrun_id, filename, quick=false)
 		digest = get_file_digest(mirrorrun_id, filename, quick)
 		return nil if digest.nil?
 		return $storage.open(digest)
@@ -610,23 +615,7 @@ class PackageIndexer
 		return true
 	end
 
-	def insert_file(type, pkg, mirrorrun_id, path, arch = nil)
-		path[0..0] = '' if path[0..0] = '.'
-		case type
-			when "src"
-				throw "don't need an arch" unless arch.nil?
-			when "bin"
-				throw "need an arch" if arch.nil?
-			else
-				throw "Invalud type #{type}"
-		end
-
-		digest = get_file_digest(mirrorrun_id, path, @quick)
-		unless digest
-			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") unless @quick
-			return
-		end
-
+	def insert_file_from_digest(type, pkg, digest, arch = nil)
 		query = "SELECT count(*) AS cnt FROM file_#{type}pkg_mapping WHERE #{type}pkg_id=? AND hash=?"
 		args = [pkg, digest]
 		if arch
@@ -643,14 +632,44 @@ class PackageIndexer
 		@db.insert("file_#{type}pkg_mapping", p)
 	end
 
-	def insert_src_file(srcpkg, mirrorrun_id, path)
-		insert_file('src', srcpkg, mirrorrun_id, path)
-	end
-	def insert_bin_file(binpkg, mirrorrun_id, path, arch)
-		insert_file('bin', binpkg, mirrorrun_id, path, arch)
+	def insert_file_from_path(type, pkg, mirrorrun_id, path, arch = nil)
+		path = path.clone
+		path[0..0] = '' if path[0..0] = '.'
+		case type
+			when "src"
+				throw "don't need an arch" unless arch.nil?
+			when "bin"
+				throw "need an arch" if arch.nil?
+			else
+				throw "Invalud type #{type}"
+		end
+
+		digest = get_file_digest(mirrorrun_id, path, @quick)
+		unless digest
+			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") unless @quick
+			return
+		end
+
+		insert_file_from_digest(type, pkg, digest, arch)
 	end
 
-	def index_mirrorrun(mirrorrun_id)
+	def insert_src_file_from_path(srcpkg, mirrorrun_id, path)
+		insert_file_from_path('src', srcpkg, mirrorrun_id, path)
+	end
+	def insert_bin_file_from_path(binpkg, mirrorrun_id, path, arch)
+		insert_file_from_path('bin', binpkg, mirrorrun_id, path, arch)
+	end
+	def insert_src_file_from_digest(pkg, digest)
+		insert_file_from_digest('src', pkg, digest)
+	end
+	def insert_bin_file_from_digest(pkg, digest, arch)
+		insert_file_from_digest('bin', pkg, digest, arch)
+	end
+
+
+	# Insert binary and source packages listed in /indices/package-file.map.bz2
+	# if the mirror has such a file.
+	def index_mirrorrun_from_index(mirrorrun_id)
 		index = open_file(mirrorrun_id, '/indices/package-file.map.bz2')
 		return unless index
 		index = BZ2::Reader.new(index)
@@ -677,7 +696,7 @@ class PackageIndexer
 			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
 				$logger.debug("Inserting #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
-				insert_src_file(srcpkg, mirrorrun_id, e['Path'])
+				insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
 			else
 				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
 					$logger.warn("Block has incomplete binary information before line #{lineno}")
@@ -686,12 +705,168 @@ class PackageIndexer
 
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 				$logger.debug("Inserting #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
-				insert_bin_file(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
+				insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
 			end
 		end
 		source = "index"
 		source += '(Q)' if @quick
-		puts source
+		return source
+	end
+
+	# index a given .deb or .udeb.
+	# package, version, source etc are all learned from dpkg --info.
+	def index_binary_package(mirrorrun_id, path, name, digest)
+		e = {}
+		fd = IO.popen('-') do |fd|
+			if not fd
+				cmd = ['dpkg', '--info', $storage.get_path_to(digest)]
+				exec(*cmd)
+				$logger.error("Failed to exec #{cmd.join(" ")}")
+				exit(1)
+			end
+
+			fd.each_line do |line|
+				line.chomp!
+				next if line =~ /^  /
+				line[0..0] = '' if line[0..0] == ' '
+
+				key,value = line.split(/: */)
+				next unless value
+				e[key] = value
+			end
+		end
+
+		unless hash_has_all_keys(e, %w(Version Package Architecture))
+			$logger.warn("dpkg --info returned incomplete info for #{name} (#{digest})")
+			return
+		end
+		e['Binary'] = e['Package']
+		e['Binary-Version'] = e['Version']
+
+		if e.has_key?('Source')
+			s = e['Source']
+			e['Source'], e['Source-Version'] = s.split(' ')
+			if e['Source-Version']
+				m = /^\((.*)\)$/.match(e['Source-Version'])
+				unless m
+					$logger.warn("Did not get source version out of #{s} for #{name} (#{digest})")
+					return
+				end
+				e['Source-Version'] = m[1]
+			else
+				e['Source-Version'] = e['Version']
+			end
+		else
+			e['Source'] = e['Package']
+			e['Source-Version'] = e['Version']
+		end
+
+		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
+		binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
+		insert_bin_file_from_digest(binpkg, digest, e['Architecture'])
+		$logger.debug("Inserting for binary #{e['Binary']} #{e['Binary-Version']}: #{name} (#{digest})")
+	end
+
+	# index the source package given by the dscdigest.
+	# imports the dsc, and any files referenced in it into the database.
+	# if the .dsc lists sha1 sums we use them directly,
+	# if it only lists md5 sums we search the file by name, check the
+	# md5 sum matches and import it into the db.
+	def index_source_package(mirrorrun_id, path, name, dscdigest)
+		fd = $storage.open(dscdigest)
+		lastkey = nil
+		e = {}
+		# skip pgp header
+		fd.each_line do |line|
+			break if line =~ /^Format: /
+		end
+		fd.each_line do |line|
+			line.chomp!
+			if line[0..0] == ' ' and lastkey
+				e[lastkey] = [] unless e[lastkey]
+				e[lastkey] << line[1..-1]
+			else
+				key, value = line.split(/: */)
+				e[key] = value
+				lastkey = key
+			end
+			break if line == "" # skip pgp footer
+		end
+		fd.close
+
+		unless hash_has_all_keys(e, %w(Source Version))
+			$logger.warn("dsc file #{name} has incomplete source information")
+			return
+		end
+
+		e['Source-Version'] = e['Version']
+		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
+		insert_src_file_from_digest(srcpkg, dscdigest)
+		$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{name} (#{dscdigest})")
+
+		if e['Checksums-Sha1']
+			e['Checksums-Sha1'].each do |line|
+				hash, size, itemname, rest = line.split(/ /)
+				insert_src_file_from_digest(srcpkg, hash)
+				$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+			end
+		else
+			e['Files'].each do |line|
+				expect_md5, size, itemname, rest = line.split(/ /)
+				sha1 = get_file_digest(mirrorrun_id, path+"/"+itemname)
+				unless sha1
+					$logger.warn("dsc file #{name} references #{itemname} which we do not have")
+					next
+				end
+
+				is_md5 = Digest::MD5.hexdigest( $storage.open(sha1).read )
+				if is_md5 != expect_md5
+					$logger.warn("dsc file #{name} references #{itemname} (#{expect_md5}) but we have md5 hash #{is_md5}")
+					next
+				end
+
+				insert_src_file_from_digest(srcpkg, sha1)
+				$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
+			end
+		end
+	end
+
+	# Recurse into a path, indexing any binary and source packages found.
+	def recurse_into(mirrorrun_id, path)
+		if not @quick
+			query = "SELECT filetype, name, digest FROM readdir(?,?)"
+			args = [path, mirrorrun_id]
+		else
+			query = "SELECT filetype, name, digest FROM readdir(?,?) AS readdir JOIN node ON node.node_id = readdir.node_id WHERE (NOT filetype = '-') OR node.first=?"
+			args = [path, mirrorrun_id, mirrorrun_id]
+		end
+		@db.query(query, *args) do |row|
+			case row['filetype']
+				when "d"
+					recurse_into(mirrorrun_id, path+"/"+row['name'])
+				when "-"
+					case row['name']
+						when /\.deb$|\.udeb/
+							index_binary_package(mirrorrun_id, path, row['name'], row['digest'])
+						when /\.dsc/
+							index_source_package(mirrorrun_id, path, row['name'], row['digest'])
+					end
+			end
+		end
+	end
+
+	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
+	def index_mirrorrun_from_parsing(mirrorrun_id)
+		recurse_into(mirrorrun_id, '/pool')
+		source = 'recurse'
+		source += '(Q)' if @quick
+		return source
+	end
+
+	def index_mirrorrun(mirrorrun_id)
+		source = index_mirrorrun_from_index(mirrorrun_id)
+		return source if source
+		source = index_mirrorrun_from_parsing(mirrorrun_id)
 		return source
 	end
 
