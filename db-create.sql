@@ -71,11 +71,13 @@ CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer
 DECLARE
 	mirrorrun_run timestamp;
 	dir_id integer;
+	arc_id integer;
 BEGIN
-	SELECT run INTO mirrorrun_run FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+	SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
 	SELECT directory_id INTO dir_id
 	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
 	   WHERE path=in_directory
+	     AND node_with_ts.archive_id = arc_id
 	     AND first_run <= mirrorrun_run
 	     AND last_run  >= mirrorrun_run;
 	RETURN QUERY
@@ -105,12 +107,14 @@ CREATE OR REPLACE FUNCTION get_file_from_mirrorrun_with_path(in_mirrorrun_id int
 DECLARE
 	mirrorrun_run timestamp;
 	dir_id integer;
+	arc_id integer;
 	result_hash CHAR(40);
 BEGIN
-	SELECT run INTO mirrorrun_run FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+	SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
 	SELECT directory_id INTO dir_id
 	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
 	   WHERE path=in_directory
+	     AND node_with_ts.archive_id = arc_id
 	     AND first_run <= mirrorrun_run
 	     AND last_run  >= mirrorrun_run;
 	SELECT hash INTO result_hash
