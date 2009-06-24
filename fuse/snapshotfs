@@ -111,6 +111,14 @@ class SnapshotDB:
       all = self.query(*args, **kw)
       return map(lambda x: x[0], all)
 
+   def query_one(self, *args, **kw):
+      all = self.query(*args, **kw)
+      if len(all) > 1:
+         raise 'Got more than one return in query_one'
+      if len(all) == 0:
+         return None
+      return all[0]
+
 
 def split_path(path):
    path_elements = path.split('/',2)[1:]
@@ -151,8 +159,6 @@ class SnapshotFile:
 
    def getattr(self):
       return SymlinkStat(len(self.target), self.ctime, self.atime)
-   def readlink(self):
-      return self.target
 
 
 class SnapshotSymlink:
@@ -357,6 +363,137 @@ class Archive(FSStaticElement):
          self.elements[pretty_timestamp] = MirrorRun(self.db, self.id, timestamp)
 
 
+
+class DynamicElement:
+   def getattr(self, path):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return DirStat()
+      try:
+         return self._make_child(first).getattr(subpath)
+      except IOError, e:
+         if e.errno != errno.ENOENT: raise
+      return -errno.ENOENT
+
+   def readdir(self, path, offset):
+      (first, subpath) = split_path(path)
+      if first == '':
+        return self.list_elements()
+
+      try:
+         return self._make_child(first).readdir(subpath, offset)
+      except IOError, e:
+         if e.errno != errno.ENOENT: raise
+      return -errno.ENOENT
+
+   def readlink(self, path):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return -errno.EINVAL
+
+      try:
+         return self._make_child(first).readlink(subpath)
+      except IOError, e:
+         if e.errno != errno.ENOENT: raise
+      return -errno.ENOENT
+
+class PackageFile:
+   def __init__(self, db, hash):
+      self.target = storage.make_symlink(hash)
+
+   def getattr(self, path):
+      if path == '':
+         return -errno.ENOENT
+      return SymlinkStat(len(self.target))
+
+   def readlink(self, path):
+      if path == '':
+         return -errno.ENOENT
+      return self.target
+
+
+class BinaryPackage(DynamicElement):
+   def __init__(self, db, binpkgid):
+      self.db = db
+      self.binpkgid = binpkgid
+
+   def list_elements(self):
+      return self.db.query_firsts(""" SELECT max(name) AS name
+                                       FROM file JOIN file_binpkg_mapping
+                                         ON file.hash = file_binpkg_mapping.hash
+                                       WHERE binpkg_id=%(binpkgid)s
+                                       GROUP BY file.hash""", {'binpkgid': self.binpkgid})
+
+   def _make_child(self, child):
+      row = self.db.query_one("""SELECT file.hash
+                                   FROM file JOIN file_binpkg_mapping
+                                     ON file.hash = file_binpkg_mapping.hash
+                                   WHERE binpkg_id=%(binpkgid)s
+                                     AND file.name=%(child)s
+                                   LIMIT 1""", {'binpkgid': self.binpkgid, 'child': child})
+      if not row is None:
+         return PackageFile(self.db, row['hash'])
+
+      raise IOError(errno.ENOENT, 'No such directory')
+
+class SourcePackageVersion(DynamicElement):
+   def __init__(self, db, name, version):
+      self.db = db
+      srcpkgid = None
+      r = self.db.query_one("""SELECT srcpkg_id FROM srcpkg WHERE name=%(name)s AND version=%(version)s""", {'name': name, 'version': version})
+      if r is None:
+         raise IOError(errno.ENOENT, 'No such directory')
+      self.srcpkgid = r['srcpkg_id']
+
+   def list_elements(self):
+      return self.db.query_firsts("""SELECT name FROM binpkg WHERE srcpkg_id=%(srcpkgid)s
+                                     UNION ALL
+                                     SELECT max(name) AS name
+                                       FROM file JOIN file_srcpkg_mapping
+                                         ON file.hash = file_srcpkg_mapping.hash
+                                       WHERE srcpkg_id=%(srcpkgid)s
+                                       GROUP BY file.hash""", {'srcpkgid': self.srcpkgid})
+
+   def _make_child(self, child):
+      row = self.db.query_one("""SELECT binpkg_id FROM binpkg WHERE srcpkg_id=%(srcpkgid)s AND name=%(child)s""", {'srcpkgid': self.srcpkgid, 'child': child})
+      if not row is None:
+         return BinaryPackage(self.db, row['binpkg_id'])
+
+      row = self.db.query_one("""SELECT file.hash
+                                   FROM file JOIN file_srcpkg_mapping
+                                     ON file.hash = file_srcpkg_mapping.hash
+                                   WHERE srcpkg_id=%(srcpkgid)s
+                                     AND file.name=%(child)s
+                                   LIMIT 1""", {'srcpkgid': self.srcpkgid, 'child': child})
+      if not row is None:
+         return PackageFile(self.db, row['hash'])
+
+      raise IOError(errno.ENOENT, 'No such directory')
+
+class SourcePackage(DynamicElement):
+   def __init__(self, db, name):
+      self.db = db
+      self.name = name
+
+   def _make_child(self, version):
+      return SourcePackageVersion(self.db, self.name, version)
+
+   def list_elements(self):
+      return self.db.query_firsts("""SELECT version FROM srcpkg WHERE name=%(name)s""", {'name': self.name})
+
+
+
+class Packages(FSStaticElement):
+   def __init__(self, db):
+      FSStaticElement.__init__(self)
+      self.db = db
+      self.load_elements()
+
+   def load_elements(self):
+      for name in self.db.query_firsts("""SELECT DISTINCT name FROM srcpkg"""):
+         self.elements[name] = SourcePackage(self.db, name)
+
+
 class Root(FSStaticElement):
    def __init__(self, db):
       FSStaticElement.__init__(self)
@@ -380,6 +517,7 @@ class Root(FSStaticElement):
          first_run = e['first_run']
          last_run = e['last_run']
          self.elements[name] = Archive(self.db, id, first_run, last_run)
+      self.elements['packages'] = Packages(self.db)
 
 
 class SnapshotFS(fuse.Fuse):
