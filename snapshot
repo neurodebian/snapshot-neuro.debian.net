@@ -677,7 +677,7 @@ class PackageIndexer
 		index.each_line(sep_string='') do |block|
 			e = {}
 			block.split("\n").each do |line|
-				key,value = line.split(/: */)
+				key,value = line.split(/: */, 2)
 				e[key] = value
 				lineno += 1
 			end
@@ -730,7 +730,7 @@ class PackageIndexer
 				next if line =~ /^  /
 				line[0..0] = '' if line[0..0] == ' '
 
-				key,value = line.split(/: */)
+				key,value = line.split(/: */, 2)
 				next unless value
 				e[key] = value
 			end
@@ -871,8 +871,10 @@ class PackageIndexer
 	end
 
 	def index
-		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
+		@db.query("SELECT mirrorrun_id, run, (SELECT name FROM archive WHERE archive.archive_id = mirrorrun.archive_id) AS archive
+		           FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
 			@db.begin
+			$logger.info("Indexing mirrorrun ##{row['mirrorrun_id']} of #{row['archive']} from #{row['run']}")
 			source = index_mirrorrun(row['mirrorrun_id'])
 			@db.insert('indexed_mirrorrun', {' mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
 			@db.commit
