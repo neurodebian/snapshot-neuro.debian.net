@@ -123,7 +123,7 @@ $$ LANGUAGE plpgsql;
 -- packages
 -- ####################################################################
 CREATE TABLE indexed_mirrorrun (
-	mirrorrun_id	INTEGER		NOT NULL REFERENCES mirrorrun(mirrorrun_id),
+	mirrorrun_id	INTEGER		PRIMARY KEY REFERENCES mirrorrun(mirrorrun_id),
 	source		VARCHAR(10)
 );
 
