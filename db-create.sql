@@ -93,6 +93,29 @@ CREATE INDEX symlink_idx_name ON symlink(name);
 -- $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION get_file_from_mirrorrun_with_path(in_mirrorrun_id integer, in_directory VARCHAR, in_filename VARCHAR) RETURNS CHAR(40) AS $$
+DECLARE
+	mirrorrun_run timestamp;
+	dir_id integer;
+	result_hash CHAR(40);
+BEGIN
+	SELECT run INTO mirrorrun_run FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+	SELECT directory_id INTO dir_id
+	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
+	   WHERE path=in_directory
+	     AND first_run <= mirrorrun_run
+	     AND last_run  >= mirrorrun_run;
+	SELECT hash INTO result_hash
+		  FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
+		  WHERE parent=dir_id
+			AND first_run <= mirrorrun_run
+			AND last_run  >= mirrorrun_run
+			AND name = in_filename;
+	RETURN result_hash;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 
 
