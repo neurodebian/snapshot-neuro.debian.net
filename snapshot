@@ -38,7 +38,7 @@ class StorageBackend
 	def store(source, digest)
 		throw "Not implemented"
 	end
-	def retreive(digest)
+	def open(digest)
 		throw "Not implemented"
 	end
 end
@@ -47,18 +47,29 @@ class FileBackend < StorageBackend
 	def initialize(farmpath)
 		@farmpath = farmpath
 	end
-	def store(source, digest)
+
+	def get_path(digest, mkdir=false)
 		target = @farmpath
 		h = digest
 
 		2.times do
 		  target = target + '/' + h[0..1]
 		  h = h[2..-1]
-		  Dir.mkdir(target) unless File.directory?(target)
+		  Dir.mkdir(target) if mkdir and not File.directory?(target)
 		end
 
 		target = target + '/' + digest
+
+	end
+
+	def store(source, digest)
+		target = get_path(digest, true)
 		File.copy(source, target) unless File.exists?(target)
+	end
+
+	def open(digest)
+		target = get_path(digest, true)
+		return File.new(target)
 	end
 end
 
@@ -521,12 +532,40 @@ class SnapshotImporter
 		@db.dbdo("DROP TABLE nodes_window")
 		@db.commit
 	end
-
 end
+
+class PackageIndexer
+	def initialize(db)
+		@db = db
+	end
+
+	def get_file(mirrorrun_id, filename)
+		row = @db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash",
+			mirrorrun_id, File.dirname(filename), File.basename(filename))
+		return nil if row['hash'].nil?
+		return $storage.open(row['hash'])
+	end
+
+	def index_mirrorrun(mirrorrun_id)
+		index = get_file(mirrorrun_id, '/indices/package-file.map.bz2')
+		return unless index
+		index = BZ2::Reader.new(index)
+		index.each_line do |line|
+			puts line
+		end
+	end
+
+	def index
+		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun)") do |row|
+			index_mirrorrun(row['mirrorrun_id'])
+		end
+	end
+end
+
 
 class Snapshot
 	def initialize(conf)
-		@db = SnapshotDB.new(conf['db'])
+		@db = SnapshotDB.new(conf['db'], $logger)
 	end
 
 	def list_archives()
@@ -555,8 +594,12 @@ class Snapshot
 		fs = SnapshotImporter.new(@db, options['archive'], options['path'], options['date'], options['quick'])
 		fs.import
 	end
-end
 
+	def index(index)
+		pi = PackageIndexer.new(@db)
+		pi.index
+	end
+end
 
 def makeLogger(conf, options)
 	if options['log-to-stderr']
@@ -596,6 +639,7 @@ def show_help(parser, code=0, io=STDOUT)
 	io.puts "    add-archive                      Add a new archive"
 	io.puts "    fs-list                          List a directory recursively"
 	io.puts "    import                           Import a directory"
+	io.puts "    index                            Index packages in archives"
 	io.puts "  Options:"
 	io.puts parser.summarize
 	exit(code)
@@ -639,6 +683,9 @@ case action
 		snapshot.fs_list(options)
 	when "import"
 		snapshot.import(options)
+	when 'index'
+		require 'bz2'
+		snapshot.index(options)
 	else
 		barf("Unknown action #{action}.")
 end
