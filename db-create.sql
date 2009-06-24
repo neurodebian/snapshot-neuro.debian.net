@@ -66,31 +66,39 @@ CREATE INDEX symlink_idx_name ON symlink(name);
 
 
 
--- proof of concept function
--- drop FUNCTION readdir (integer, timestamp);
--- CREATE FUNCTION readdir(p integer, ts timestamp) RETURNS SETOF VARCHAR(128) AS $$
--- BEGIN
---         RETURN QUERY
---                 SELECT substring(path, '[^/]*$')::VARCHAR(128) 
---                   FROM directory NATURAL JOIN node_with_ts
---                   WHERE parent=p
---                     AND directory_id <> parent
---                     AND first_run <= ts
---                     AND last_run  >= ts
---                 UNION ALL
---                 SELECT name 
---                   FROM file NATURAL JOIN node_with_ts
---                   WHERE parent=p
---                     AND first_run <= ts
---                     AND last_run  >= ts
---                 UNION ALL
---                 SELECT name
---                   FROM symlink NATURAL JOIN node_with_ts
---                   WHERE parent=p
---                     AND first_run <= ts
---                     AND last_run  >= ts;
--- END;
--- $$ LANGUAGE plpgsql;
+CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40));
+CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer) RETURNS SETOF readdir_result AS $$
+DECLARE
+	mirrorrun_run timestamp;
+	dir_id integer;
+BEGIN
+	SELECT run INTO mirrorrun_run FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+	SELECT directory_id INTO dir_id
+	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
+	   WHERE path=in_directory
+	     AND first_run <= mirrorrun_run
+	     AND last_run  >= mirrorrun_run;
+	RETURN QUERY
+		SELECT 'd'::CHAR, substring(path, '[^/]*$')::VARCHAR(128), node_with_ts.node_id, NULL
+		  FROM directory NATURAL JOIN node_with_ts
+		  WHERE parent=dir_id
+		    AND directory_id <> parent
+		    AND first_run <= mirrorrun_run
+		    AND last_run  >= mirrorrun_run
+		UNION ALL
+		SELECT '-'::CHAR, name, node_with_ts.node_id, file.hash
+		  FROM file NATURAL JOIN node_with_ts
+		  WHERE parent=dir_id
+		    AND first_run <= mirrorrun_run
+		    AND last_run  >= mirrorrun_run
+		UNION ALL
+		SELECT 'l'::CHAR, name, node_with_ts.node_id, NULL
+		  FROM symlink NATURAL JOIN node_with_ts
+		  WHERE parent=dir_id
+		    AND first_run <= mirrorrun_run
+		    AND last_run  >= mirrorrun_run;
+END;
+$$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION get_file_from_mirrorrun_with_path(in_mirrorrun_id integer, in_directory VARCHAR, in_filename VARCHAR) RETURNS CHAR(40) AS $$
