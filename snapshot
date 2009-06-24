@@ -331,7 +331,7 @@ class FSNodeSymlink < FSNode
 		         'target'  => @target,
 		         'node_id' => node_id
 		       }
-		db.insert_row('symlink', elem)
+		db.insert('symlink', elem)
 	end
 end
 
@@ -388,7 +388,7 @@ class FSNodeRegular < FSNode
 		         'hash'    => @digest,
 		         'node_id' => node_id
 		       }
-		db.insert_row('file', elem)
+		db.insert('file', elem)
 
 		$storage.store(@truepath, @digest)
 	end
@@ -537,27 +537,160 @@ end
 class PackageIndexer
 	def initialize(db)
 		@db = db
+		@sourcepkgs = {}
+		@binarypkgs = {}
 	end
 
-	def get_file(mirrorrun_id, filename)
+	def get_file_digest(mirrorrun_id, filename)
 		row = @db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash",
 			mirrorrun_id, File.dirname(filename), File.basename(filename))
-		return nil if row['hash'].nil?
-		return $storage.open(row['hash'])
+		return row['hash']
+	end
+
+	def open_file(mirrorrun_id, filename)
+		digest = get_file_digest(mirrorrun_id, filename)
+		return nil if digest.nil?
+		return $storage.open(digest)
+	end
+
+	def add_pkg(type, pkg, ver, srcpkg_id=nil)
+		case type
+			when "src"
+				cache = @sourcepkgs
+				throw "don't need a srcpkg_id" unless srcpkg_id.nil?
+			when "bin"
+				cache = @binarypkgs
+				throw "need a srcpkg_id" if srcpkg_id.nil?
+			else
+				throw "Invalud type #{type}"
+		end
+
+		return cache[pkg][ver] if cache[pkg] and cache[pkg][ver]
+
+		query = "SELECT #{type}pkg_id AS id FROM #{type}pkg WHERE name=? AND version=?"
+		args = [pkg, ver]
+		if srcpkg_id
+			query += " AND srcpkg_id=?"
+			args << srcpkg_id
+		end
+		
+		r = @db.query_row(query, *args)
+		if r
+			id = r["id"]
+		else
+			p = {'name' => pkg, 'version' => ver }
+			p['srcpkg_id'] = srcpkg_id if srcpkg_id
+			@db.insert_row("#{type}pkg", p)
+			id = p["#{type}pkg_id"]
+		end
+
+		cache[pkg] = {} unless cache[pkg]
+		cache[pkg][ver] = id
+		return id
+	end
+
+	def add_srcpkg(pkg, ver)
+		add_pkg('src', pkg, ver)
+	end
+	def add_binpkg(pkg, ver, srcpkg_id)
+		add_pkg('bin', pkg, ver, srcpkg_id)
+	end
+
+	def hash_has_any_key(hash, keys)
+		keys.each{ |k| return true if hash.has_key? k }
+		return false
+	end
+	def hash_has_all_keys(hash, keys)
+		keys.each{ |k| return false unless hash.has_key? k }
+		return true
+	end
+
+	def insert_file(type, pkg, mirrorrun_id, path, arch = nil)
+		path[0..0] = '' if path[0..0] = '.'
+		case type
+			when "src"
+				throw "don't need an arch" unless arch.nil?
+			when "bin"
+				throw "need an arch" if arch.nil?
+			else
+				throw "Invalud type #{type}"
+		end
+
+		digest = get_file_digest(mirrorrun_id, path)
+		unless digest
+			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})")
+			return
+		end
+
+		query = "SELECT count(*) AS cnt FROM file_#{type}pkg_mapping WHERE #{type}pkg_id=? AND hash=?"
+		args = [pkg, digest]
+		if arch
+			query += " AND architecture=?"
+			args << arch
+		end
+
+		r = @db.query_row(query, *args)
+		return if r['cnt'] == 1
+		throw "Unexpected count of #{r['cnt']}" unless r['cnt'] == 0
+
+		p = {"#{type}pkg_id" => pkg, 'hash' => digest}
+		p['architecture'] = arch if arch
+		@db.insert("file_#{type}pkg_mapping", p)
+	end
+
+	def insert_src_file(srcpkg, mirrorrun_id, path)
+		insert_file('src', srcpkg, mirrorrun_id, path)
+	end
+	def insert_bin_file(binpkg, mirrorrun_id, path, arch)
+		insert_file('bin', binpkg, mirrorrun_id, path, arch)
 	end
 
 	def index_mirrorrun(mirrorrun_id)
-		index = get_file(mirrorrun_id, '/indices/package-file.map.bz2')
+		index = open_file(mirrorrun_id, '/indices/package-file.map.bz2')
 		return unless index
 		index = BZ2::Reader.new(index)
-		index.each_line do |line|
-			puts line
+		lineno = 0
+		index.each_line(sep_string='') do |block|
+			e = {}
+			block.split("\n").each do |line|
+				key,value = line.split(/: */)
+				e[key] = value
+				lineno += 1
+			end
+			lineno += 1
+
+			unless hash_has_all_keys(e, %w(Path))
+				$logger.warn("Block has no path element before line #{lineno}")
+				next
+			end
+
+			unless hash_has_all_keys(e, %w(Source Source-Version))
+				$logger.warn("Block has incomplete source information before line #{lineno}")
+				next
+			end
+
+			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
+			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
+				$logger.debug("Inserting #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
+				insert_src_file(srcpkg, mirrorrun_id, e['Path'])
+			else
+				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
+					$logger.warn("Block has incomplete binary information before line #{lineno}")
+					next
+				end
+
+				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
+				$logger.debug("Inserting #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
+				insert_bin_file(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
+			end
 		end
 	end
 
 	def index
 		@db.query("SELECT mirrorrun_id FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun)") do |row|
+			@db.begin
 			index_mirrorrun(row['mirrorrun_id'])
+			@db.commit
 		end
 	end
 end
@@ -577,7 +710,7 @@ class Snapshot
 	def add_archive(options)
 		barf("No archive name given") unless options['archive']
 		@db.begin
-		@db.insert_row('archive', {'name' => options['archive']})
+		@db.insert('archive', {'name' => options['archive']})
 		@db.commit
 		$logger.info("Added new archive #{options['archive']}.")
 	end
