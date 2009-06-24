@@ -545,9 +545,6 @@ class PackageIndexer
 	def initialize(db, quick)
 		@db = db
 		@quick = quick
-
-		@sourcepkgs = {}
-		@binarypkgs = {}
 	end
 
 	def get_file_digest(mirrorrun_id, filename, quick=false)
@@ -875,6 +872,8 @@ class PackageIndexer
 		           FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
 			@db.begin
 			$logger.info("Indexing mirrorrun ##{row['mirrorrun_id']} of #{row['archive']} from #{row['run']}")
+			@sourcepkgs = {}
+			@binarypkgs = {}
 			source = index_mirrorrun(row['mirrorrun_id'])
 			@db.insert('indexed_mirrorrun', {' mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
 			@db.commit
