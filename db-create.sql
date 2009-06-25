@@ -132,16 +132,12 @@ $$ LANGUAGE plpgsql;
 -- just existing in that mirrorrun is not sufficient.
 CREATE OR REPLACE FUNCTION get_file_from_mirrorrun_with_path_first(in_mirrorrun_id integer, in_directory VARCHAR, in_filename VARCHAR) RETURNS CHAR(40) AS $$
 DECLARE
-	dir_id integer;
 	result_hash CHAR(40);
 BEGIN
-	SELECT directory_id INTO dir_id
-	   FROM directory JOIN node ON directory.node_id = node.node_id
-	   WHERE path=in_directory
-	     AND in_mirrorrun_id = node.first;
 	SELECT hash INTO result_hash
 		  FROM file JOIN node ON file.node_id = node.node_id
-		  WHERE parent=dir_id
+		            JOIN directory ON directory.directory_id = node.parent
+		  WHERE directory.path = in_directory
 			AND in_mirrorrun_id = node.first
 			AND name = in_filename;
 	RETURN result_hash;
