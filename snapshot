@@ -645,10 +645,11 @@ class PackageIndexer
 		digest = get_file_digest(mirrorrun_id, path, @quick)
 		unless digest
 			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") unless @quick
-			return
+			return false
 		end
 
 		insert_file_from_digest(type, pkg, digest, arch)
+		return true
 	end
 
 	def insert_src_file_from_path(srcpkg, mirrorrun_id, path)
@@ -693,8 +694,8 @@ class PackageIndexer
 
 			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
-				$logger.debug("Inserting #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
-				insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
+				inserted = insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
+				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
 			else
 				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
 					$logger.warn("Block has incomplete binary information before line #{lineno}")
@@ -702,8 +703,8 @@ class PackageIndexer
 				end
 
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
-				$logger.debug("Inserting #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
-				insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
+				inserted = insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
+				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 			end
 		end
 		source = "index"
