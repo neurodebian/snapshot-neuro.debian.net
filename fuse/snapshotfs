@@ -447,7 +447,6 @@ class BinaryPackage(DynamicElement):
 class SourcePackageVersion(DynamicElement):
    def __init__(self, db, name, version):
       self.db = db
-      srcpkgid = None
       r = self.db.query_one("""SELECT srcpkg_id FROM srcpkg WHERE name=%(name)s AND version=%(version)s""", {'name': name, 'version': version})
       if r is None:
          raise IOError(errno.ENOENT, 'No such directory')
@@ -482,6 +481,9 @@ class SourceVersionsBySourceName(DynamicElement):
    def __init__(self, db, name):
       self.db = db
       self.name = name
+      r = self.db.query_one("""SELECT count(*) AS count FROM srcpkg WHERE name=%(name)s""", {'name': name})
+      if r['count'] == 0:
+         raise IOError(errno.ENOENT, 'No such directory')
 
    def list_elements(self):
       return self.db.query_firsts("""SELECT version FROM srcpkg WHERE name=%(name)s""", {'name': self.name})
