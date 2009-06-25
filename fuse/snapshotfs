@@ -159,6 +159,8 @@ class SnapshotFile:
 
    def getattr(self):
       return SymlinkStat(len(self.target), self.ctime, self.atime)
+   def readlink(self):
+      return self.target
 
 
 class SnapshotSymlink:

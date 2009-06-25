@@ -840,10 +840,10 @@ class PackageIndexer
 		@db.query(query, *args) do |row|
 			case row['filetype']
 				when "d"
-					recurse_into(mirrorrun_id, path+"/"+row['name'])
+					recurse_into(mirrorrun_id, path + (path == '/' ? '' : '/') +row['name'])
 				when "-"
 					case row['name']
-						when /\.deb$|\.udeb/
+						when /\.deb$|\.udeb$/
 							index_binary_package(mirrorrun_id, path, row['name'], row['digest'])
 						when /\.dsc/
 							index_source_package(mirrorrun_id, path, row['name'], row['digest'])
@@ -854,7 +854,7 @@ class PackageIndexer
 
 	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
 	def index_mirrorrun_from_parsing(mirrorrun_id)
-		recurse_into(mirrorrun_id, '/pool')
+		recurse_into(mirrorrun_id, '/')
 		source = 'recurse'
 		source += '(Q)' if @quick
 		return source
