@@ -783,7 +783,7 @@ class PackageIndexer
 				e[lastkey] = [] unless e[lastkey]
 				e[lastkey] << line[1..-1]
 			else
-				key, value = line.split(/: */)
+				key, value = line.split(/: */, 2)
 				e[key] = value
 				lastkey = key
 			end
