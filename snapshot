@@ -784,7 +784,7 @@ class PackageIndexer
 				e[lastkey] << line[1..-1]
 			else
 				key, value = line.split(/: */, 2)
-				e[key] = value
+				e[key] = value if value != ""
 				lastkey = key
 			end
 			break if line == "" # skip pgp footer
