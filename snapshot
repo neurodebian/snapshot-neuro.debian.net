@@ -717,15 +717,15 @@ class PackageIndexer
 
 			e['Path'][0..0] = '' if e['Path'][0..0] = '.'
 
+			next if changed_files and not changed_files.has_key? e['Path']
+
 			unless hash_has_all_keys(e, %w(Source Source-Version))
 				$logger.warn("Block has incomplete source information before line #{lineno}")
 				next
 			end
 
+			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
-				next if changed_files and not changed_files.has_key? e['Path']
-
-				srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 				inserted = insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
 				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
 			else
@@ -734,9 +734,6 @@ class PackageIndexer
 					next
 				end
 
-				next if changed_files and not changed_files.has_key? e['Path']
-
-				srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 				inserted = insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
 				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
