@@ -80,7 +80,12 @@ end
 
 class SnapshotDB
 	def initialize(conf, logger)
-		@dbh = DBI.connect("dbi:Pg:#{conf['database']}:#{conf['host']}", conf['user'], conf['password'], 'AutoCommit'=>false)
+		s = []
+		s << "database=#{conf['database']}"
+		s << "host=#{conf['host']}" if conf['host']
+		s << "port=#{conf['port']}" if conf['port']
+
+		@dbh = DBI.connect("dbi:Pg:#{s.join(';')}", conf['user'], conf['password'], 'AutoCommit'=>false)
 		@logger = logger
 	end
 
