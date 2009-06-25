@@ -472,28 +472,40 @@ class SourcePackageVersion(DynamicElement):
 
       raise IOError(errno.ENOENT, 'No such directory')
 
-class SourcePackage(DynamicElement):
+class SourceVersionsBySourceName(DynamicElement):
    def __init__(self, db, name):
       self.db = db
       self.name = name
 
-   def _make_child(self, version):
-      return SourcePackageVersion(self.db, self.name, version)
-
    def list_elements(self):
       return self.db.query_firsts("""SELECT version FROM srcpkg WHERE name=%(name)s""", {'name': self.name})
 
+   def _make_child(self, version):
+      return SourcePackageVersion(self.db, self.name, version)
 
 
-class Packages(FSStaticElement):
+class SourcePackagesByLetter(DynamicElement):
+   def __init__(self, db, firstletter):
+      self.db = db
+      self.firstletter = firstletter
+
+   def list_elements(self):
+      return self.db.query_firsts(""" SELECT DISTINCT name FROM srcpkg WHERE substring(name from 1 for 1) = %(firstletter)s """,
+                                  {'firstletter': self.firstletter})
+
+   def _make_child(self, child):
+      return SourceVersionsBySourceName(self.db, child)
+
+
+class SourceFirstLetters(FSStaticElement):
    def __init__(self, db):
       FSStaticElement.__init__(self)
       self.db = db
       self.load_elements()
 
    def load_elements(self):
-      for name in self.db.query_firsts("""SELECT DISTINCT name FROM srcpkg"""):
-         self.elements[name] = SourcePackage(self.db, name)
+      for name in self.db.query_firsts("""SELECT DISTINCT substring(name from 1 for 1) FROM srcpkg"""):
+         self.elements[name] = SourcePackagesByLetter(self.db, name)
 
 
 class Root(FSStaticElement):
@@ -519,7 +531,7 @@ class Root(FSStaticElement):
          first_run = e['first_run']
          last_run = e['last_run']
          self.elements[name] = Archive(self.db, id, first_run, last_run)
-      self.elements['packages'] = Packages(self.db)
+      self.elements['packages'] = SourceFirstLetters(self.db)
 
 
 class SnapshotFS(fuse.Fuse):
