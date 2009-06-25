@@ -542,9 +542,10 @@ class SnapshotImporter
 end
 
 class PackageIndexer
-	def initialize(db, quick)
+	def initialize(db, quick, only_this_mirrorrun)
 		@db = db
 		@quick = quick
+		@only_this_mirrorrun = only_this_mirrorrun
 	end
 
 	def get_file_digest(mirrorrun_id, filename, quick=false)
@@ -868,15 +869,27 @@ class PackageIndexer
 	end
 
 	def index
-		@db.query("SELECT mirrorrun_id, run, (SELECT name FROM archive WHERE archive.archive_id = mirrorrun.archive_id) AS archive
-		           FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
-			@db.begin
-			$logger.info("Indexing mirrorrun ##{row['mirrorrun_id']} of #{row['archive']} from #{row['run']}")
-			@sourcepkgs = {}
-			@binarypkgs = {}
-			source = index_mirrorrun(row['mirrorrun_id'])
-			@db.insert('indexed_mirrorrun', {' mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
-			@db.commit
+		if @only_this_mirrorrun
+				@db.begin
+				$logger.info("Indexing mirrorrun ##{@only_this_mirrorrun} as requested")
+				@sourcepkgs = {}
+				@binarypkgs = {}
+				source = index_mirrorrun(@only_this_mirrorrun)
+				@db.dbdo('DELETE FROM indexed_mirrorrun WHERE mirrorrun_id=?', @only_this_mirrorrun)
+				@db.insert('indexed_mirrorrun', {'mirrorrun_id' => @only_this_mirrorrun, 'source' => source })
+				@db.commit
+
+		else
+			@db.query("SELECT mirrorrun_id, run, (SELECT name FROM archive WHERE archive.archive_id = mirrorrun.archive_id) AS archive
+					   FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
+				@db.begin
+				$logger.info("Indexing mirrorrun ##{row['mirrorrun_id']} of #{row['archive']} from #{row['run']}")
+				@sourcepkgs = {}
+				@binarypkgs = {}
+				source = index_mirrorrun(row['mirrorrun_id'])
+				@db.insert('indexed_mirrorrun', {'mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
+				@db.commit
+			end
 		end
 	end
 end
@@ -915,7 +928,7 @@ class Snapshot
 	end
 
 	def index(options)
-		pi = PackageIndexer.new(@db, options['quick'])
+		pi = PackageIndexer.new(@db, options['quick'], options['mirrorrun_id'])
 		pi.index
 	end
 end
@@ -975,6 +988,7 @@ ARGV.options do |opts|
 	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  { |options['date']| }
 	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  { |options['quick']| }
 	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  { |options['timetravel']| }
+	opts.on_tail("-m", "--mirrorrun=<id>" , Integer, "Only index this particular mirrorrun")  { |options['mirrorrun_id']| }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
