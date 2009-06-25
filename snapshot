@@ -925,7 +925,7 @@ def makeLogger(conf, options)
 		logger = Logger.new(STDOUT)
 	else
 		barf("Configuration does not have a log->filename.") unless conf and conf['filename']
-		logger = Logger.new(conf['filename'], shift_age = 'weekly')
+		logger = Logger.new(conf['filename'], 7, shift_size = 25 * 1024 * 1024)
 	end
 
 	if options['quiet']
