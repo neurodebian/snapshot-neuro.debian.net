@@ -636,8 +636,6 @@ class PackageIndexer
 	end
 
 	def insert_file_from_path(type, pkg, mirrorrun_id, path, arch = nil)
-		path = path.clone
-		path[0..0] = '' if path[0..0] = '.'
 		case type
 			when "src"
 				throw "don't need an arch" unless arch.nil?
@@ -649,7 +647,7 @@ class PackageIndexer
 
 		digest = get_file_digest(mirrorrun_id, path, @quick)
 		unless digest
-			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") unless @quick
+			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") if @warn_bad_indexfile_references
 			return false
 		end
 
@@ -676,6 +674,31 @@ class PackageIndexer
 	def index_mirrorrun_from_index(mirrorrun_id)
 		index = open_file(mirrorrun_id, '/indices/package-file.map.bz2')
 		return unless index
+
+		@warn_bad_indexfile_references = true
+
+		changed_files = nil
+		if (@quick)
+			# how many files are new in this mirrorrun?
+			row = @db.query_row("SELECT count(*) AS count FROM file JOIN node ON file.node_id = node.node_id WHERE first=?", mirrorrun_id);
+			# if it's not too many, keep a hash of files that are new
+			# XXX MAGIC CONSTANT
+			if row['count'] <= 10000
+				changed_files = {}
+				$logger.debug("Only #{row['count']} files are new this mirrorrun, building a list")
+
+				@db.query("SELECT directory.path || '/' || name AS filename
+				           FROM file JOIN node ON file.node_id = node.node_id
+				                     JOIN directory on node.parent = directory.directory_id
+				           WHERE first=?", mirrorrun_id) do | row|
+					changed_files[row['filename']] = true
+				end
+			else
+				$logger.debug("A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
+				@warn_bad_indexfile_references = false
+			end
+		end
+
 		index = BZ2::Reader.new(index)
 		lineno = 0
 		index.each_line(sep_string='') do |block|
@@ -692,13 +715,17 @@ class PackageIndexer
 				next
 			end
 
+			e['Path'][0..0] = '' if e['Path'][0..0] = '.'
+
 			unless hash_has_all_keys(e, %w(Source Source-Version))
 				$logger.warn("Block has incomplete source information before line #{lineno}")
 				next
 			end
 
-			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
+				next if changed_files and not changed_files.has_key? e['Path']
+
+				srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 				inserted = insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
 				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
 			else
@@ -707,6 +734,9 @@ class PackageIndexer
 					next
 				end
 
+				next if changed_files and not changed_files.has_key? e['Path']
+
+				srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 				inserted = insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
 				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
