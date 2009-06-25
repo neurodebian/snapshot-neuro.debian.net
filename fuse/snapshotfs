@@ -290,79 +290,6 @@ class SnapshotDirectory:
 
          return -errno.ENOENT
 
-class MirrorRun:
-   def __init__(self, db, archive_id, timestamp):
-      self.db = db
-      self.archive_id = archive_id
-      self.timestamp = timestamp
-
-   def getattr(self, path):
-      try:
-         return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).getattr()
-      except IOError, e:
-         if e.errno != errno.ENOENT: raise
-
-      parentpath = os.path.dirname(path)
-      basename = os.path.basename(path)
-      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).getattr(basename)
-
-   def readdir(self, path, offset):
-      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).readdir(offset)
-
-   def readlink(self, path):
-      parentpath = os.path.dirname(path)
-      basename = os.path.basename(path)
-      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).readlink(basename)
-
-class FSStaticElement:
-   def __init__(self):
-      self.elements = {}
-      self.ctime = 0
-      self.mtime = 0
-      self.atime = 0
-
-   def getattr(self, path):
-      (first, subpath) = split_path(path)
-      if first == '':
-         return DirStat(len(self.elements), self.ctime, self.mtime, self.atime)
-      elif first in self.elements:
-         return self.elements[ first ].getattr(subpath)
-      return -errno.ENOENT
-
-   def readdir(self, path, offset):
-      (first, subpath) = split_path(path)
-      if first == '':
-         return self.elements.keys()
-      elif first in self.elements:
-         return self.elements[ first ].readdir(subpath, offset)
-      return -errno.ENOENT
-
-   def readlink(self, path):
-      (first, subpath) = split_path(path)
-      if first == '':
-         return -errno.EINVAL
-      elif first in self.elements:
-         return self.elements[ first ].readlink(subpath)
-      return -errno.ENOENT
-
-class Archive(FSStaticElement):
-   def __init__(self, db, id, first_run, last_run):
-      FSStaticElement.__init__(self)
-      self.db = db
-      self.id = id
-      self.ctime = first_run
-      self.mtime = last_run
-      self.atime = last_run
-      self.load_elements()
-
-   def load_elements(self):
-      list = self.db.query("""SELECT run, to_char(run, 'YYYYMMDD"T"HH24MISS') AS timestamp
-                              FROM mirrorrun
-                              WHERE archive_id=%(id)s""", {'id': self.id})
-      for e in list:
-         timestamp = e['run']
-         pretty_timestamp = e['timestamp']
-         self.elements[pretty_timestamp] = MirrorRun(self.db, self.id, timestamp)
 
 
 
@@ -398,6 +325,85 @@ class DynamicElement:
       except IOError, e:
          if e.errno != errno.ENOENT: raise
       return -errno.ENOENT
+
+
+class FSStaticElement:
+   def __init__(self):
+      self.elements = {}
+      self.ctime = 0
+      self.mtime = 0
+      self.atime = 0
+
+   def getattr(self, path):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return DirStat(len(self.elements), self.ctime, self.mtime, self.atime)
+      elif first in self.elements:
+         return self.elements[ first ].getattr(subpath)
+      return -errno.ENOENT
+
+   def readdir(self, path, offset):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return self.elements.keys()
+      elif first in self.elements:
+         return self.elements[ first ].readdir(subpath, offset)
+      return -errno.ENOENT
+
+   def readlink(self, path):
+      (first, subpath) = split_path(path)
+      if first == '':
+         return -errno.EINVAL
+      elif first in self.elements:
+         return self.elements[ first ].readlink(subpath)
+      return -errno.ENOENT
+
+class MirrorRun:
+   def __init__(self, db, archive_id, timestamp):
+      self.db = db
+      self.archive_id = archive_id
+      self.timestamp = timestamp
+
+   def getattr(self, path):
+      try:
+         return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).getattr()
+      except IOError, e:
+         if e.errno != errno.ENOENT: raise
+
+      parentpath = os.path.dirname(path)
+      basename = os.path.basename(path)
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).getattr(basename)
+
+   def readdir(self, path, offset):
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, path).readdir(offset)
+
+   def readlink(self, path):
+      parentpath = os.path.dirname(path)
+      basename = os.path.basename(path)
+      return SnapshotDirectory(self.db, self.archive_id, self.timestamp, parentpath).readlink(basename)
+
+
+class Archive(FSStaticElement):
+   def __init__(self, db, id, first_run, last_run):
+      FSStaticElement.__init__(self)
+      self.db = db
+      self.id = id
+      self.ctime = first_run
+      self.mtime = last_run
+      self.atime = last_run
+      self.load_elements()
+
+   def load_elements(self):
+      list = self.db.query("""SELECT run, to_char(run, 'YYYYMMDD"T"HH24MISS') AS timestamp
+                              FROM mirrorrun
+                              WHERE archive_id=%(id)s""", {'id': self.id})
+      for e in list:
+         timestamp = e['run']
+         pretty_timestamp = e['timestamp']
+         self.elements[pretty_timestamp] = MirrorRun(self.db, self.id, timestamp)
+
+
+
 
 class PackageFile:
    def __init__(self, db, hash):
