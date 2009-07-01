@@ -59,23 +59,52 @@ Hopefully somebody can be found to build a nice web frontent to this
 stuff.
 
 
-So far our snapshot implementation is pretty agnositc as to what
-kind of data we take snapshots of.  It could just as well be
-your home directory or the bugs database.
-As another improvement it might be nice to introduce the concept
-of packages to snapshot, so that users can query the system for
-all versions of a package that ever existed in a specific archive
-or anywhere.  This probably should be something that builds on
-top of the basic snapshot, but that doesn't mean it couldn't live
-in the same database.
+The base of the  snapshot implementation is pretty agnositc as to what
+kind of data we take snapshots of.  It could just as well be your home
+directory or the bugs database.
 
-We might also need this for cases where packages are removed from
-the archive because we aren't allowed to redistribute them.  Then
-we could set all those files to locked/unreadable/whatever.
+On top of that, there is a concept of packages.  To be more precise
+there are source packages, each with a version, and there are binary
+packages with versions that belong to a source package.
 
-Another thing would be to teach the system about releases so that
-one can get "sarge r2" from the system.  Again, it should be
-able to build on top of what is already there.
+Source packages have files associated with it (by file hash), and
+so do binary packages.  In the relation for bin packages we also
+keep track of what kind of arch this binary package is for.
 
+This indexer works either by parsing the /indices/package-file.map.bz2
+file in an ftp tree, or if that doesn't exist, by looking at each .dsc
+and each .deb/.udeb file.
+
+
+Missing wanted features:
+ - We might need to handle the case where packages are removed from
+   the archive because we aren't allowed to redistribute them.  Then we
+   could set all files belonging to a package to
+   locked/unreadable/whatever.
+
+ - Another thing would be to teach the system about releases so that one
+   can get "sarge r2" from the system.  Again, it should be able to
+   build on top of what is already there.
+
+ - A mirrorrun import should write out a "transaction log"-style flat
+   file that lists all the nodes added in this mirrorrun, plus data
+   identifying the mirrorrun (id, date, archive).  This can be then used
+   to inject this run's metadata into a mirror.
+
+ - When adding files to the farm, copy them to a .temp-hash filename,
+   and only link them in place once they are there.
+
+ - farm fsck:
+   - check for all the files whether their hashsum matches their name.
+   - check if all of them are references in the database
+     (new ones might not be there yet, instead being added in that
+      transaction)
+   - find list of hashes referenced in the DB but not in the farm.
+
+ - Write a nice web frontend.
+
+ - Write some scripts to help setting up a mirror.  This should be easy
+   given that our farm is easy to rsync and we (will) have a way to inject
+   mirrorruns without having to dump/reload the entire DB.
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8
