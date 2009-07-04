@@ -107,4 +107,4 @@ Missing wanted features:
    given that our farm is easy to rsync and we (will) have a way to inject
    mirrorruns without having to dump/reload the entire DB.
 
-Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8
+Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse
