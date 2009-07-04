@@ -832,6 +832,27 @@ class PackageIndexer
 		binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 		insert_bin_file_from_digest(binpkg, digest, e['Architecture'])
 		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for binary #{e['Binary']} #{e['Binary-Version']}: #{name} (#{digest})")
+
+
+		# .93 debs did not have .dsc files for their source.  Still try to find them
+		if format == '0.93'
+				pathelements = path.split('/')
+				pathelements[-3] = 'source' if pathelements[-3] == 'binary'
+
+				pathelements[-1] = File.basename(pathelements[-1], ".deb")
+
+				a = []
+				a.push( pathelements.join('/') + '.diff.gz' )
+				a.push( pathelements.join('/') + '.tar.gz' )
+
+				a.each do |f|
+					sha1 = get_file_digest(mirrorrun_id, f)
+					next unless sha1 # not found.  pitty
+				end
+
+				insert_src_file_from_digest(srcpkg, sha1)
+				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
+		end
 	end
 
 	# index the source package given by the dscdigest.
