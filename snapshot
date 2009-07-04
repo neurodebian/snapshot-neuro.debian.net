@@ -774,6 +774,19 @@ class PackageIndexer
 				exit(1)
 			end
 
+			# first line
+			line = ld.read_line
+			line.chomp!
+			line[0..0] = '' if line[0..0] == ' '
+			case line
+				when "old debian package, version 0.939000."
+					format = '0.93'
+				when "new debian package, version 2.0."
+					format = '2'
+				else
+					throw "Unknown binary package version #{line}"
+			end
+
 			fd.each_line do |line|
 				line.chomp!
 				next if line =~ /^  /
@@ -781,8 +794,12 @@ class PackageIndexer
 
 				key,value = line.split(/: */, 2)
 				next unless value
-				e[key] = value
+				e[key.capitalize] = value
 			end
+		end
+
+		if format == '0.93'
+			e['Version'] += "-" + e['Package_revision'] if e['Package_revision']
 		end
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
