@@ -561,6 +561,7 @@ class SnapshotImporter
 
 		@db.dbdo("DROP TABLE nodes_window")
 		@db.commit
+		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{@archive} completed.")
 	end
 end
 
