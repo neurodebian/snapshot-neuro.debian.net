@@ -63,9 +63,27 @@ class FileBackend < StorageBackend
 
 	end
 
+	def _randstring()
+		value = ''
+		8.times{value  << (65 + rand(25)).chr}
+		value
+	end
+
 	def store(source, digest)
 		target = _get_path(digest, true)
-		File.copy(source, target) unless File.exists?(target)
+		unless File.exists?(target)
+			dir = File.dirname(target)
+			fn = File.basename(target)
+
+			tmptarget = dir+"/."+_randstring()+"."+Process.pid+"."fn
+			File.copy(source, tmptarget)
+			begin
+				File.link(tmptarget, target)
+			rescue Errno::EEXIST
+				# it may have jumped into existance, that's no problem.
+			end
+			File.unlink(tmptarget)
+		end
 	end
 
 	def open(digest)

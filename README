@@ -91,7 +91,7 @@ Missing wanted features:
    identifying the mirrorrun (id, date, archive).  This can be then used
    to inject this run's metadata into a mirror.
 
- - When adding files to the farm, copy them to a .temp-hash filename,
+ o When adding files to the farm, copy them to a .temp-hash filename,
    and only link them in place once they are there.
 
  - farm fsck:
@@ -106,5 +106,7 @@ Missing wanted features:
  - Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject
    mirrorruns without having to dump/reload the entire DB.
+
+ [ o .. done; - to do ]
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse
