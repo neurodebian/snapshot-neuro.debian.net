@@ -800,6 +800,7 @@ class PackageIndexer
 
 		if format == '0.93'
 			e['Version'] += "-" + e['Package_revision'] if e['Package_revision']
+			e['Architecture'] = 'i386' unless ['Architecture']
 		end
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
