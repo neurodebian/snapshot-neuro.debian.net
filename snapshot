@@ -490,7 +490,7 @@ class SnapshotImporter
 				# we would need to handle parent == self crap
 				throw "Cannot split the / node." if type == 'directory' and row['path'] == "/"
 
-				$logger.debug "Splitting #{row.inspect}"
+				$logger.debug "[run ##{mirrorrun_id}] Splitting #{row.inspect}"
 				new_parent = (changed_parents[row['parent']] or row['parent'])
 				new_node = {'parent' => new_parent, 'first' => next_run, 'last' => row['last']}
 				@db.insert_row('node', new_node)
@@ -554,7 +554,7 @@ class SnapshotImporter
 		fs = FSReader.new(@path, quick_cutoff_time)
 		fs.each_node do |fsnode|
 			fsnode.update_or_insert(@db, mirrorrun_id, prev_run, next_run)
-			$logger.debug("Importing #{fsnode}")
+			$logger.debug("[run ##{mirrorrun_id}] Importing #{fsnode}")
 		end
 
 		split_boxed_missing(mirrorrun_id, prev_run, next_run)
@@ -665,7 +665,7 @@ class PackageIndexer
 
 		digest = get_file_digest(mirrorrun_id, path, @quick)
 		unless digest
-			$logger.warn("File #{path} is referenced in index but does not exist in mirrorrun #{mirrorrun_id})") if @warn_bad_indexfile_references
+			$logger.warn("[indexrun ##{mirrorrun_id}] File #{path} is referenced in index but does not exist in mirrorrun)") if @warn_bad_indexfile_references
 			return false
 		end
 
@@ -703,7 +703,7 @@ class PackageIndexer
 			# XXX MAGIC CONSTANT
 			if row['count'] <= 10000
 				changed_files = {}
-				$logger.debug("Only #{row['count']} files are new this mirrorrun, building a list")
+				$logger.debug("[indexrun ##{mirrorrun_id}] Only #{row['count']} files are new this mirrorrun, building a list")
 
 				@db.query("SELECT directory.path || '/' || name AS filename
 				           FROM file JOIN node ON file.node_id = node.node_id
@@ -712,7 +712,7 @@ class PackageIndexer
 					changed_files[row['filename']] = true
 				end
 			else
-				$logger.debug("A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
+				$logger.debug("[indexrun ##{mirrorrun_id}] A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
 				@warn_bad_indexfile_references = false
 			end
 		end
@@ -729,7 +729,7 @@ class PackageIndexer
 			lineno += 1
 
 			unless hash_has_all_keys(e, %w(Path))
-				$logger.warn("Block has no path element before line #{lineno}")
+				$logger.warn("[indexrun ##{mirrorrun_id}] Block has no path element before line #{lineno}")
 				next
 			end
 
@@ -738,23 +738,23 @@ class PackageIndexer
 			next if changed_files and not changed_files.has_key? e['Path']
 
 			unless hash_has_all_keys(e, %w(Source Source-Version))
-				$logger.warn("Block has incomplete source information before line #{lineno}")
+				$logger.warn("[indexrun ##{mirrorrun_id}] Block has incomplete source information before line #{lineno}")
 				next
 			end
 
 			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
 				inserted = insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
-				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
+				$logger.debug("[indexrun ##{mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
 			else
 				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
-					$logger.warn("Block has incomplete binary information before line #{lineno}")
+					$logger.warn("[indexrun ##{mirrorrun_id}] Block has incomplete binary information before line #{lineno}")
 					next
 				end
 
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 				inserted = insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
-				$logger.debug((inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
+				$logger.debug("[indexrun ##{mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 			end
 		end
 		source = "index"
@@ -770,7 +770,7 @@ class PackageIndexer
 			if not fd
 				cmd = ['dpkg', '--info', $storage.get_path_to(digest)]
 				exec(*cmd)
-				$logger.error("Failed to exec #{cmd.join(" ")}")
+				$logger.error("[indexrun ##{mirrorrun_id}] Failed to exec #{cmd.join(" ")}")
 				exit(1)
 			end
 
@@ -786,7 +786,7 @@ class PackageIndexer
 		end
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
-			$logger.warn("dpkg --info returned incomplete info for #{name} (#{digest})")
+			$logger.warn("[indexrun ##{mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest})")
 			return
 		end
 		e['Binary'] = e['Package']
@@ -798,7 +798,7 @@ class PackageIndexer
 			if e['Source-Version']
 				m = /^\((.*)\)$/.match(e['Source-Version'])
 				unless m
-					$logger.warn("Did not get source version out of #{s} for #{name} (#{digest})")
+					$logger.warn("[indexrun ##{mirrorrun_id}] Did not get source version out of #{s} for #{name} (#{digest})")
 					return
 				end
 				e['Source-Version'] = m[1]
@@ -813,7 +813,7 @@ class PackageIndexer
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 		insert_bin_file_from_digest(binpkg, digest, e['Architecture'])
-		$logger.debug("Inserting for binary #{e['Binary']} #{e['Binary-Version']}: #{name} (#{digest})")
+		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for binary #{e['Binary']} #{e['Binary-Version']}: #{name} (#{digest})")
 	end
 
 	# index the source package given by the dscdigest.
@@ -844,38 +844,38 @@ class PackageIndexer
 		fd.close
 
 		unless hash_has_all_keys(e, %w(Source Version))
-			$logger.warn("dsc file #{name} has incomplete source information")
+			$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} has incomplete source information")
 			return
 		end
 
 		e['Source-Version'] = e['Version']
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		insert_src_file_from_digest(srcpkg, dscdigest)
-		$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{name} (#{dscdigest})")
+		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{name} (#{dscdigest})")
 
 		if e['Checksums-Sha1']
 			e['Checksums-Sha1'].each do |line|
 				hash, size, itemname, rest = line.split(/ /)
 				insert_src_file_from_digest(srcpkg, hash)
-				$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
 			end
 		else
 			e['Files'].each do |line|
 				expect_md5, size, itemname, rest = line.split(/ /)
 				sha1 = get_file_digest(mirrorrun_id, path+"/"+itemname)
 				unless sha1
-					$logger.warn("dsc file #{name} references #{itemname} which we do not have")
+					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} references #{itemname} which we do not have")
 					next
 				end
 
 				is_md5 = Digest::MD5.hexdigest( $storage.open(sha1).read )
 				if is_md5 != expect_md5
-					$logger.warn("dsc file #{name} references #{itemname} (#{expect_md5}) but we have md5 hash #{is_md5}")
+					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} references #{itemname} (#{expect_md5}) but we have md5 hash #{is_md5}")
 					next
 				end
 
 				insert_src_file_from_digest(srcpkg, sha1)
-				$logger.debug("Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
+				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
 			end
 		end
 	end
