@@ -766,6 +766,7 @@ class PackageIndexer
 	# package, version, source etc are all learned from dpkg --info.
 	def index_binary_package(mirrorrun_id, path, name, digest)
 		e = {}
+		debversion = nil
 		fd = IO.popen('-') do |fd|
 			if not fd
 				cmd = ['dpkg', '--info', $storage.get_path_to(digest)]
@@ -775,14 +776,17 @@ class PackageIndexer
 			end
 
 			# first line
-			line = ld.read_line
+			line = fd.readline
 			line.chomp!
 			line[0..0] = '' if line[0..0] == ' '
 			case line
-				when "old debian package, version 0.939000."
-					format = '0.93'
+				when "old debian package, version 0.932000.",
+				     "old debian package, version 0.933000.",
+				     "old debian package, version 0.936000.",
+				     "old debian package, version 0.939000."
+					debversion = '0.93'
 				when "new debian package, version 2.0."
-					format = '2'
+					debversion = '2'
 				else
 					throw "Unknown binary package version #{line}"
 			end
@@ -798,13 +802,15 @@ class PackageIndexer
 			end
 		end
 
-		if format == '0.93'
+		throw "Why is debversion nil?" unless debversion
+
+		if debversion == '0.93'
 			e['Version'] += "-" + e['Package_revision'] if e['Package_revision']
-			e['Architecture'] = 'i386' unless ['Architecture']
+			e['Architecture'] = 'i386' unless e['Architecture']
 		end
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
-			$logger.warn("[indexrun ##{mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest})")
+			$logger.warn("[indexrun ##{mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest}).  [existing keys: #{e.keys.join(', ')}]")
 			return
 		end
 		e['Binary'] = e['Package']
@@ -835,10 +841,10 @@ class PackageIndexer
 
 
 		# .93 debs did not have .dsc files for their source.  Still try to find them
-		if format == '0.93'
+		if debversion == '0.93'
 				pathelements = path.split('/')
+				pathelements << name
 				pathelements[-3] = 'source' if pathelements[-3] == 'binary'
-
 				pathelements[-1] = File.basename(pathelements[-1], ".deb")
 
 				a = []
@@ -847,11 +853,14 @@ class PackageIndexer
 
 				a.each do |f|
 					sha1 = get_file_digest(mirrorrun_id, f)
-					next unless sha1 # not found.  pitty
-				end
+					unless sha1 # not found.  pitty
+						$logger.debug("[indexrun ##{mirrorrun_id}] No source found for #{e['Source']} #{e['Source-Version']}: #{f} (#{sha1})")
+						next
+					end
 
-				insert_src_file_from_digest(srcpkg, sha1)
-				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
+					insert_src_file_from_digest(srcpkg, sha1)
+					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{f} (#{sha1})")
+				end
 		end
 	end
 
