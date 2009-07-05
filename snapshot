@@ -929,7 +929,7 @@ class PackageIndexer
 				expect_md5, size, itemname, rest = line.split(/ /)
 				sha1 = get_file_digest(mirrorrun_id, path+"/"+itemname)
 				unless sha1
-					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} references #{itemname} which we do not have")
+					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we do not have")
 					next
 				end
 
