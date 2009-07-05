@@ -897,7 +897,7 @@ class PackageIndexer
 		fd.close
 
 		unless hash_has_all_keys(e, %w(Source Version))
-			$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} has incomplete source information")
+			$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} has incomplete source information.    [existing keys: #{e.keys.join(', ')}]")
 			return
 		end
 
