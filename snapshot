@@ -945,7 +945,7 @@ class PackageIndexer
 					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we do not have")
 					next
 				elsif candidates.length > 1
-					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we have more than once!")
+					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} of which we have different ones!")
 				end
 
 				candidates.each do |sha1|
