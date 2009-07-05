@@ -874,24 +874,22 @@ class PackageIndexer
 	# if it only lists md5 sums we search the file by name, check the
 	# md5 sum matches and import it into the db.
 	def index_source_package(mirrorrun_id, path, name, dscdigest)
-		fd = $storage.open(dscdigest)
-		lastkey = nil
-		e = {}
-		# skip pgp header
-
 		# first line
-		line = fd.readline
-		line.chomp!
-		line[0..0] = '' if line[0..0] == ' '
-		if line == '-----BEGIN PGP SIGNED MESSAGE-----'
-			fd.each_line do |line|
-				line.chomp!
-				break if line == ""
+		fd = $storage.open(dscdigest)
+		lines = fd.readlines.collect{ |x| x.chomp }
+		fd.close
+
+		# skip pgp header
+		if lines.first == '-----BEGIN PGP SIGNED MESSAGE-----'
+			while lines.length > 0
+				first = lines.shift
+				break if first == ""
 			end
 		end
 
-		fd.each_line do |line|
-			line.chomp!
+		lastkey = nil
+		e = {}
+		lines.each do |line|
 			if line[0..0] == ' ' and lastkey
 				e[lastkey] = [] unless e[lastkey]
 				e[lastkey] << line[1..-1]
@@ -902,9 +900,8 @@ class PackageIndexer
 			end
 			break if line == "" # skip pgp footer
 		end
-		fd.close
 
-		unless hash_has_all_keys(e, %w(Source Version))
+		unless hash_has_all_keys(e, %w(Source Version Files))
 			$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} has incomplete source information.    [existing keys: #{e.keys.join(', ')}]")
 			return
 		end
