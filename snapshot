@@ -838,7 +838,7 @@ class PackageIndexer
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 		insert_bin_file_from_digest(binpkg, digest, e['Architecture'])
-		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for binary #{e['Binary']} #{e['Binary-Version']}: #{name} (#{digest})")
+		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for binary #{path}/#{name} (#{digest}: #{e['Binary']} #{e['Binary-Version']}")
 
 
 		# .93 debs did not have .dsc files for their source.  Still try to find them
@@ -860,7 +860,7 @@ class PackageIndexer
 					end
 
 					insert_src_file_from_digest(srcpkg, sha1)
-					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{f} (#{sha1})")
+					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{f} #{digest}: #{e['Source']} #{e['Source-Version']}")
 				end
 		end
 	end
@@ -876,7 +876,8 @@ class PackageIndexer
 		e = {}
 		# skip pgp header
 		fd.each_line do |line|
-			break if line =~ /^Format: /
+			line.chomp!
+			break if line == ""
 		end
 		fd.each_line do |line|
 			line.chomp!
@@ -900,13 +901,13 @@ class PackageIndexer
 		e['Source-Version'] = e['Version']
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		insert_src_file_from_digest(srcpkg, dscdigest)
-		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{name} (#{dscdigest})")
+		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{name} (#{dscdigest}): #{e['Source']} #{e['Source-Version']}")
 
 		if e['Checksums-Sha1']
 			e['Checksums-Sha1'].each do |line|
 				hash, size, itemname, rest = line.split(/ /)
 				insert_src_file_from_digest(srcpkg, hash)
-				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source by digest: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
 			end
 		else
 			e['Files'].each do |line|
@@ -924,7 +925,7 @@ class PackageIndexer
 				end
 
 				insert_src_file_from_digest(srcpkg, sha1)
-				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{e['Source']} #{e['Source-Version']}: #{itemname} (#{sha1})")
+				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{itemname} (#{sha1}): #{e['Source']} #{e['Source-Version']}")
 			end
 		end
 	end
