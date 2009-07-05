@@ -825,11 +825,18 @@ class PackageIndexer
 			e['Source'], e['Source-Version'] = s.split(' ')
 			if e['Source-Version']
 				m = /^\((.*)\)$/.match(e['Source-Version'])
-				unless m
-					$logger.warn("[indexrun ##{mirrorrun_id}] Did not get source version out of #{s} for #{name} (#{digest})")
-					return
+				if m
+					e['Source-Version'] = m[1]
+				else
+					# Some packages do not have source-version in parenthenses:
+					# SOURCE: ncurses 1.9.9e-1   in ncurses-term_1.9.9e-1.deb
+					if e['Source-Version'] != ""
+						$logger.warn("[indexrun ##{mirrorrun_id}] Using '#{e['Source-Version']}' from '#{s}' as source version for #{path}/#{name} (#{digest})")
+					else
+						$logger.warn("[indexrun ##{mirrorrun_id}] Did not get source version out of #{s} for #{path}/#{name} (#{digest})")
+						return
+					end
 				end
-				e['Source-Version'] = m[1]
 			else
 				e['Source-Version'] = e['Version']
 			end
