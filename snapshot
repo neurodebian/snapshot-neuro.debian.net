@@ -848,7 +848,7 @@ class PackageIndexer
 		if debversion == '0.93'
 				pathelements = path.split('/')
 				pathelements << name
-				pathelements[-3] = 'source' if pathelements[-3] == 'binary'
+				pathelements[-3] = 'source' if %w{binary binary-i386 binary-all}.include?(pathelements[-3])
 				pathelements[-1] = File.basename(pathelements[-1], ".deb")
 
 				a = []
