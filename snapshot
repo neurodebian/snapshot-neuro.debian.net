@@ -810,8 +810,8 @@ class PackageIndexer
 
 		if debversion == '0.93'
 			e['Version'] += "-" + e['Package_revision'] if e['Package_revision']
-			e['Architecture'] = 'i386' unless e['Architecture']
 		end
+		e['Architecture'] = 'i386' unless e['Architecture']
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
 			$logger.warn("[indexrun ##{mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest}).  [existing keys: #{e.keys.join(', ')}]")
