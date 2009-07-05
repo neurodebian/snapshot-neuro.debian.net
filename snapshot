@@ -878,10 +878,18 @@ class PackageIndexer
 		lastkey = nil
 		e = {}
 		# skip pgp header
-		fd.each_line do |line|
-			line.chomp!
-			break if line == ""
+
+		# first line
+		line = fd.readline
+		line.chomp!
+		line[0..0] = '' if line[0..0] == ' '
+		if line == '-----BEGIN PGP SIGNED MESSAGE-----'
+			fd.each_line do |line|
+				line.chomp!
+				break if line == ""
+			end
 		end
+
 		fd.each_line do |line|
 			line.chomp!
 			if line[0..0] == ' ' and lastkey
