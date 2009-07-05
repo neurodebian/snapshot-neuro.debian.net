@@ -927,20 +927,37 @@ class PackageIndexer
 		else
 			e['Files'].each do |line|
 				expect_md5, size, itemname, rest = line.split(/ /)
+
+				candidates = []
 				sha1 = get_file_digest(mirrorrun_id, path+"/"+itemname)
-				unless sha1
+				if sha1
+					candidates = [sha1]
+				else
+					@db.query("SELECT DISTINCT hash FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
+					           WHERE first_run <= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
+					             AND last_run  >= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
+					             AND file.name=?", mirrorrun_id, mirrorrun_id, itemname) do |row|
+						candidates << row['hash']
+					end
+				end
+
+				if candidates.length == 0
 					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we do not have")
 					next
+				elsif candidates.length > 1
+					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we have more than once!")
 				end
 
-				is_md5 = Digest::MD5.hexdigest( $storage.open(sha1).read )
-				if is_md5 != expect_md5
-					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{name} references #{itemname} (#{expect_md5}) but we have md5 hash #{is_md5}")
-					next
-				end
+				candidates.each do |sha1|
+					is_md5 = Digest::MD5.hexdigest( $storage.open(sha1).read )
+					if is_md5 != expect_md5
+						$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} with md5 #{expect_md5}) but we have md5 hash #{is_md5}")
+						next
+					end
 
-				insert_src_file_from_digest(srcpkg, sha1)
-				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{itemname} (#{sha1}): #{e['Source']} #{e['Source-Version']}")
+					insert_src_file_from_digest(srcpkg, sha1)
+					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{itemname} (#{sha1}): #{e['Source']} #{e['Source-Version']}")
+				end
 			end
 		end
 	end
