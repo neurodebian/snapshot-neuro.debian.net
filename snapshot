@@ -799,6 +799,9 @@ class PackageIndexer
 
 				key,value = line.split(/: */, 2)
 				next unless value
+				# Some packages have fields, but their value is empty.
+				# I'm looking at you, aout-xpm_3.4f-1.deb
+				next if value == ''
 				e[key.capitalize] = value
 			end
 		end
