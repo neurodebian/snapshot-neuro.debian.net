@@ -1140,6 +1140,7 @@ config = loadConfig(options['config'])
 $logger = makeLogger(config['log'], options)
 
 barf("Configuration does not have a snapshot->farmpath.") unless config and config['snapshot'] and config['snapshot']['farmpath']
+barf("Please run with TZ=UTC") unless Time.now.zone == "UTC"
 $storage = FileBackend.new(config['snapshot']['farmpath'])
 snapshot = Snapshot.new(config)
 
