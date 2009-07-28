@@ -10,7 +10,8 @@ CREATE TABLE archive (
 CREATE TABLE mirrorrun (
 	mirrorrun_id	SERIAL		PRIMARY KEY,
 	archive_id	INTEGER		NOT NULL REFERENCES archive(archive_id),
-	run		TIMESTAMP	NOT NULL
+	run		TIMESTAMP	NOT NULL,
+	mirrorrun_uuid	UUID		NOT NULL UNIQUE
 );
 
 CREATE TABLE node (
