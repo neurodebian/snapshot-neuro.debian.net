@@ -28,6 +28,7 @@ require 'logger'
 require 'digest/sha1'
 require 'digest/md5'
 require 'ftools'
+require 'time'
 
 def barf(str)
 	$logger.error(str)
@@ -549,7 +550,7 @@ class SnapshotImporter
 		quick_cutoff_time = nil
 		if @quick and prev_run
 			row = @db.query_row("SELECT run FROM mirrorrun WHERE mirrorrun_id=?", prev_run)
-			quick_cutoff_time=row['run']
+			quick_cutoff_time=Time.parse(row['run'].to_s)
 		end
 
 		fs = FSReader.new(@path, quick_cutoff_time)
