@@ -101,10 +101,15 @@ class SnapshotDB:
             sys.stderr.write("Database config file does not define %s keywords\n"%kw)
             sys.exit(1)
       self.db=psycopg2.connect(config['connectstring'])
+      self.execute('ROLLBACK')
 
-   def query(self, *args, **kw):
+   def execute(self, *args, **kw):
       c = self.db.cursor(cursor_factory=psycopg2.extras.DictCursor)
       c.execute(*args, **kw)
+      return c
+
+   def query(self, *args, **kw):
+      c = self.execute(*args, **kw)
       return c.fetchall()
 
    def query_firsts(self, *args, **kw):
