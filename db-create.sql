@@ -190,3 +190,20 @@ CREATE TABLE file_binpkg_mapping (
 );
 CREATE INDEX file_binpkg_mapping_idx_binpkg_id ON file_binpkg_mapping(binpkg_id);
 CREATE INDEX file_binpkg_mapping_idx_hash ON file_binpkg_mapping(hash);
+
+
+
+
+
+GRANT SELECT ON archive TO public;
+GRANT SELECT ON binpkg TO public;
+GRANT SELECT ON directory TO public;
+GRANT SELECT ON file TO public;
+GRANT SELECT ON file_binpkg_mapping TO public;
+GRANT SELECT ON file_srcpkg_mapping TO public;
+GRANT SELECT ON indexed_mirrorrun TO public;
+GRANT SELECT ON mirrorrun TO public;
+GRANT SELECT ON node TO public;
+GRANT SELECT ON node_with_ts TO public;
+GRANT SELECT ON srcpkg TO public;
+GRANT SELECT ON symlink TO public;
