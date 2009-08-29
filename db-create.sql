@@ -11,7 +11,8 @@ CREATE TABLE mirrorrun (
 	mirrorrun_id	SERIAL		PRIMARY KEY,
 	archive_id	INTEGER		NOT NULL REFERENCES archive(archive_id),
 	run		TIMESTAMP	NOT NULL,
-	mirrorrun_uuid	UUID		NOT NULL UNIQUE
+	mirrorrun_uuid	UUID		NOT NULL UNIQUE,
+	importing_host	VARCHAR(64)	NOT NULL
 );
 
 CREATE TABLE node (
@@ -208,3 +209,8 @@ GRANT SELECT ON node TO public;
 GRANT SELECT ON node_with_ts TO public;
 GRANT SELECT ON srcpkg TO public;
 GRANT SELECT ON symlink TO public;
+
+-- ALTER TABLE mirrorrun add COLUMN mirrorrun_uuid UUID;
+-- ALTER TABLE mirrorrun add COLUMN importing_host VARCHAR(64);
+-- ALTER TABLE mirrorrun ALTER COLUMN mirrorrun_uuid SET not null;
+-- ALTER TABLE mirrorrun ALTER COLUMN importing_host SET not null;

@@ -515,11 +515,12 @@ class SnapshotImporter
 		@db.begin
 
 		row = @db.query_row('SELECT archive_id FROM archive WHERE name=?', @archive)
-		barf("Archive #{archive} does not exist") if row.nil?
+		barf("Archive #{@archive} does not exist") if row.nil?
 		archive_id = row['archive_id']
 
 		a_uuid=`uuidgen`.chomp
-		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>@date, 'mirrorrun_uuid'=>a_uuid})['mirrorrun_id']
+		a_importing_host=`hostname -f`.chomp
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>@date, 'mirrorrun_uuid'=>a_uuid, 'importing_host'=>a_importing_host})['mirrorrun_id']
 
 		row = @db.query_row("SELECT
 		                       (SELECT count(*) FROM mirrorrun WHERE archive_id=?
