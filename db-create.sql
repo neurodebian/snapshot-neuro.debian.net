@@ -147,7 +147,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE TYPE dirtree_result AS (filetype char, path VARCHAR(250), name VARCHAR(128), hash CHAR(40), target VARCHAR(250));
+CREATE TYPE dirtree_result AS (filetype char, path VARCHAR(250), name VARCHAR(128), size INTEGER, hash CHAR(40), target VARCHAR(250));
 CREATE OR REPLACE FUNCTION dirtree(in_mirrorrun_id integer) RETURNS SETOF dirtree_result AS $$
 DECLARE
 	mirrorrun_run timestamp;
@@ -173,16 +173,16 @@ BEGIN
 		      AND last_run  >= mirrorrun_run
 		)
 
-		SELECT type, path, NULL AS name, NULL AS hash, NULL::VARCHAR(250) AS target
+		SELECT type, path, NULL AS name, NULL as size, NULL AS hash, NULL::VARCHAR(250) AS target
 		    FROM subdirs
 		UNION ALL
-		  SELECT '-'::CHAR, path, name, hash, NULL AS target
+		  SELECT '-'::CHAR, path, name, size, hash, NULL AS target
 		     FROM file NATURAL JOIN node_with_ts
 		     JOIN subdirs ON subdirs.directory_id = node_with_ts.parent
 		   WHERE first_run <= mirrorrun_run
 		     AND last_run  >= mirrorrun_run
 		UNION ALL
-		  SELECT 'l'::CHAR, path, name, NULL AS hash, target
+		  SELECT 'l'::CHAR, path, name, NULL as size, NULL AS hash, target
 		     FROM symlink NATURAL JOIN node_with_ts
 		     JOIN subdirs ON subdirs.directory_id = node_with_ts.parent
 		   WHERE first_run <= mirrorrun_run

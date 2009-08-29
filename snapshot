@@ -1043,15 +1043,16 @@ class SnapshotDumper
 				mirrorrun_uuid,
 				importing_host
 			FROM mirrorrun WHERE mirrorrun_id=?", @mirrorrun_id);
+		puts "Dump-Format: 0.1"
 		puts "Archive: #{row['name']}"
 		puts "Date: #{row['run']}"
 		puts "UUID: #{row['mirrorrun_uuid']}"
 		puts "ImportingHost: #{row['importing_host']}"
 		puts "Contents:"
-		@db.query("SELECT filetype, path, name, hash, target FROM dirtree(?)", @mirrorrun_id) do |row|
+		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?)", @mirrorrun_id) do |row|
 			case row['filetype']
 				when 'd': puts "#{row['filetype']} #{row['path']}"
-				when '-': puts "#{row['filetype']} #{row['path']}/#{row['name']} #{row['hash']}"
+				when '-': puts "#{row['filetype']} #{row['path']}/#{row['name']} #{row['size']} #{row['hash']}"
 				when 'l': puts "#{row['filetype']} #{row['path']}/#{row['name']} #{row['target']}"
 				else
 					throw "Unknown file type #{row['filetype']}"
