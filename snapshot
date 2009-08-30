@@ -509,18 +509,15 @@ class SnapshotImporter
 		raise "Did not process correct amount of elements in nodes_window table." if row['count'] != handled
 	end
 
-	def import(date, quick)
-		@db.begin
-		date = date.nil? ? Time.new() : Time.parse(date)
-
-		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
-		barf("Archive #{@archive} does not exist") if row.nil?
-		archive_id = row['archive_id']
-
+	def _insert_mirrorrun(archive_id, date)
 		a_uuid=`uuidgen`.chomp
 		a_importing_host=`hostname -f`.chomp
-		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>a_uuid, 'importing_host'=>a_importing_host})['mirrorrun_id']
 
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>a_uuid, 'importing_host'=>a_importing_host})['mirrorrun_id']
+		return mirrorrun_id
+	end
+
+	def _get_prev_next(archive_id, mirrorrun_id)
 		row = @db.query_row("SELECT
 		                       (SELECT count(*) FROM mirrorrun WHERE archive_id=?
 		                        AND run=(SELECT run FROM mirrorrun WHERE mirrorrun_id=?)) AS count,
@@ -534,7 +531,20 @@ class SnapshotImporter
 		                        LIMIT 1) AS prev
 		                    ", archive_id, mirrorrun_id, archive_id, mirrorrun_id, archive_id, mirrorrun_id);
 		barf("Cannot have two runs for the same archive at the exact same time.") if row['count'] > 1
-		next_run, prev_run = row['next'], row['prev']
+
+		return row['prev'], row['next']
+	end
+
+	def import(date, quick)
+		@db.begin
+		date = date.nil? ? Time.new() : Time.parse(date)
+
+		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
+		barf("Archive #{@archive} does not exist") if row.nil?
+		archive_id = row['archive_id']
+
+		mirrorrun_id = _insert_mirrorrun(archive_id, date)
+		prev_run, next_run = _get_prev_next(archive_id, mirrorrun_id)
 
 		@db.dbdo('CREATE TEMPORARY TABLE nodes_window AS
 		           SELECT node_id, parent FROM node_with_ts
