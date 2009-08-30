@@ -1053,8 +1053,8 @@ class SnapshotDumper
 		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?)", @mirrorrun_id) do |row|
 			case row['filetype']
 				when 'd': @file.print " #{row['filetype']} #{row['path']}\n"
-				when '-': @file.print " #{row['filetype']} #{row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
-				when 'l': @file.print " #{row['filetype']} #{row['path']}/#{row['name']} #{row['target']}\n"
+				when '-': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
+				when 'l': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['target']}\n"
 				else
 					throw "Unknown file type #{row['filetype']}"
 			end
