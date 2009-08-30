@@ -1050,7 +1050,7 @@ class SnapshotDumper
 		@file.print "UUID: #{row['mirrorrun_uuid']}\n"
 		@file.print "ImportingHost: #{row['importing_host']}\n"
 		@file.print "Contents:\n"
-		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?)", @mirrorrun_id) do |row|
+		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?) ORDER BY path, NOT (name IS NULL), name", @mirrorrun_id) do |row|
 			case row['filetype']
 				when 'd': @file.print " #{row['filetype']} #{row['path']}\n"
 				when '-': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
