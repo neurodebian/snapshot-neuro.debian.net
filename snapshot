@@ -453,10 +453,51 @@ class FSReader
 	end
 end
 
+class DumpReader
+	def initialize(path)
+		@fd = File.open( path )
+		@tree_to_root = []
+		@attrs = {}
+
+		while not (line = @fd.gets).nil?
+			line.chomp!
+			key,value = line.split(/: */, 2)
+			@attrs[key] = value
+			break if key == "Contents"
+		end
+
+		%w{Archive Date UUID ImportingHost Contents}.each do |k|
+			barf("Required key #{k} not found in dump") unless @attrs.has_key?(k)
+		end
+	end
+
+	def archive
+		@attrs['Archive']
+	end
+	def uuid
+		@attrs['UUID']
+	end
+	def date
+		@attrs['Date']
+	end
+	def importing_host
+		@attrs['ImportingHost']
+	end
+
+	def each_node(path='.', parent=nil)
+		realpath = "#{@root}/#{path}"
+		dir = FSNodeDirectory.new(path, parent)
+		yield dir
+
+		@fd.foreach(realpath) do |filename|
+		end
+	end
+end
+
+
 class SnapshotImporter
-	def initialize(db, archive, timetravel)
+	def initialize(db, timetravel)
 		@db = db
-		@archive = archive
 		@timetravel = timetravel
 	end
 
@@ -510,18 +551,17 @@ class SnapshotImporter
 
 
 	def _get_archive_id(archive)
-		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
-		barf("Archive #{@archive} does not exist") if row.nil?
+		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', archive)
+		barf("Archive #{archive} does not exist") if row.nil?
 		return row['archive_id']
 	end
 
-	def _insert_mirrorrun(archive_id, date)
-		a_uuid=`uuidgen`.chomp
-		a_importing_host=`hostname -f`.chomp
-
+	def _insert_mirrorrun(archive_id, date, uuid=nil, importing_host=nil)
 		date = date.nil? ? Time.new() : Time.parse(date)
+		uuid=`uuidgen`.chomp if uuid.nil?
+		importing_host=`hostname -f`.chomp if importing_host.nil?
 
-		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>a_uuid, 'importing_host'=>a_importing_host})['mirrorrun_id']
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>uuid, 'importing_host'=>importing_host})['mirrorrun_id']
 		return mirrorrun_id
 	end
 
@@ -570,34 +610,37 @@ class SnapshotImporter
 		return fs
 	end
 
-
-	def import_from_filesystem(path, date, quick)
-		import(:filesystem, path, date, quick)
-	end
-
-	def import_from_dump(path, date)
-		import(:dump, path, date, nil)
-	end
-
-	def import(source, path, date, quick)
+	def import_from_filesystem(path, archive, date, quick)
 		@db.begin
 
-		archive_id = _get_archive_id(@archive)
+		archive_id = _get_archive_id(archive)
 		mirrorrun_id = _insert_mirrorrun(archive_id, date)
 		prev_run, next_run = _get_prev_next(archive_id, mirrorrun_id)
+		fs = _create_fs_reader(quick, prev_run, path)
+		barf("Quick imports are probably not safe when we have imports from the future already in the DB.") if next_run and quick
 
-		barf("Quick imports are probably not safe when we have imports from the future already in the DB.") if next_run and quick and source == :filesystem
+		$logger.info("New mirrorrun #{mirrorrun_id} for #{archive}")
+		import(archive_id, mirrorrun_id, fs, prev_run, next_run)
+		@db.commit
+		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{archive} completed.")
+	end
+
+	def import_from_dump(path)
+		@db.begin
+
+		fs = DumpReader.new(path)
+		archive_id = _get_archive_id(fs.archive)
+		mirrorrun_id = _insert_mirrorrun(archive_id, fs.date, fs.uuid, fs.importing_host)
+		prev_run, next_run = _get_prev_next(archive_id, mirrorrun_id)
+
+		$logger.info("Import mirrorrun #{mirrorrun_id} for #{fs.archive}")
+		import(archive_id, mirrorrun_id, fs, prev_run, next_run)
+		@db.commit
+		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{archive} completed (imported #{uuid}).")
+	end
+
+	def import(archive_id, mirrorrun_id, fs, prev_run, next_run)
 		barf("Enable --timetravel if you want to import archives older than the newest in the DB.") if next_run and not @timetravel
-		$logger.info("New mirrorrun #{mirrorrun_id} for #{@archive}")
-
-		case source
-			when :filesystem
-				fs = _create_fs_reader(quick, prev_run, path)
-			when :dump
-				fs = _create_dump_reader(path)
-			else
-				barf "Unknown source #{source}"
-		end
 
 		_create_nodes_window(archive_id, mirrorrun_id)
 		fs.each_node do |fsnode|
@@ -606,9 +649,6 @@ class SnapshotImporter
 		end
 		_split_boxed_missing(mirrorrun_id, prev_run, next_run)
 		_cleanup_nodes_window()
-
-		@db.commit
-		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{@archive} completed.")
 	end
 end
 
@@ -1174,8 +1214,8 @@ class Snapshot
 	def import(options)
 		barf("No path name given") unless options['path']
 		barf("No archive name given") unless options['archive']
-		fs = SnapshotImporter.new(@db, options['archive'], options['timetravel'])
-		fs.import_from_filesystem(options['path'], options['date'], options['quick'])
+		fs = SnapshotImporter.new(@db, options['timetravel'])
+		fs.import_from_filesystem(options['path'], options['archive'], options['date'], options['quick'])
 	end
 
 	def index(options)
