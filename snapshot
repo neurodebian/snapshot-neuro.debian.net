@@ -514,7 +514,7 @@ class SnapshotImporter
 	def import
 		@db.begin
 
-		row = @db.query_row('SELECT archive_id FROM archive WHERE name=?', @archive)
+		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
 		barf("Archive #{@archive} does not exist") if row.nil?
 		archive_id = row['archive_id']
 
