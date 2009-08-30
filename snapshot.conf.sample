@@ -6,6 +6,8 @@ db:
   database: snapshotpy
   user: snapshot
   password: x
+dump:
+  dumppath: /srv/snapshot/dumps
 snapshot:
   farmpath: /srv/snapshot/farm2
 log:
