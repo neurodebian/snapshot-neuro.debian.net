@@ -509,6 +509,13 @@ class SnapshotImporter
 		raise "Did not process correct amount of elements in nodes_window table." if row['count'] != handled
 	end
 
+
+	def _get_archive_id(archive)
+		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
+		barf("Archive #{@archive} does not exist") if row.nil?
+		return row['archive_id']
+	end
+
 	def _insert_mirrorrun(archive_id, date)
 		a_uuid=`uuidgen`.chomp
 		a_importing_host=`hostname -f`.chomp
@@ -539,10 +546,7 @@ class SnapshotImporter
 		@db.begin
 		date = date.nil? ? Time.new() : Time.parse(date)
 
-		row = @db.query_row('SELECT archive_id FROM archive WHERE name=? FOR UPDATE', @archive)
-		barf("Archive #{@archive} does not exist") if row.nil?
-		archive_id = row['archive_id']
-
+		archive_id = _get_archive_id(@archive)
 		mirrorrun_id = _insert_mirrorrun(archive_id, date)
 		prev_run, next_run = _get_prev_next(archive_id, mirrorrun_id)
 
