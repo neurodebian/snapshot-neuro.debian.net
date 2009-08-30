@@ -35,6 +35,12 @@ def barf(str)
 	exit 1
 end
 
+def randstring()
+	value = ''
+	8.times{value  << (65 + rand(25)).chr}
+	value
+end
+
 
 class StorageBackend
 	def store(source, digest)
@@ -64,19 +70,13 @@ class FileBackend < StorageBackend
 
 	end
 
-	def _randstring()
-		value = ''
-		8.times{value  << (65 + rand(25)).chr}
-		value
-	end
-
 	def store(source, digest)
 		target = _get_path(digest, true)
 		unless File.exists?(target)
 			dir = File.dirname(target)
 			fn = File.basename(target)
 
-			tmptarget = dir+"/."+_randstring()+"."+(Process.pid.to_s)+"."+fn
+			tmptarget = dir+"/."+randstring()+"."+(Process.pid.to_s)+"."+fn
 			File.copy(source, tmptarget)
 			begin
 				File.link(tmptarget, target)
@@ -1031,9 +1031,10 @@ class PackageIndexer
 end
 
 class SnapshotDumper
-	def initialize(db, mirrorrun_id)
+	def initialize(db, mirrorrun_id, file=STDOUT)
 		@db = db
 		@mirrorrun_id = mirrorrun_id
+		@file = file
 	end
 
 	def dump
@@ -1043,17 +1044,17 @@ class SnapshotDumper
 				mirrorrun_uuid,
 				importing_host
 			FROM mirrorrun WHERE mirrorrun_id=?", @mirrorrun_id);
-		puts "Dump-Format: 0.1"
-		puts "Archive: #{row['name']}"
-		puts "Date: #{row['run']}"
-		puts "UUID: #{row['mirrorrun_uuid']}"
-		puts "ImportingHost: #{row['importing_host']}"
-		puts "Contents:"
+		@file.print "Dump-Format: snapshot.debian.org 0.1\n"
+		@file.print "Archive: #{row['name']}\n"
+		@file.print "Date: #{row['run']}\n"
+		@file.print "UUID: #{row['mirrorrun_uuid']}\n"
+		@file.print "ImportingHost: #{row['importing_host']}\n"
+		@file.print "Contents:\n"
 		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?)", @mirrorrun_id) do |row|
 			case row['filetype']
-				when 'd': puts "#{row['filetype']} #{row['path']}"
-				when '-': puts "#{row['filetype']} #{row['path']}/#{row['name']} #{row['size']} #{row['hash']}"
-				when 'l': puts "#{row['filetype']} #{row['path']}/#{row['name']} #{row['target']}"
+				when 'd': @file.print " #{row['filetype']} #{row['path']}\n"
+				when '-': @file.print " #{row['filetype']} #{row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
+				when 'l': @file.print " #{row['filetype']} #{row['path']}/#{row['name']} #{row['target']}\n"
 				else
 					throw "Unknown file type #{row['filetype']}"
 			end
@@ -1061,9 +1062,48 @@ class SnapshotDumper
 	end
 end
 
+class SnapshotDumpAll
+	def initialize(db, path)
+		@db = db
+		@path = path
+	end
+
+	def dump
+		parentdir = File.dirname(@path)
+		barf("Parent directory #{parentdir} for #{@path} does not exist or is not a directory") unless File.directory?(parentdir)
+		unless File.directory?(@path)
+			$logger.debug("mkdir #{@path}")
+			Dir.mkdir(@path)
+		end
+
+		@db.query("SELECT mirrorrun_id FROM mirrorrun ORDER BY mirrorrun_id") do |row|
+			target = @path+"/"+row['mirrorrun_id'].to_s
+			next if File.exists?(target)
+			tmptarget = target + "."+randstring()+"."+(Process.pid.to_s)
+
+			$logger.debug("dumping mirrorrun ##{row['mirrorrun_id']}")
+
+			begin
+				f = File.new(tmptarget,  "w")
+				sd = SnapshotDumper.new(@db, row['mirrorrun_id'], f)
+				sd.dump
+				f.close
+
+				begin
+					File.link(tmptarget, target)
+				rescue Errno::EEXIST
+					# it may have jumped into existance, that's no problem.
+				end
+			ensure
+				File.unlink(tmptarget)
+			end
+		end
+	end
+end
 
 class Snapshot
 	def initialize(conf)
+		@conf = conf
 		@db = SnapshotDB.new(conf['db'], $logger)
 	end
 
@@ -1102,6 +1142,13 @@ class Snapshot
 	def dump(options)
 		barf("No mirrorrun given") unless options['mirrorrun_id']
 		sd = SnapshotDumper.new(@db, options['mirrorrun_id'])
+		sd.dump
+	end
+
+	def dumpall(options)
+		barf("No dump key in config") unless @conf['dump']
+		barf("No dump/dumppath key in config") unless @conf['dump']['dumppath']
+		sd = SnapshotDumpAll.new(@db, @conf['dump']['dumppath'])
 		sd.dump
 	end
 end
@@ -1146,6 +1193,7 @@ def show_help(parser, code=0, io=STDOUT)
 	io.puts "    import                           Import a directory"
 	io.puts "    index                            Index packages in archives"
 	io.puts "    dump                             Dump a mirrorrun's metadata to stdout"
+	io.puts "    dumpall                          Dump all mirrorruns' metadata to disk"
 	io.puts "  Options:"
 	io.puts parser.summarize
 	exit(code)
@@ -1197,6 +1245,8 @@ case action
 		snapshot.index(options)
 	when "dump"
 		snapshot.dump(options)
+	when "dumpall"
+		snapshot.dumpall(options)
 	else
 		barf("Unknown action #{action}.")
 end
