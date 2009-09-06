@@ -724,7 +724,7 @@ class SnapshotImporter
 		$logger.info("Import mirrorrun #{mirrorrun_id} for #{fs.archive}")
 		import(archive_id, mirrorrun_id, fs, prev_run, next_run)
 		@db.commit
-		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{archive} completed (imported #{uuid}).")
+		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{fs.archive} completed (imported #{fs.uuid}).")
 	end
 
 	def import(archive_id, mirrorrun_id, fs, prev_run, next_run)
