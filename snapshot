@@ -505,7 +505,7 @@ end
 class DumpReader
 	def initialize(path)
 		@fd = File.open( path )
-		@tree_to_root = []
+		@dir_cache = {}
 		@attrs = {}
 
 		while not (line = @fd.gets).nil?
@@ -540,7 +540,7 @@ class DumpReader
 		barf "Expected 'd /' as first entry" unless line == " d /"
 
 		dir = FSNodeDirectory.new(path, parent)
-		@tree_to_root << dir
+		@dir_cache[dir.path] = dir
 		yield dir
 
 		@fd.each_line do |line|
@@ -551,21 +551,15 @@ class DumpReader
 			type,path,rest = line.split(' ', 3)
 			barf "Expected path to start with /" unless path[0..0] == "/"
 			parentpath = File.dirname(path)
-
-			#$logger.debug "@tree_to_root: #{@tree_to_root.join(', ')}"
-			#$logger.debug "expected parentpath: #{parentpath}"
-			while not @tree_to_root.empty? and @tree_to_root.last.path != parentpath
-				@tree_to_root.pop
-				#$logger.debug "@tree_to_root: #{@tree_to_root.join(', ')}"
-			end
-			barf "Failed while trying to find parentdir #{parentpath} of entry '#{line}'" if @tree_to_root.empty?
-			parent = @tree_to_root.last
-
 			path = '.'+path
+
+			parent = @dir_cache[parentpath]
+			barf "Failed while trying to find parentdir #{parentpath} of entry '#{line}'" unless parent
+
 			case type
 				when 'd'
 					dir = FSNodeDirectory.new(path, parent)
-					@tree_to_root << dir
+					@dir_cache[dir.path] = dir
 					yield dir
 				when '-'
 					size, digest = rest.split(' ',2)
