@@ -67,12 +67,16 @@ class FileBackend < StorageBackend
 		end
 
 		target = target + '/' + digest
+	end
 
+	def exists?(digest)
+		target = _get_path(digest)
+		return File.exists?(target)
 	end
 
 	def store(source, digest)
-		target = _get_path(digest, true)
-		unless File.exists?(target)
+		unless exists?(digest)
+			target = _get_path(digest, true)
 			dir = File.dirname(target)
 			fn = File.basename(target)
 
@@ -366,7 +370,53 @@ class FSNodeSymlink < FSNode
 	end
 end
 
-class FSNodeRegular < FSNode
+class FSNodeRegularBase < FSNode
+	def initialize(path, parent, size, digest)
+		super('-', path, parent)
+		@size = size
+		@digest = digest
+	end
+
+	def to_s
+		@digest.nil? ?
+			(super + " #{@size}") :
+			(super + " #{@size} #{@digest}")
+	end
+
+	def already_exists_args()
+		if @digest.nil?
+			return 'file', "name=? AND size=?", [@name, @size]
+		else
+			return 'file', "name=? AND size=? AND hash=?", [@name, @size, @digest]
+		end
+	end
+
+	def get_digest
+		return @digest if @digest
+
+		# this should only happen if a child class doesn't override it and also doesn't set @digest.
+		throw "get_digest() called in FSNodeRegularBase and we don't have an answer.  That's not good."
+	end
+
+	def store_file
+		throw "store_file() called in FSNodeRegularBase - children should overwrite it."
+	end
+
+	def insert_elem(db, node_id)
+		elem = { 'name'    => @name,
+		         'size'    => @size,
+		         'hash'    => get_digest,
+		         'node_id' => node_id
+		       }
+		db.insert('file', elem)
+
+		unless $storage.exists?(@digest)
+			store_file
+		end
+	end
+end
+
+class FSNodeRegular < FSNodeRegularBase
 	def initialize(path, truepath, statinfo, parent, quick=nil)
 		# a word on the quick parameter:
 		#  quick is either a boolean or a time object.
@@ -382,46 +432,43 @@ class FSNodeRegular < FSNode
 		#  when we actually need to put that information in the DB,
 		#  i.e. when the file is new.
 
-		super('-', path, parent)
-		@truepath = truepath
-		@size = statinfo.size
-		@time = statinfo.mtime
-
+		digest = nil
+		get_digest = true
 		most_recent_touched = [statinfo.mtime, statinfo.ctime].max
 		if quick
 			if quick.kind_of? Time
-				return if most_recent_touched < quick
+				get_digest = false if most_recent_touched < quick
 			else
-				return
+				get_digest = false
 			end
 		end
-		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
-	end
-
-	def to_s
-		@digest.nil? ?
-			(super + " #{@size} #{@time}") :
-			(super + " #{@size} #{@time} #{@digest}")
-	end
-
-	def already_exists_args()
-		if @digest.nil?
-			return 'file', "name=? AND size=?", [@name, @size]
-		else
-			return 'file', "name=? AND size=? AND hash=?", [@name, @size, @digest]
+		if get_digest
+			digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
 		end
+
+		super(path, parent, statinfo.size, digest)
+
+		@truepath = truepath
 	end
 
-	def insert_elem(db, node_id)
-		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read ) unless @digest
-		elem = { 'name'    => @name,
-		         'size'    => @size,
-		         'hash'    => @digest,
-		         'node_id' => node_id
-		       }
-		db.insert('file', elem)
+	def get_digest
+		return @digest if @digest
+		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
+		@digest
+	end
 
-		$storage.store(@truepath, @digest)
+	def store_file
+		$storage.store(@truepath, get_digest)
+	end
+end
+
+class FSNodeRegularFromDump < FSNodeRegularBase
+	def initialize(path, parent, size, digest)
+		super(path, parent, size, digest)
+	end
+
+	def store_file
+		$logger.warn("[dump import] missing file in storage: #{@digest} #{@path}.")
 	end
 end
 
@@ -502,23 +549,32 @@ class DumpReader
 			line[0..0] = ''
 
 			type,path,rest = line.split(' ', 3)
-
+			barf "Expected path to start with /" unless path[0..0] == "/"
 			parentpath = File.dirname(path)
+
+			#$logger.debug "@tree_to_root: #{@tree_to_root.join(', ')}"
+			#$logger.debug "expected parentpath: #{parentpath}"
 			while not @tree_to_root.empty? and @tree_to_root.last.path != parentpath
 				@tree_to_root.pop
+				#$logger.debug "@tree_to_root: #{@tree_to_root.join(', ')}"
 			end
-			barf "Failed while trying to find parentdir #{parentpath} of entry #{line}" if @tree_to_root.empty?
+			barf "Failed while trying to find parentdir #{parentpath} of entry '#{line}'" if @tree_to_root.empty?
 			parent = @tree_to_root.last
 
+			path = '.'+path
 			case type
 				when 'd'
 					dir = FSNodeDirectory.new(path, parent)
 					@tree_to_root << dir
 					yield dir
 				when '-'
-					# XXX
+					size, digest = rest.split(' ',2)
+					throw "Invalid size #{size} in entry '#{line}'" if size =~ /[^0-9]/
+					throw "Invalid digest #{digest} in entry '#{line}'" if digest =~ /[^0-9a-f]/
+					throw "Invalid digest #{digest} in entry '#{line}'" if digest.length != 40
+					yield FSNodeRegularFromDump.new(path, parent, size, digest)
 				when 'l'
-					yield FSNodeSymlink.new(File.basename(path), rest, parent)
+					yield FSNodeSymlink.new(path, rest, parent)
 				else
 					barf "Unknown type #{type} in line '#{line}'"
 			end
@@ -1250,6 +1306,12 @@ class Snapshot
 		fs.import_from_filesystem(options['path'], options['archive'], options['date'], options['quick'])
 	end
 
+	def import_dump(options)
+		barf("No path name given") unless options['path']
+		fs = SnapshotImporter.new(@db, options['timetravel'])
+		fs.import_from_dump(options['path'])
+	end
+
 	def index(options)
 		pi = PackageIndexer.new(@db, options['quick'], options['mirrorrun_id'])
 		pi.index
@@ -1307,6 +1369,7 @@ def show_help(parser, code=0, io=STDOUT)
 	io.puts "    add-archive                      Add a new archive"
 	io.puts "    fs-list                          List a directory recursively"
 	io.puts "    import                           Import a directory"
+	io.puts "    import-dump                      Import a dump"
 	io.puts "    index                            Index packages in archives"
 	io.puts "    dump                             Dump a mirrorrun's metadata to stdout"
 	io.puts "    dumpall                          Dump all mirrorruns' metadata to disk"
@@ -1356,6 +1419,8 @@ case action
 		snapshot.fs_list(options)
 	when "import"
 		snapshot.import(options)
+	when "import-dump"
+		snapshot.import_dump(options)
 	when 'index'
 		require 'bz2'
 		snapshot.index(options)
