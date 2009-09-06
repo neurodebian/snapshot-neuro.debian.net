@@ -219,6 +219,8 @@ class SnapshotDB
 end
 
 class FSNode
+	attr_reader :path
+
 	def initialize(type, path, parent)
 		@data = {}
 		@type = type
@@ -485,11 +487,41 @@ class DumpReader
 	end
 
 	def each_node(path='.', parent=nil)
-		realpath = "#{@root}/#{path}"
+		line = @fd.gets
+		barf "Reached end of file without any contents?" unless line
+		line.chomp!
+		barf "Expected 'd /' as first entry" unless line == " d /"
+
 		dir = FSNodeDirectory.new(path, parent)
+		@tree_to_root << dir
 		yield dir
 
-		@fd.foreach(realpath) do |filename|
+		@fd.each_line do |line|
+			line.chomp!
+			barf "Invalid input line '#{line}'." unless line[0..0] == ' '
+			line[0..0] = ''
+
+			type,path,rest = line.split(' ', 3)
+
+			parentpath = File.dirname(path)
+			while not @tree_to_root.empty? and @tree_to_root.last.path != parentpath
+				@tree_to_root.pop
+			end
+			barf "Failed while trying to find parentdir #{parentpath} of entry #{line}" if @tree_to_root.empty?
+			parent = @tree_to_root.last
+
+			case type
+				when 'd'
+					dir = FSNodeDirectory.new(path, parent)
+					@tree_to_root << dir
+					yield dir
+				when '-'
+					# XXX
+				when 'l'
+					yield FSNodeSymlink.new(File.basename(path), rest, parent)
+				else
+					barf "Unknown type #{type} in line '#{line}'"
+			end
 		end
 	end
 end
