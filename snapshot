@@ -432,6 +432,8 @@ class FSNodeRegular < FSNodeRegularBase
 		#  when we actually need to put that information in the DB,
 		#  i.e. when the file is new.
 
+		@truepath = truepath
+
 		digest = nil
 		get_digest = true
 		most_recent_touched = [statinfo.mtime, statinfo.ctime].max
@@ -447,8 +449,6 @@ class FSNodeRegular < FSNodeRegularBase
 		end
 
 		super(path, parent, statinfo.size, digest)
-
-		@truepath = truepath
 	end
 
 	def get_digest
