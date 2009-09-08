@@ -1,3 +1,4 @@
 snapshot.log*
 snapshot.conf
 *.pyc
+*.swp
