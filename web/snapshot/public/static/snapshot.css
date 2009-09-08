@@ -1,0 +1,25 @@
+body {
+  border: 1px solid;
+  padding: 20px;
+  background-color: white;
+}
+
+h1 {
+  margin-left: 10px;
+}
+
+div.pageheader {
+  font-size: large;
+  margin-left: 5px;
+  margin-right: 5px;
+  padding: 5px;
+  padding-top: 0px;
+  background-color: #eee;
+  border: 1px solid black;
+  text-align: center;
+}
+
+div.pagefooter {
+  margin-top: 30px;
+  font-size: small;
+}
