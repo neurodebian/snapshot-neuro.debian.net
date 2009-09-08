@@ -1,0 +1,2 @@
+recursive-include snapshot/public *
+recursive-include snapshot/templates *
