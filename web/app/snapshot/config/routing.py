@@ -20,7 +20,10 @@ def make_map():
 
     map.connect('', controller='root', action='index')
 
-    map.connect(':controller/:action/:id')
+    map.connect('/archive', controller='archive', action='root')
+    map.connect('/archive/:archive', controller='archive', action='archive_base')
+
+    #map.connect(':controller/:action/:id')
     map.connect('*url', controller='template', action='view')
 
     return map

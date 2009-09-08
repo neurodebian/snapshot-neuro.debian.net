@@ -5,16 +5,9 @@
 <body>
 <div class="pageheader">snapshot.debian.org</div>
 
-<h1>Archives</h1>
-
-Browse ftp archive snapshots from one of the following archives:
-<ul>
-	% for row in c.rows:
-	<li><a href="archive/${row['name']}/">${row['name']}</a></li>
-	%endfor
-</ul>
-
-<h1>Packages</h1>
+% for row in c.rows:
+<li>${row}</li>
+%endfor
 
 <!--
 vim:syn=html

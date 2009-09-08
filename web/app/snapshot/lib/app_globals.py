@@ -1,9 +1,7 @@
 """The application's Globals object"""
 from pylons import config
 import psycopg2
-import psycopg2.extras
 from DBUtils.PooledDB import PooledDB
-
 
 class Globals(object):
     """Globals acts as a container for objects available throughout the

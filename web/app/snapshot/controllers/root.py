@@ -1,23 +1,14 @@
 import logging
-import psycopg2.extras
-
 from snapshot.lib.base import *
+from snapshot.lib.dbinstance import DBInstance
 
 log = logging.getLogger(__name__)
 
 class RootController(BaseController):
-
     def index(self):
-        # Return a rendered template
-        #   return render('/some/template.mako')
-        # or, Return a response
-        conn = g.pool.connection()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        #cur = conn.cursor()
-        cur.execute("SELECT name FROM archive ORDER BY name")
-        c.rows = cur.fetchall()
-        cur.close()
-        conn.close()
+        db = DBInstance(g.pool)
+        c.rows = db.query("SELECT name FROM archive ORDER BY name")
+        db.close()
 
         return render('/root.mako')
 
