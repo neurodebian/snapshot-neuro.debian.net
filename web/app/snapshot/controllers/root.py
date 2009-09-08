@@ -1,4 +1,5 @@
 import logging
+import psycopg2.extras
 
 from snapshot.lib.base import *
 
@@ -10,7 +11,14 @@ class RootController(BaseController):
         # Return a rendered template
         #   return render('/some/template.mako')
         # or, Return a response
-        c.rows = [ 'debian', 'debian-security' ]
+        conn = g.pool.connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        #cur = conn.cursor()
+        cur.execute("SELECT name FROM archive ORDER BY name")
+        c.rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
         return render('/root.mako')
 
 # vim:set et:

@@ -10,7 +10,7 @@
 Browse ftp archive snapshots from one of the following archives:
 <ul>
 	% for row in c.rows:
-	<li>${row}</li>
+	<li>${row['name']}</li>
 	%endfor
 </ul>
 
