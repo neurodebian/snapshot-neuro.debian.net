@@ -5,8 +5,12 @@
 <body>
 <div class="pageheader">snapshot.debian.org</div>
 
-% for row in c.rows:
-<li>${row}</li>
+%for year in c.yearmonths:
+<li>${year['year']}: 
+% for month in year['months']:
+<a href=".${year['year']}-${month}">${month}</a>
+% endfor
+</li>
 %endfor
 
 <!--

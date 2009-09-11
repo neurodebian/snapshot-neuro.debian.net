@@ -13,20 +13,13 @@ class ArchiveController(BaseController):
             return redirect_to("../")
 
     def archive_base(self, environ, archive):
-        db = DBInstance(g.pool)
-        c.rows = db.query("""
-            SELECT extract(year from run) AS year, extract(month from run) AS month
-              FROM mirrorrun JOIN archive ON mirrorrun.archive_id=archive.archive_id
-              WHERE archive.name=%(name)s
-              GROUP BY year, month
-              ORDER BY year, month""",
-            { 'name': archive })
-        db.close()
+        yearmonths = g.shm.mirrorruns_get_yearmonths_from_archive(archive)
 
-        if len(c.rows) == 0:
-            e = paste.httpexceptions.HTTPNotFound()
-            raise e
+        if yearmonths is None:
+            response.status_code = 404
+            return render('/archive.mako')
 
+        c.yearmonths = yearmonths
         return render('/archive.mako')
 
 # vim:set et:

@@ -2,6 +2,7 @@
 from pylons import config
 import psycopg2
 from DBUtils.PooledDB import PooledDB
+from snapshot.model.snapshotmodel import SnapshotModel
 
 class Globals(object):
     """Globals acts as a container for objects available throughout the
@@ -15,6 +16,7 @@ class Globals(object):
         """
         app_conf = config['app_conf']
         self.pool = PooledDB(psycopg2, int(app_conf['dbpool.size']), database=app_conf['dbpool.database'])
+        self.shm = SnapshotModel(self.pool)
 
 # vim:set et:
 # vim:set ts=4:

@@ -9,8 +9,8 @@
 
 Browse ftp archive snapshots from one of the following archives:
 <ul>
-	% for row in c.rows:
-	<li><a href="archive/${row['name']}/">${row['name']}</a></li>
+	% for name in c.names:
+	<li><a href="archive/${name}/">${name}</a></li>
 	%endfor
 </ul>
 
