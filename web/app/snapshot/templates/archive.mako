@@ -6,9 +6,9 @@
 <div class="pageheader">snapshot.debian.org</div>
 
 %for year in c.yearmonths:
-<li>${year['year']}: 
+<li>${year['year']}:
 % for month in year['months']:
-<a href=".${year['year']}-${month}">${month}</a>
+<a href="./?year=${year['year']}&month=${month}">${month}</a>
 % endfor
 </li>
 %endfor

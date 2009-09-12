@@ -14,6 +14,11 @@ class ArchiveController(BaseController):
             return redirect_to("../")
 
     def archive_base(self, environ, archive):
+        if 'year' in request.params and 'month' in request.params:
+            y = request.params['year']
+            m = request.params['month']
+            return self.archive_ym(environ, archive, y, m)
+
         yearmonths = g.shm.mirrorruns_get_yearmonths_from_archive(archive)
 
         if yearmonths is None:
@@ -22,11 +27,11 @@ class ArchiveController(BaseController):
         c.yearmonths = yearmonths
         return render('/archive.mako')
 
-    def archive_ym(self, environ, archive, yearmonth):
-        m = re.match('(\d{4})-(\d{2})$', yearmonth) # match matches only at start of string
-        if m is None:
+    def archive_ym(self, environ, archive, year, month):
+        if not re.match('\d{4}$', year): # match matches only at start of string
             abort(404)
-        year, month = m.groups()
+        if not re.match('\d{2}$', month): # match matches only at start of string
+            abort(404)
 
         runs = g.shm.mirrorruns_get_runs_from_archive_ym(archive, year, month)
 
