@@ -21,7 +21,8 @@ class SnapshotModel:
             archive_id = rows[0]['archive_id']
 
             rows = db.query("""
-                SELECT extract(year from run)::INTEGER AS year, to_char(extract(month from run), 'FM00') AS month
+                SELECT extract(year from run)::INTEGER AS year,
+                       extract(month from run)::INTEGER AS month
                   FROM mirrorrun
                   WHERE mirrorrun.archive_id=%(archive_id)s
                   GROUP BY year, month

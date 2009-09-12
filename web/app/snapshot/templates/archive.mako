@@ -3,7 +3,7 @@
 %for year in c.yearmonths:
 <li>${year['year']}:
 % for month in year['months']:
-<a href="./?year=${year['year']}&month=${month}">${month}</a>
+<a href="./?year=${year['year']}&month=${month}">${"%02d"%month}</a>
 % endfor
 </li>
 %endfor

@@ -30,7 +30,7 @@ class ArchiveController(BaseController):
     def archive_ym(self, environ, archive, year, month):
         if not re.match('\d{4}$', year): # match matches only at start of string
             abort(404)
-        if not re.match('\d{2}$', month): # match matches only at start of string
+        if not re.match('\d{1,2}$', month): # match matches only at start of string
             abort(404)
 
         runs = g.shm.mirrorruns_get_runs_from_archive_ym(archive, year, month)
