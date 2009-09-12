@@ -17,7 +17,7 @@ class ArchiveController(BaseController):
         if 'year' in request.params and 'month' in request.params:
             y = request.params['year']
             m = request.params['month']
-            return self.archive_ym(environ, archive, y, m)
+            return self._archive_ym(environ, archive, y, m)
 
         yearmonths = g.shm.mirrorruns_get_yearmonths_from_archive(archive)
 
@@ -27,7 +27,7 @@ class ArchiveController(BaseController):
         c.yearmonths = yearmonths
         return render('/archive.mako')
 
-    def archive_ym(self, environ, archive, year, month):
+    def _archive_ym(self, environ, archive, year, month):
         if not re.match('\d{4}$', year): # match matches only at start of string
             abort(404)
         if not re.match('\d{1,2}$', month): # match matches only at start of string
