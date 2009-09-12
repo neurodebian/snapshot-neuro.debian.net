@@ -11,7 +11,7 @@ class ArchiveController(BaseController):
         if environ['PATH_INFO'][-1:] == "/":
             return redirect_to("../")
         else:
-            return redirect_to("../")
+            return redirect_to("./")
 
     def archive_base(self, environ, archive):
         if 'year' in request.params and 'month' in request.params:
