@@ -92,6 +92,37 @@ class SnapshotModel:
         db.close()
         return result
 
+    def _strip_multi_slash(str)
+        old = str
+        while True:
+            str = str.replace('//', '/')
+            if str == old: break
+            old = str
+        return str
+
+    def mirrorruns_stat(mirrorrun_id, path)
+        """'stats' a path in a given mirrorrun.  Will return None if the path doesn't exist.
+           If it does exist it will do (recursive) symlink resolving and return a dict
+           with either file or dir information.
+           XXX no idea what it does on danling or cyclic symlinks yet"""
+        db = DBInstance(self.pool)
+        result = None
+
+        path = path.rstrip('/')
+        path = _strip_multi_slash(path)
+        if path == "":
+            path = '/'
+
+        stat = db.query("""SELECT * FROM stat(%(path)s, %(mirrorrun_id)s)""",
+                { 'mirrorrun_id': mirrorrun_id,
+                  'path': path } )
+        db.close();
+
+        if stat['filetype'] is None:
+            return None
+
+        return stat
+
 
 
 # vim:set et:
