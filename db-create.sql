@@ -67,6 +67,33 @@ CREATE INDEX file_idx_node_id ON file(node_id);
 CREATE INDEX symlink_idx_name ON symlink(name);
 
 
+-- XXX: doesn't do symlink resolving yet.
+CREATE TYPE stat_result AS (filetype char, path VARCHAR(379), directory_id INTEGER, digest CHAR(40));
+CREATE OR REPLACE FUNCTION stat(in_path VARCHAR, in_mirrorrun_id integer, OUT res stat_result) AS $$
+DECLARE
+	mirrorrun_run timestamp;
+	arc_id integer;
+BEGIN
+	res.filetype := NULL;
+	res.path := NULL;
+	res.directory_id := NULL;
+	res.digest := NULL;
+
+	SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+	SELECT directory_id INTO res.directory_id
+	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
+	   WHERE path=in_path
+	     AND node_with_ts.archive_id = arc_id
+	     AND first_run <= mirrorrun_run
+	     AND last_run  >= mirrorrun_run;
+	IF not res.directory_id IS NULL THEN
+		res.filetype := 'd';
+		RETURN;
+	END IF;
+	RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
 
 CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40));
 CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer) RETURNS SETOF readdir_result AS $$
