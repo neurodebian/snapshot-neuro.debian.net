@@ -4,6 +4,12 @@
 </head>
 <body>
 <div class="pageheader">snapshot.debian.org</div>
+% if not c.breadcrumbs is UNDEFINED:
+%  for crumb in c.breadcrumbs:
+${crumb} /
+%  endfor
+<br />
+% endif
 ${self.body()}
 </body>
 </html>
