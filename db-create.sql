@@ -1,3 +1,10 @@
+CREATE TABLE config (
+	name		TEXT	PRIMARY KEY,
+	value		TEXT
+);
+INSERT INTO config VALUES ('db_revision', '1');
+GRANT SELECT ON config TO public;
+
 -- ####################################################################
 -- the filesystem
 -- ####################################################################
