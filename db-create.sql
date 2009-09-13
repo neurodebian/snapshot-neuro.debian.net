@@ -68,31 +68,66 @@ CREATE INDEX symlink_idx_name ON symlink(name);
 
 
 -- XXX: doesn't do symlink resolving yet.
-CREATE TYPE stat_result AS (filetype char, path VARCHAR(379), directory_id INTEGER, digest CHAR(40));
-CREATE OR REPLACE FUNCTION stat(in_path VARCHAR, in_mirrorrun_id integer, OUT res stat_result) AS $$
-DECLARE
-	mirrorrun_run timestamp;
-	arc_id integer;
-BEGIN
-	res.filetype := NULL;
-	res.path := NULL;
-	res.directory_id := NULL;
-	res.digest := NULL;
+CREATE TYPE stat_result AS (filetype char, path VARCHAR(379), directory_id INTEGER, node_id INTEGER, digest CHAR(40), size INTEGER);
+CREATE OR REPLACE FUNCTION stat(VARCHAR, INTEGER) RETURNS stat_result AS $$
+	BEGIN { strict->import(); }
 
-	SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
-	SELECT directory_id INTO res.directory_id
-	   FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
-	   WHERE path=in_path
-	     AND node_with_ts.archive_id = arc_id
-	     AND first_run <= mirrorrun_run
-	     AND last_run  >= mirrorrun_run;
-	IF not res.directory_id IS NULL THEN
-		res.filetype := 'd';
-		RETURN;
-	END IF;
-	RETURN;
+	my ($path, $mirrorrun_id) = @_;
+
+	my $res;
+	my $query_mirrorrun;
+	my $query_directory;
+	my $query_file;
+	my $result;
+
+	$query_mirrorrun = spi_prepare('SELECT run, archive_id FROM mirrorrun WHERE mirrorrun_id = $1', 'INTEGER');
+	$res = spi_query_prepared($query_mirrorrun, $mirrorrun_id);
+	my $run = spi_fetchrow($res);
+	goto done unless (defined $run);
+
+	# ok, if it is a directory that will be quite easy:
+	$query_directory = spi_prepare('
+	       SELECT directory_id, node_with_ts.node_id
+	          FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
+	          WHERE path=$1
+	            AND node_with_ts.archive_id = $2
+	            AND first_run <= $3
+	            AND last_run  >= $3
+		', 'VARCHAR', 'INTEGER', 'TIMESTAMP');
+	$res = spi_query_prepared($query_directory, $path, $run->{'archive_id'}, $run->{'run'});
+	my $dir = spi_fetchrow($res);
+	if (defined $dir) {
+		$result = {'filetype'=>'d', 'path'=>$path, 'directory_id'=>$dir->{'directory_id'}, 'node_id'=>$dir->{'node_id'}};
+		goto done;
+	};
+	
+	# ok, so not.  maybe it is a normal file...
+	my ($dirname, $basename) = $path =~ m#(.*)/(.*)#;
+
+	$res = spi_query_prepared($query_directory, $dirname, $run->{'archive_id'}, $run->{'run'});
+	my $dir = spi_fetchrow($res);
+	goto done unless (defined $dir);
+
+	$query_file = spi_prepare('
+		SELECT node_with_ts.node_id, file.hash, file.size
+		  FROM file NATURAL JOIN node_with_ts
+		  WHERE parent=$1
+		    AND first_run <= $2
+		    AND last_run  >= $2
+		    AND name=$3
+		', 'INTEGER', 'TIMESTAMP', 'VARCHAR');
+	$res = spi_query_prepared($query_file, $dir->{'directory_id'}, $run->{'run'}, $basename);
+	my $file = spi_fetchrow($res);
+	goto done unless (defined $file);
+	$result = {'filetype'=>'-', 'path'=>$path, 'digest'=>$file->{'hash'}, 'node_id'=>$file->{'node_id'}, 'size'=>$file->{'size'}};
+
+done:	
+	spi_freeplan($query_mirrorrun) if defined $query_mirrorrun;
+	spi_freeplan($query_directory) if defined $query_directory;
+	spi_freeplan($query_file) if defined $query_file;
+	return $result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plperl;
 
 
 CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40));
