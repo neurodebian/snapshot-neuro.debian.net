@@ -41,6 +41,13 @@ class ArchiveController(BaseController):
         c.runs = runs
         return render('/archive-runs.mako')
 
+    def dir(self, archive, date, url):
+        run = g.shm.mirrorruns_get_mirrorrun_at(archive, date)
+        if run is None:
+            abort(404)
+        c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
+        return render('/archive-dir.mako')
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:

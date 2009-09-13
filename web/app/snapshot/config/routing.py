@@ -22,6 +22,7 @@ def make_map():
 
     map.connect('/archive', controller='archive', action='root')
     map.connect('/archive/:archive', controller='archive', action='archive_base')
+    map.connect('/archive/:archive/:date/*url', controller='archive', action='dir')
 
     #map.connect(':controller/:action/:id')
     map.connect('*url', controller='template', action='view')

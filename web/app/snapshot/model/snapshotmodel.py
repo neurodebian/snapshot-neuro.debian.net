@@ -73,6 +73,27 @@ class SnapshotModel:
         db.close()
         return result
 
+    def mirrorruns_get_mirrorrun_at(self, archive, datespec):
+        db = DBInstance(self.pool)
+        result = None
+
+        rows = db.query("""
+                SELECT run as run_hr, mirrorrun_id
+                  FROM mirrorrun JOIN archive ON mirrorrun.archive_id = archive.archive_id
+                  WHERE archive.name=%(archive)s
+                    AND mirrorrun.run <= %(datespec)s
+                  ORDER BY run DESC
+                  LIMIT 1""",
+                { 'archive': archive,
+                  'datespec': datespec })
+        if len(rows) != 0:
+            result = rows[0]
+
+        db.close()
+        return result
+
+
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
