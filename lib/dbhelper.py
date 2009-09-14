@@ -32,7 +32,9 @@ class DBHelper:
 
     def query(self, *args, **kw):
         c = self.execute(*args, **kw)
-        return c.fetchall()
+        rows = c.fetchall()
+        c.close()
+        return rows
 
     def query_firsts(self, *args, **kw):
         all = self.query(*args, **kw)
