@@ -92,7 +92,7 @@ class SnapshotModel:
         db.close()
         return result
 
-    def _strip_multi_slash(str):
+    def _strip_multi_slash(self, str):
         old = str
         while True:
             str = str.replace('//', '/')
@@ -100,7 +100,7 @@ class SnapshotModel:
             old = str
         return str
 
-    def mirrorruns_stat(mirrorrun_id, path):
+    def mirrorruns_stat(self, mirrorrun_id, path):
         """'stats' a path in a given mirrorrun.  Will return None if the path doesn't exist.
            If it does exist it will do (recursive) symlink resolving and return a dict
            with either file or dir information.
@@ -109,11 +109,11 @@ class SnapshotModel:
         result = None
 
         path = path.rstrip('/')
-        path = _strip_multi_slash(path)
+        path = self._strip_multi_slash(path)
         if path == "":
             path = '/'
 
-        stat = db.query("""SELECT * FROM stat(%(path)s, %(mirrorrun_id)s)""",
+        stat = db.query_one("""SELECT filetype, path, directory_id, node_id, digest, size FROM stat(%(path)s, %(mirrorrun_id)s)""",
                 { 'mirrorrun_id': mirrorrun_id,
                   'path': path } )
         db.close();
@@ -123,7 +123,15 @@ class SnapshotModel:
 
         return stat
 
+    def mirrorruns_readdir(self, mirrorrun_id, path):
+        db = DBInstance(self.pool)
 
+        readdir = db.query("""SELECT filetype, name, digest FROM readdir(%(path)s, %(mirrorrun_id)s) ORDER BY name""",
+                { 'mirrorrun_id': mirrorrun_id,
+                  'path': path } )
+        db.close();
+
+        return readdir
 
 # vim:set et:
 # vim:set ts=4:

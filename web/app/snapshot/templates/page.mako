@@ -10,6 +10,11 @@ ${crumb} /
 %  endfor
 <br />
 % endif
+
+% if not c.msg is UNDEFINED:
+<p>${c.msg}</p>
+% endif
+
 ${self.body()}
 </body>
 </html>

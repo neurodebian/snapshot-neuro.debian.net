@@ -2,6 +2,7 @@ import logging
 from snapshot.lib.dbinstance import DBInstance
 from snapshot.lib.base import *
 import paste.httpexceptions
+import os.path
 import re
 
 log = logging.getLogger(__name__)
@@ -41,10 +42,34 @@ class ArchiveController(BaseController):
         c.runs = runs
         return render('/archive-runs.mako')
 
+    def unicode_encode(self, path):
+        if isinstance(path, unicode):
+            return path.encode('utf-8')
+        else:
+            return path
+
     def dir(self, archive, date, url):
         run = g.shm.mirrorruns_get_mirrorrun_at(archive, date)
         if run is None:
             abort(404)
+
+        url = "/" + url
+
+        stat = g.shm.mirrorruns_stat(run['mirrorrun_id'], url)
+        print "url: "+url
+        print "stat: ", stat
+
+        if stat is None:
+            abort(404)
+
+        if stat['filetype'] == 'd':
+            if url != "/" and url != stat['path']+'/':
+                return redirect_to(self.unicode_encode(os.path.basename(url))+"/")
+            c.readdir = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
+
+        c.msg = "url: %s"%url
+        c.msg += " stat: %s"% stat
+
         c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
         return render('/archive-dir.mako')
 
