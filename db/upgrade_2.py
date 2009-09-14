@@ -21,52 +21,49 @@
 # SOFTWARE.
 
 def upgrade(db):
-    # XXX sample sample sample XXX
-    # XXX replace when you do the first real db change XXX
-    pass
-    #db.execute("DROP FUNCTION readdir(VARCHAR, INTEGER)")
-    #db.execute("DROP TYPE readdir_result")
-    #db.execute("""
-    #    CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40));
-    #    """)
-    #db.execute("""
-    #    CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer) RETURNS SETOF readdir_result AS $$
-    #    DECLARE
-    #        mirrorrun_run timestamp;
-    #        dir_id integer;
-    #        arc_id integer;
-    #    BEGIN
-    #        SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
-    #        SELECT directory_id INTO dir_id
-    #           FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
-    #           WHERE path=in_directory
-    #             AND node_with_ts.archive_id = arc_id
-    #             AND first_run <= mirrorrun_run
-    #             AND last_run  >= mirrorrun_run;
-    #        RETURN QUERY
-    #            SELECT 'd'::CHAR, substring(path, '[^/]*$')::VARCHAR(128), node_with_ts.node_id, NULL
-    #              FROM directory NATURAL JOIN node_with_ts
-    #              WHERE parent=dir_id
-    #                AND directory_id <> parent
-    #                AND first_run <= mirrorrun_run
-    #                AND last_run  >= mirrorrun_run
-    #            UNION ALL
-    #            SELECT '-'::CHAR, name, node_with_ts.node_id, file.hash
-    #              FROM file NATURAL JOIN node_with_ts
-    #              WHERE parent=dir_id
-    #                AND first_run <= mirrorrun_run
-    #                AND last_run  >= mirrorrun_run
-    #            UNION ALL
-    #            SELECT 'l'::CHAR, name, node_with_ts.node_id, NULL
-    #              FROM symlink NATURAL JOIN node_with_ts
-    #              WHERE parent=dir_id
-    #                AND first_run <= mirrorrun_run
-    #                AND last_run  >= mirrorrun_run;
-    #    END;
-    #    $$ LANGUAGE plpgsql;
-    #    """)
-    #
-    #db.execute("UPDATE config SET value='2' WHERE name='db_revision' AND value='1'")
+    db.execute("DROP FUNCTION readdir(VARCHAR, INTEGER)")
+    db.execute("DROP TYPE readdir_result")
+    db.execute("""
+        CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40), size INTEGER);
+        """)
+    db.execute("""
+        CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer) RETURNS SETOF readdir_result AS $$
+        DECLARE
+            mirrorrun_run timestamp;
+            dir_id integer;
+            arc_id integer;
+        BEGIN
+            SELECT run, archive_id INTO mirrorrun_run, arc_id FROM mirrorrun WHERE mirrorrun_id = in_mirrorrun_id;
+            SELECT directory_id INTO dir_id
+               FROM directory JOIN node_with_ts ON directory.node_id = node_with_ts.node_id
+               WHERE path=in_directory
+                 AND node_with_ts.archive_id = arc_id
+                 AND first_run <= mirrorrun_run
+                 AND last_run  >= mirrorrun_run;
+            RETURN QUERY
+                SELECT 'd'::CHAR, substring(path, '[^/]*$')::VARCHAR(128), node_with_ts.node_id, NULL, NULL
+                  FROM directory NATURAL JOIN node_with_ts
+                  WHERE parent=dir_id
+                    AND directory_id <> parent
+                    AND first_run <= mirrorrun_run
+                    AND last_run  >= mirrorrun_run
+                UNION ALL
+                SELECT '-'::CHAR, name, node_with_ts.node_id, file.hash, file.size
+                  FROM file NATURAL JOIN node_with_ts
+                  WHERE parent=dir_id
+                    AND first_run <= mirrorrun_run
+                    AND last_run  >= mirrorrun_run
+                UNION ALL
+                SELECT 'l'::CHAR, name, node_with_ts.node_id, NULL, NULL
+                  FROM symlink NATURAL JOIN node_with_ts
+                  WHERE parent=dir_id
+                    AND first_run <= mirrorrun_run
+                    AND last_run  >= mirrorrun_run;
+        END;
+        $$ LANGUAGE plpgsql;
+        """)
+
+    db.execute("UPDATE config SET value='2' WHERE name='db_revision' AND value='1'")
 
 # vim:set et:
 # vim:set ts=4:
