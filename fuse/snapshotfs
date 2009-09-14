@@ -28,6 +28,8 @@ import psycopg2.extras
 import stat
 import sys
 import yaml
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
+from dbhelper import DBHelper
 
 fuse.fuse_python_api = (0, 2)
 
@@ -92,37 +94,6 @@ class FileStat(MyStat):
    def __init__(self):
       MyStat.__init__(self)
       self.st_mode = stat.S_IFREG | 0644
-
-
-class SnapshotDB:
-   def __init__(self, config):
-      for kw in ('connectstring',):
-         if not kw in config:
-            sys.stderr.write("Database config file does not define %s keywords\n"%kw)
-            sys.exit(1)
-      self.db=psycopg2.connect(config['connectstring'])
-      self.execute('ROLLBACK')
-
-   def execute(self, *args, **kw):
-      c = self.db.cursor(cursor_factory=psycopg2.extras.DictCursor)
-      c.execute(*args, **kw)
-      return c
-
-   def query(self, *args, **kw):
-      c = self.execute(*args, **kw)
-      return c.fetchall()
-
-   def query_firsts(self, *args, **kw):
-      all = self.query(*args, **kw)
-      return map(lambda x: x[0], all)
-
-   def query_one(self, *args, **kw):
-      all = self.query(*args, **kw)
-      if len(all) > 1:
-         raise 'Got more than one return in query_one'
-      if len(all) == 0:
-         return None
-      return all[0]
 
 
 def split_path(path):
@@ -600,7 +571,12 @@ def main():
          sys.stderr.write("Config file does not define %s keywords\n"%kw)
          sys.exit(1)
 
-   db = SnapshotDB(config['db'])
+   if not 'connectstring' in config['db']:
+      sys.stderr.write("Database config file does not define db->connectstring keywords\n")
+      sys.exit(1)
+
+   db = DBHelper(config['db']['connectstring'])
+   db.execute('ROLLBACK')
    global storage
    storage = FileBackend(config['snapshot'])
    server = SnapshotFS(db, dash_s_do='setsingle')
