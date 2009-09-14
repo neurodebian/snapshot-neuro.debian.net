@@ -1,0 +1,115 @@
+#!/usr/bin/python
+
+# Copyright (c) 2009 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import sys
+import os.path
+import yaml
+import psycopg2
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
+from dbhelper import DBHelper
+
+def upgrade_one(db):
+        upgrade_path = os.path.abspath(os.path.dirname(sys.argv[0]))
+        if not upgrade_path in sys.path:
+            sys.path.append(upgrade_path)
+
+        db.execute('BEGIN')
+        r = db.query_one("SELECT value::INTEGER as db_revision FROM config WHERE name='db_revision'");
+        rev = r['db_revision']
+        print "Database is at %d"%rev
+        next = rev + 1
+
+        upgrade_script = "upgrade_%d.py"%next
+        if not os.path.exists(upgrade_script):
+            print "Upgrade script %s does not exist.  Maybe we are done."%upgrade_script
+            return False
+
+        upgrade = None
+        try:
+            cmd = "from %s import upgrade"%(upgrade_script.rstrip('.py'))
+            exec cmd
+        except Exception, msg:
+            sys.stderr.write("Cannot import upgrade_script %s: %s\n"%(upgrade_script, msg))
+            sys.exit(1)
+        upgrade(db)
+
+        r = db.query_one("SELECT value::INTEGER as db_revision FROM config WHERE name='db_revision'");
+        rev = r['db_revision']
+        if rev != next:
+            sys.stderr.write("Error: After running %s revision is not %d\n"%(upgrade_script, next))
+            sys.exit(1)
+        db.execute('COMMIT')
+        print "Database upgrade to %d committed."%rev
+        return True
+
+def upgrade(db):
+    try:
+        while upgrade_one(db):
+            pass
+
+    except psycopg2.ProgrammingError, msg:
+        db.execute('ROLLBACK')
+        raise "Unable to apply update: %s" % (str(msg))
+
+
+def usage(err = False):
+    if err:
+        f = sys.stderr
+        exit = 1
+    else:
+        f = sys.stdout
+        exit = 0
+    f.write("Usage: %s <config.yaml>\n" % (sys.argv[0]))
+    sys.exit(exit)
+
+def readConfig(conffile):
+    return yaml.load(open(conffile).read())
+
+def main():
+    if len(sys.argv) <= 1:
+        usage(True)
+    opt1 = sys.argv[1]
+    del sys.argv[1]
+    if opt1 == "-h" or opt1 == "--help":
+        usage(False)
+
+    config = readConfig(opt1)
+
+    for kw in 'db',:
+        if not kw in config:
+            sys.stderr.write("Config file does not define %s keywords\n"%kw)
+            sys.exit(1)
+    if not 'connectstring' in config['db']:
+        sys.stderr.write("Database config file does not define db->connectstring keywords\n")
+        sys.exit(1)
+
+    db = DBHelper(config['db']['connectstring'])
+    db.execute('ROLLBACK')
+
+    upgrade(db)
+
+if __name__ == '__main__':
+    main()
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4
