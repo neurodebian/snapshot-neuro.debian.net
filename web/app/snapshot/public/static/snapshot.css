@@ -23,3 +23,7 @@ div.pagefooter {
   margin-top: 30px;
   font-size: small;
 }
+
+div.readdir {
+  font-family:Monospace;
+}
