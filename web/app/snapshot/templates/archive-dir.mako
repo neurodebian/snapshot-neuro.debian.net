@@ -11,7 +11,7 @@
 %			if entry['filetype'] == 'd':
 				<a href="${entry['name']}/">${entry['name']}</a>
 %			else:
-				${entry['name']}
+				<a href="${entry['name']}">${entry['name']}</a>
 				${entry['size']}
 				${entry['digest']}
 %			endif
