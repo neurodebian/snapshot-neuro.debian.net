@@ -5,6 +5,9 @@ from paste.fileapp import FileApp
 import paste.httpexceptions
 import os.path
 import re
+import mimetypes
+import error
+import errno
 
 log = logging.getLogger(__name__)
 
@@ -75,11 +78,24 @@ class ArchiveController(BaseController):
             c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
             return render('/archive-dir.mako')
         elif stat['filetype'] == '-':
-        # >         fapp = fileapp.FileApp(filename, **{"content_type":"text/plain",
-        # >                                             "content_location":"foo.txt"})
-        # >         return fapp(request.environ, self.start_response)
-            # XXX get proper path
-            return FileApp('/home/weasel/waginger.gpx')(request.environ, self.start_response)
+            path = g.shm.get_filepath(stat['digest'])
+            try:
+                (type, encoding) = mimetypes.guess_type(stat['path'])
+                h = {}
+                if not type is None:
+                    h['Content-Type'] = type
+                if not encoding is None:
+                    h['Content-Encoding'] = encoding
+                print path
+                fa = FileApp(path, **h);
+                return fa(request.environ, self.start_response)
+            except os.error, error:
+                if (error.errno == errno.ENOENT):
+                    abort(404)
+                elif (error.errno != errno.EACCESS):
+                    abort(403)
+                else:
+                    raise
 
 # vim:set et:
 # vim:set ts=4:

@@ -1,8 +1,10 @@
 from snapshot.lib.dbinstance import DBInstance
+import os.path
 
 class SnapshotModel:
-    def __init__(self, pool):
+    def __init__(self, pool, farmpath):
         self.pool = pool
+        self.farmpath = farmpath
 
     def archives_get_list(self):
         db = DBInstance(self.pool)
@@ -132,6 +134,11 @@ class SnapshotModel:
         db.close();
 
         return readdir
+
+    def get_filepath(self, digest):
+        prefix1 = digest[0:2]
+        prefix2 = digest[2:4]
+        return os.path.join(self.farmpath, prefix1, prefix2, digest)
 
 # vim:set et:
 # vim:set ts=4:

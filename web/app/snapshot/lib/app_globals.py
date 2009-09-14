@@ -16,7 +16,7 @@ class Globals(object):
         """
         app_conf = config['app_conf']
         self.pool = PooledDB(psycopg2, int(app_conf['dbpool.size']), database=app_conf['dbpool.database'])
-        self.shm = SnapshotModel(self.pool)
+        self.shm = SnapshotModel(self.pool, app_conf['snapshot.farm'])
 
 # vim:set et:
 # vim:set ts=4:
