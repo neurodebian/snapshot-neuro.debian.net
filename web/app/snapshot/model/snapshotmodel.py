@@ -92,7 +92,7 @@ class SnapshotModel:
         db.close()
         return result
 
-    def _strip_multi_slash(str)
+    def _strip_multi_slash(str):
         old = str
         while True:
             str = str.replace('//', '/')
@@ -100,7 +100,7 @@ class SnapshotModel:
             old = str
         return str
 
-    def mirrorruns_stat(mirrorrun_id, path)
+    def mirrorruns_stat(mirrorrun_id, path):
         """'stats' a path in a given mirrorrun.  Will return None if the path doesn't exist.
            If it does exist it will do (recursive) symlink resolving and return a dict
            with either file or dir information.
