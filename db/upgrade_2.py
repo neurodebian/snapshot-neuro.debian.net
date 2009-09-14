@@ -24,7 +24,7 @@ def upgrade(db):
     db.execute("DROP FUNCTION readdir(VARCHAR, INTEGER)")
     db.execute("DROP TYPE readdir_result")
     db.execute("""
-        CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40), size INTEGER);
+        CREATE TYPE readdir_result AS (filetype char, name VARCHAR(128), node_id INTEGER, digest CHAR(40), size INTEGER, target VARCHAR(250));
         """)
     db.execute("""
         CREATE OR REPLACE FUNCTION readdir(in_directory VARCHAR, in_mirrorrun_id integer) RETURNS SETOF readdir_result AS $$
@@ -41,20 +41,20 @@ def upgrade(db):
                  AND first_run <= mirrorrun_run
                  AND last_run  >= mirrorrun_run;
             RETURN QUERY
-                SELECT 'd'::CHAR, substring(path, '[^/]*$')::VARCHAR(128), node_with_ts.node_id, NULL, NULL
+                SELECT 'd'::CHAR, substring(path, '[^/]*$')::VARCHAR(128), node_with_ts.node_id, NULL, NULL, NULL::VARCHAR(250) AS target
                   FROM directory NATURAL JOIN node_with_ts
                   WHERE parent=dir_id
                     AND directory_id <> parent
                     AND first_run <= mirrorrun_run
                     AND last_run  >= mirrorrun_run
                 UNION ALL
-                SELECT '-'::CHAR, name, node_with_ts.node_id, file.hash, file.size
+                SELECT '-'::CHAR, name, node_with_ts.node_id, file.hash, file.size, NULL
                   FROM file NATURAL JOIN node_with_ts
                   WHERE parent=dir_id
                     AND first_run <= mirrorrun_run
                     AND last_run  >= mirrorrun_run
                 UNION ALL
-                SELECT 'l'::CHAR, name, node_with_ts.node_id, NULL, NULL
+                SELECT 'l'::CHAR, name, node_with_ts.node_id, NULL, NULL, symlink.target
                   FROM symlink NATURAL JOIN node_with_ts
                   WHERE parent=dir_id
                     AND first_run <= mirrorrun_run
