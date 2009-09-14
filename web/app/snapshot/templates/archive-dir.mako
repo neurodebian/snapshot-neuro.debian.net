@@ -12,8 +12,7 @@
 				<a href="${entry['name']}/">${entry['name']}</a>
 %			else:
 				${entry['name']}
-%			endif
-%			if 'digest' in entry:
+				${entry['size']}
 				${entry['digest']}
 %			endif
 			<br/>

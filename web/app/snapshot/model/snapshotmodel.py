@@ -126,7 +126,7 @@ class SnapshotModel:
     def mirrorruns_readdir(self, mirrorrun_id, path):
         db = DBInstance(self.pool)
 
-        readdir = db.query("""SELECT filetype, name, digest FROM readdir(%(path)s, %(mirrorrun_id)s) ORDER BY name""",
+        readdir = db.query("""SELECT filetype, name, digest, size FROM readdir(%(path)s, %(mirrorrun_id)s) ORDER BY name""",
                 { 'mirrorrun_id': mirrorrun_id,
                   'path': path } )
         db.close();
