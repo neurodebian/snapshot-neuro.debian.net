@@ -80,7 +80,7 @@ class SnapshotModel:
         result = None
 
         rows = db.query("""
-                SELECT run as run_hr, mirrorrun_id
+                SELECT run as run_hr, to_char(run, 'YYYYMMDD"T"HH24MISS') AS run, mirrorrun_id
                   FROM mirrorrun JOIN archive ON mirrorrun.archive_id = archive.archive_id
                   WHERE archive.name=%(archive)s
                     AND mirrorrun.run <= %(datespec)s

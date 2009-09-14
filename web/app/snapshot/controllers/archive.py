@@ -57,25 +57,21 @@ class ArchiveController(BaseController):
         if run is None:
             abort(404)
 
-        url = "/" + url
-
-        stat = g.shm.mirrorruns_stat(run['mirrorrun_id'], url)
-        print "url: "+url
-        print "stat: ", stat
-
+        stat = g.shm.mirrorruns_stat(run['mirrorrun_id'], '/'+url)
         if stat is None:
             abort(404)
 
         if stat['filetype'] == 'd':
-            if url != "/" and url != stat['path']+'/':
-                # XXX this will blow up once stat does symlink resolving
-                return redirect_to(self.unicode_encode(os.path.basename(url))+"/")
+            realpath = os.path.join('/archive', archive, run['run'], stat['path'].strip('/'), '')
+            print "rp", realpath
+            print "pi", request.environ.get('PATH_INFO')
+            if realpath != request.environ.get('PATH_INFO'):
+                return redirect_to(self.unicode_encode(realpath))
             c.readdir = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
 
-            c.msg = "url: %s"%url
-            c.msg += " stat: %s"% stat
+            # XXX add links and stuff.
+            c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + stat['path'].split('/')[1:]
 
-            c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
             return render('/archive-dir.mako')
         elif stat['filetype'] == '-':
             path = g.shm.get_filepath(stat['digest'])
