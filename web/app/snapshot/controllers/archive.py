@@ -1,6 +1,7 @@
 import logging
 from snapshot.lib.dbinstance import DBInstance
 from snapshot.lib.base import *
+from paste.fileapp import FileApp
 import paste.httpexceptions
 import os.path
 import re
@@ -64,14 +65,21 @@ class ArchiveController(BaseController):
 
         if stat['filetype'] == 'd':
             if url != "/" and url != stat['path']+'/':
+                # XXX this will blow up once stat does symlink resolving
                 return redirect_to(self.unicode_encode(os.path.basename(url))+"/")
             c.readdir = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
 
-        c.msg = "url: %s"%url
-        c.msg += " stat: %s"% stat
+            c.msg = "url: %s"%url
+            c.msg += " stat: %s"% stat
 
-        c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
-        return render('/archive-dir.mako')
+            c.breadcrumbs = [ 'archive', archive, run['run_hr'] ] + url.split('/')
+            return render('/archive-dir.mako')
+        elif stat['filetype'] == '-':
+        # >         fapp = fileapp.FileApp(filename, **{"content_type":"text/plain",
+        # >                                             "content_location":"foo.txt"})
+        # >         return fapp(request.environ, self.start_response)
+            # XXX get proper path
+            return FileApp('/home/weasel/waginger.gpx')(request.environ, self.start_response)
 
 # vim:set et:
 # vim:set ts=4:
