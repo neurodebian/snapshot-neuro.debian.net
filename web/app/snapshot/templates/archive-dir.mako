@@ -9,7 +9,6 @@ next: ${c.neighbors['next']}<br />
 
 <div class="readdir">
 %	if not c.readdir is UNDEFINED:
-		d <a href="../">..</a><br />
 %		for entry in c.readdir:
 			${entry['filetype']}
 %			if entry['filetype'] == 'd':

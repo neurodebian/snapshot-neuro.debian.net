@@ -83,7 +83,10 @@ class ArchiveController(BaseController):
         realpath = os.path.join('/archive', archive, self._urlify_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ.get('PATH_INFO'):
             return redirect_to(self.unicode_encode(realpath))
-        c.readdir = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
+        list = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
+        if stat['path'] != '/':
+            list = [ { 'filetype': 'd', 'name': '..' } ] + list
+        c.readdir = list
         c.neighbors = g.shm.mirrorruns_get_neighbors(run['mirrorrun_id'])
 
         # XXX add links and stuff.
