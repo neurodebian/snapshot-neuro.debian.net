@@ -1,7 +1,7 @@
 <%inherit file="/page.mako" />
 
 %for run in c.runs:
-<a href="${run['run']}/">${run['run_hr']}</a><br />
+<a href="${run['run_mr']}/">${run['run']}</a><br />
 %endfor
 
 ## vim:syn=html

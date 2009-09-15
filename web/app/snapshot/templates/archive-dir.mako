@@ -4,6 +4,9 @@
 <a href="${entry['target']}/">${entry['name']}</a><br />
 %endfor
 
+prev: ${c.neighbors['prev']}<br />
+next: ${c.neighbors['next']}<br />
+
 <div class="readdir">
 %	if not c.readdir is UNDEFINED:
 		d <a href="../">..</a><br />

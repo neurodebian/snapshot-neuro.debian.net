@@ -62,7 +62,7 @@ class SnapshotModel:
             archive_id = rows[0]['archive_id']
 
             result = db.query("""
-                SELECT to_char(run, 'YYYYMMDD"T"HH24MISS') AS run, run as run_hr
+                SELECT run
                   FROM mirrorrun
                   WHERE mirrorrun.archive_id=%(archive_id)s
                     AND extract(year from run) = %(year)s
@@ -80,7 +80,7 @@ class SnapshotModel:
         result = None
 
         rows = db.query("""
-                SELECT run as run_hr, to_char(run, 'YYYYMMDD"T"HH24MISS') AS run, mirrorrun_id
+                SELECT run, mirrorrun_id
                   FROM mirrorrun JOIN archive ON mirrorrun.archive_id = archive.archive_id
                   WHERE archive.name=%(archive)s
                     AND mirrorrun.run <= %(datespec)s
@@ -91,6 +91,27 @@ class SnapshotModel:
         if len(rows) != 0:
             result = rows[0]
 
+        db.close()
+        return result
+
+    def mirrorruns_get_neighbors(self, mirrorrun_id):
+        db = DBInstance(self.pool)
+        result = db.query_one("""
+            SELECT this.run,
+                 (SELECT run FROM mirrorrun
+                  WHERE mirrorrun.archive_id = this.archive_id
+                    AND run > this.run
+                  ORDER BY run
+                  LIMIT 1) AS next,
+                 (SELECT run FROM mirrorrun
+                  WHERE mirrorrun.archive_id = this.archive_id
+                    AND run < this.run
+                  ORDER BY run DESC
+                  LIMIT 1) AS prev
+            FROM mirrorrun AS this
+            WHERE mirrorrun_id=%(mirrorrun_id)s
+              """,
+            { 'mirrorrun_id': mirrorrun_id })
         db.close()
         return result
 
