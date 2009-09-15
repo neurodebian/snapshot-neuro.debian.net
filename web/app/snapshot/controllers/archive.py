@@ -87,7 +87,7 @@ class ArchiveController(BaseController):
         c.neighbors = g.shm.mirrorruns_get_neighbors(run['mirrorrun_id'])
 
         # XXX add links and stuff.
-        c.breadcrumbs = [ 'archive', archive, run['run'] ] + stat['path'].split('/')[1:]
+        c.breadcrumbs = realpath.rstrip('/').split('/')
 
         return render('/archive-dir.mako')
 
