@@ -101,13 +101,16 @@ Missing wanted features:
       transaction)
    - find list of hashes referenced in the DB but not in the farm.
 
- - Write a nice web frontend.
+ . Write a nice web frontend.
+   - handle symlinks (in the database stat() function)
+   - make breadcrumbs useful links
+   - packages
 
- - Write some scripts to help setting up a mirror.  This should be easy
+ . Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject
    mirrorruns without having to dump/reload the entire DB.
 
- [ o .. done; - to do ]
+ [ o .. done; - to do; . partially done ]
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
 Web-Depends: python-pylons
