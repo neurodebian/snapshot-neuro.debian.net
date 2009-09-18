@@ -44,7 +44,7 @@ class SnapshotModel:
             result = []
             for row in rows:
                 y, m = row['year'], row['month']
-                if len(result) == 0 or len[-1]['year'] != y:
+                if len(result) == 0 or result[-1]['year'] != y:
                     result.append( { 'year': y, 'months': [] } )
                 result[-1]['months'].append(m)
 
