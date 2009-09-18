@@ -6,6 +6,12 @@ db:
   database: snapshotpy
   user: snapshot
   password: x
+db-ro:
+  # read only info, used for instance for the web service
+  host: localhost
+  port: 5433
+  database: snapshot
+  user: guest
 dump:
   dumppath: /srv/snapshot/dumps
 snapshot:
