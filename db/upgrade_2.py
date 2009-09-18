@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 def upgrade(db):
+    """Adds size and target to readdir results"""
     db.execute("DROP FUNCTION readdir(VARCHAR, INTEGER)")
     db.execute("DROP TYPE readdir_result")
     db.execute("""
