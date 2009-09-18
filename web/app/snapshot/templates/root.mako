@@ -10,3 +10,7 @@ Browse ftp archive snapshots from one of the following archives:
 </ul>
 
 <h1>Packages</h1>
+
+<form action="package/">
+Enter source package name: <input name="src" /> <input type="submit" value="Submit" />
+</form>
