@@ -3,6 +3,7 @@ from pylons import config
 import psycopg2
 from DBUtils.PooledDB import PooledDB
 from snapshot.model.snapshotmodel import SnapshotModel
+import yaml
 
 class Globals(object):
     """Globals acts as a container for objects available throughout the
@@ -15,8 +16,11 @@ class Globals(object):
         variable
         """
         app_conf = config['app_conf']
-        self.pool = PooledDB(psycopg2, int(app_conf['dbpool.size']), database=app_conf['dbpool.database'])
-        self.shm = SnapshotModel(self.pool, app_conf['snapshot.farm'])
+
+        conffile = app_conf['snapshot.conf']
+        self.snap_conf = yaml.load(open(conffile).read())
+        self.pool = PooledDB(psycopg2, 5, **self.snap_conf['db-ro'])
+        self.shm = SnapshotModel(self.pool, self.snap_conf['snapshot']['farmpath'])
 
 # vim:set et:
 # vim:set ts=4:
