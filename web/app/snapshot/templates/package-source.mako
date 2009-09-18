@@ -1,6 +1,6 @@
 <%inherit file="/page.mako" />
 
-<h2>Source package ${c.src}</h2>
+<h1>Source package ${c.src}</h1>
 Available versions:
 <ul>
 	%for entry in c.sourceversions:

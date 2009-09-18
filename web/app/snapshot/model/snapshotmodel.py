@@ -199,6 +199,27 @@ class SnapshotModel:
 
         return map(lambda x: x['hash'], rows)
 
+    def packages_get_file_info(self, hash):
+        db = DBInstance(self.pool)
+
+        rows = db.query("""SELECT
+                             file.name,
+                             file.size,
+                             mirrorrun.run,
+                             archive.name as archive_name,
+                             directory.path
+                           FROM file
+                             JOIN node ON file.node_id = node.node_id
+                             JOIN mirrorrun ON node.first = mirrorrun.mirrorrun_id
+                             JOIN archive ON mirrorrun.archive_id = archive.archive_id
+                             JOIN directory ON node.parent = directory.directory_id
+                           WHERE hash=%(hash)s
+                           ORDER BY run""",
+                        { 'hash': hash } )
+        db.close();
+
+        return rows
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:

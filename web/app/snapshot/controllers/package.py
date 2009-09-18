@@ -4,29 +4,21 @@ from snapshot.lib.base import *
 from paste.fileapp import FileApp
 import paste.httpexceptions
 import os.path
+from snapshot.lib.control_helpers import *
 
 log = logging.getLogger(__name__)
 
 class PackageController(BaseController):
-    def unicode_encode(self, path):
-        if isinstance(path, unicode):
-            return path.encode('utf-8')
-        else:
-            return path
-
-    def ensure_directory(self):
-        if not request.environ.get('PATH_INFO')[-1:] == "/":
-            return redirect_to(os.path.basename(request.environ.get('PATH_INFO'))+"/")
 
     def root(self):
-        self.ensure_directory()
+        ensure_directory()
         if not 'src' in request.params:
             return redirect_to("../")
-        return redirect_to(self.unicode_encode(request.params['src'] + "/"))
+        return redirect_to(unicode_encode(request.params['src'] + "/"))
 
 
     def source(self, source):
-        self.ensure_directory()
+        ensure_directory()
 
         sourceversions = g.shm.packages_get_source_versions(source)
 
@@ -38,16 +30,31 @@ class PackageController(BaseController):
         return render('/package-source.mako')
 
     def source_version(self, source, version):
-        self.ensure_directory()
+        ensure_directory()
 
         hashes = g.shm.packages_get_source_files(source, version)
 
         if len(hashes) == 0:
             abort(404)
 
+        fileinfo = {}
+        for hash in hashes:
+            fileinfo[hash] = g.shm.packages_get_file_info(hash)
+            # XXX what if we got zero rows?  handle that somehow...
+
+        hashes.sort(key=lambda a: (fileinfo[a][0]['name'], a))
+
+        for hash in fileinfo:
+            fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash]) # copy fileinfo into a real dict, not a psycopg2 pseudo dict
+            for fi in fileinfo[hash]:
+                fi['dirlink'] = build_url_archive(fi['archive_name'], fi['run'], fi['path'])
+                fi['link'] = build_url_archive(fi['archive_name'], fi['run'], os.path.join(fi['path'], fi['name']), isadir=False )
+
         c.src = source
-        c.sourceversions = hashes
-        return render('/package-source.mako')
+        c.version = version
+        c.sourcefiles = hashes
+        c.fileinfo = fileinfo
+        return render('/package-source-one.mako')
 
 
 # vim:set et:

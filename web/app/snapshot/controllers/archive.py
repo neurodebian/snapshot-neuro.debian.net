@@ -8,12 +8,11 @@ import re
 import mimetypes
 import error
 import errno
+from snapshot.lib.control_helpers import *
 
 log = logging.getLogger(__name__)
 
 class ArchiveController(BaseController):
-    def _urlify_timestamp(self, ts):
-        return ts.strftime('%Y%m%dT%H%M%S')
 
     def root(self):
         if request.environ.get('PATH_INFO')[-1:] == "/":
@@ -54,15 +53,10 @@ class ArchiveController(BaseController):
         c.runs = map(lambda r:
                         { 'run'   : r['run'],
                           # make a machine readable version of a timestamp
-                          'run_mr': self._urlify_timestamp(r['run'])
+                          'run_mr': urlify_timestamp(r['run'])
                         }, runs)
         return render('/archive-runs.mako')
 
-    def unicode_encode(self, path):
-        if isinstance(path, unicode):
-            return path.encode('utf-8')
-        else:
-            return path
 
 
     def _regular_file(self, stat):
@@ -84,6 +78,7 @@ class ArchiveController(BaseController):
             else:
                 raise
 
+    # XXX: make this use control_helpers build_url_archive
     def _build_crumbs(self, archive, run=None, path=None, year=None, month=None):
         crumbs = []
 
@@ -104,7 +99,7 @@ class ArchiveController(BaseController):
             crumbs.append( { 'url': url+"?year=%d&month=%d"%ym, 'name': '(%d-%02d)'%ym });
 
         if run:
-            url += self._urlify_timestamp(run['run']) + '/'
+            url += urlify_timestamp(run['run']) + '/'
             crumbs.append( { 'url': url, 'name': run['run'] });
 
             if path and path != '/':
@@ -116,11 +111,10 @@ class ArchiveController(BaseController):
 
         return crumbs
 
-
     def _dir_helper(self, archive, run, stat):
-        realpath = os.path.join('/archive', archive, self._urlify_timestamp(run['run']), stat['path'].strip('/'), '')
+        realpath = os.path.join('/archive', archive, urlify_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ.get('PATH_INFO'):
-            return redirect_to(self.unicode_encode(realpath))
+            return redirect_to(unicode_encode(realpath))
 
         list = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
         if stat['path'] != '/':
