@@ -739,17 +739,19 @@ class PackageIndexer
 		@db = db
 		@quick = quick
 		@only_this_mirrorrun = only_this_mirrorrun
+
+		@mirrorrun_id = nil
+		@mirrorrun_run = nil
+		@mirrorrun_archive_id = nil
 	end
 
-	def get_file_digest(mirrorrun_id, filename, quick=false)
-		row = quick ?
-			@db.query_row("SELECT get_file_from_mirrorrun_with_path_first(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename)) :
-			@db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash", mirrorrun_id, File.dirname(filename), File.basename(filename))
+	def get_file_digest(filename)
+		row = @db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash", @mirrorrun_id, File.dirname(filename), File.basename(filename))
 		return row['hash']
 	end
 
-	def open_file(mirrorrun_id, filename, quick=false)
-		digest = get_file_digest(mirrorrun_id, filename, quick)
+	def open_file(filename)
+		digest = get_file_digest(filename)
 		return nil if digest.nil?
 		return $storage.open(digest)
 	end
@@ -823,7 +825,7 @@ class PackageIndexer
 		@db.insert("file_#{type}pkg_mapping", p)
 	end
 
-	def insert_file_from_path(type, pkg, mirrorrun_id, path, arch = nil)
+	def insert_file_from_path(type, pkg, path, arch = nil)
 		case type
 			when "src"
 				throw "don't need an arch" unless arch.nil?
@@ -833,9 +835,9 @@ class PackageIndexer
 				throw "Invalud type #{type}"
 		end
 
-		digest = get_file_digest(mirrorrun_id, path, @quick)
+		digest = get_file_digest(path)
 		unless digest
-			$logger.warn("[indexrun ##{mirrorrun_id}] File #{path} is referenced in index but does not exist in mirrorrun)") if @warn_bad_indexfile_references
+			$logger.warn("[indexrun ##{@mirrorrun_id}] File #{path} is referenced in index but does not exist in mirrorrun)") if @warn_bad_indexfile_references
 			return false
 		end
 
@@ -843,11 +845,11 @@ class PackageIndexer
 		return true
 	end
 
-	def insert_src_file_from_path(srcpkg, mirrorrun_id, path)
-		insert_file_from_path('src', srcpkg, mirrorrun_id, path)
+	def insert_src_file_from_path(srcpkg, path)
+		insert_file_from_path('src', srcpkg, path)
 	end
-	def insert_bin_file_from_path(binpkg, mirrorrun_id, path, arch)
-		insert_file_from_path('bin', binpkg, mirrorrun_id, path, arch)
+	def insert_bin_file_from_path(binpkg, path, arch)
+		insert_file_from_path('bin', binpkg, path, arch)
 	end
 	def insert_src_file_from_digest(pkg, digest)
 		insert_file_from_digest('src', pkg, digest)
@@ -859,8 +861,8 @@ class PackageIndexer
 
 	# Insert binary and source packages listed in /indices/package-file.map.bz2
 	# if the mirror has such a file.
-	def index_mirrorrun_from_index(mirrorrun_id)
-		index = open_file(mirrorrun_id, '/indices/package-file.map.bz2')
+	def index_mirrorrun_from_index()
+		index = open_file('/indices/package-file.map.bz2')
 		return unless index
 
 		@warn_bad_indexfile_references = true
@@ -868,21 +870,22 @@ class PackageIndexer
 		changed_files = nil
 		if (@quick)
 			# how many files are new in this mirrorrun?
-			row = @db.query_row("SELECT count(*) AS count FROM file JOIN node ON file.node_id = node.node_id WHERE first=?", mirrorrun_id);
+			# XXX this is inherently broken
+			row = @db.query_row("SELECT count(*) AS count FROM file JOIN node ON file.node_id = node.node_id WHERE first=?", @mirrorrun_id);
 			# if it's not too many, keep a hash of files that are new
 			# XXX MAGIC CONSTANT
 			if row['count'] <= 10000
 				changed_files = {}
-				$logger.debug("[indexrun ##{mirrorrun_id}] Only #{row['count']} files are new this mirrorrun, building a list")
+				$logger.debug("[indexrun ##{@mirrorrun_id}] Only #{row['count']} files are new this mirrorrun, building a list")
 
 				@db.query("SELECT directory.path || '/' || name AS filename
 				           FROM file JOIN node ON file.node_id = node.node_id
 				                     JOIN directory on node.parent = directory.directory_id
-				           WHERE first=?", mirrorrun_id) do | row|
+				           WHERE first=?", @mirrorrun_id) do | row|
 					changed_files[row['filename']] = true
 				end
 			else
-				$logger.debug("[indexrun ##{mirrorrun_id}] A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
+				$logger.debug("[indexrun ##{@mirrorrun_id}] A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
 				@warn_bad_indexfile_references = false
 			end
 		end
@@ -899,7 +902,7 @@ class PackageIndexer
 			lineno += 1
 
 			unless hash_has_all_keys(e, %w(Path))
-				$logger.warn("[indexrun ##{mirrorrun_id}] Block has no path element before line #{lineno}")
+				$logger.warn("[indexrun ##{@mirrorrun_id}] Block has no path element before line #{lineno}")
 				next
 			end
 
@@ -908,23 +911,23 @@ class PackageIndexer
 			next if changed_files and not changed_files.has_key? e['Path']
 
 			unless hash_has_all_keys(e, %w(Source Source-Version))
-				$logger.warn("[indexrun ##{mirrorrun_id}] Block has incomplete source information before line #{lineno}")
+				$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete source information before line #{lineno}")
 				next
 			end
 
 			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
-				inserted = insert_src_file_from_path(srcpkg, mirrorrun_id, e['Path'])
-				$logger.debug("[indexrun ##{mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
+				inserted = insert_src_file_from_path(srcpkg, e['Path'])
+				$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
 			else
 				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
-					$logger.warn("[indexrun ##{mirrorrun_id}] Block has incomplete binary information before line #{lineno}")
+					$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete binary information before line #{lineno}")
 					next
 				end
 
 				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
-				inserted = insert_bin_file_from_path(binpkg, mirrorrun_id, e['Path'], e['Architecture'])
-				$logger.debug("[indexrun ##{mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
+				inserted = insert_bin_file_from_path(binpkg, e['Path'], e['Architecture'])
+				$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 			end
 		end
 		source = "index"
@@ -934,14 +937,14 @@ class PackageIndexer
 
 	# index a given .deb or .udeb.
 	# package, version, source etc are all learned from dpkg --info.
-	def index_binary_package(mirrorrun_id, path, name, digest)
+	def index_binary_package(path, name, digest)
 		e = {}
 		debversion = nil
 		fd = IO.popen('-') do |fd|
 			if not fd
 				cmd = ['dpkg', '--info', $storage.get_path_to(digest)]
 				exec(*cmd)
-				$logger.error("[indexrun ##{mirrorrun_id}] Failed to exec #{cmd.join(" ")}")
+				$logger.error("[indexrun ##{@mirrorrun_id}] Failed to exec #{cmd.join(" ")}")
 				exit(1)
 			end
 
@@ -983,7 +986,7 @@ class PackageIndexer
 		e['Architecture'] = 'i386' unless e['Architecture']
 
 		unless hash_has_all_keys(e, %w(Version Package Architecture))
-			$logger.warn("[indexrun ##{mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest}).  [existing keys: #{e.keys.join(', ')}]")
+			$logger.warn("[indexrun ##{@mirrorrun_id}] dpkg --info returned incomplete info for #{name} (#{digest}).  [existing keys: #{e.keys.join(', ')}]")
 			return
 		end
 		e['Binary'] = e['Package']
@@ -1000,9 +1003,9 @@ class PackageIndexer
 					# Some packages do not have source-version in parenthenses:
 					# SOURCE: ncurses 1.9.9e-1   in ncurses-term_1.9.9e-1.deb
 					if e['Source-Version'] != ""
-						$logger.warn("[indexrun ##{mirrorrun_id}] Using '#{e['Source-Version']}' from '#{s}' as source version for #{path}/#{name} (#{digest})")
+						$logger.warn("[indexrun ##{@mirrorrun_id}] Using '#{e['Source-Version']}' from '#{s}' as source version for #{path}/#{name} (#{digest})")
 					else
-						$logger.warn("[indexrun ##{mirrorrun_id}] Did not get source version out of #{s} for #{path}/#{name} (#{digest})")
+						$logger.warn("[indexrun ##{@mirrorrun_id}] Did not get source version out of #{s} for #{path}/#{name} (#{digest})")
 						return
 					end
 				end
@@ -1017,7 +1020,7 @@ class PackageIndexer
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
 		insert_bin_file_from_digest(binpkg, digest, e['Architecture'])
-		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for binary #{path}/#{name} (#{digest}: #{e['Binary']} #{e['Binary-Version']}")
+		$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for binary #{path}/#{name} (#{digest}: #{e['Binary']} #{e['Binary-Version']}")
 
 
 		# .93 debs did not have .dsc files for their source.  Still try to find them
@@ -1032,14 +1035,14 @@ class PackageIndexer
 				a.push( pathelements.join('/') + '.tar.gz' )
 
 				a.each do |f|
-					sha1 = get_file_digest(mirrorrun_id, f)
+					sha1 = get_file_digest(f)
 					unless sha1 # not found.  pitty
-						$logger.debug("[indexrun ##{mirrorrun_id}] No source found for #{e['Source']} #{e['Source-Version']}: #{f} (#{sha1})")
+						$logger.debug("[indexrun ##{@mirrorrun_id}] No source found for #{e['Source']} #{e['Source-Version']}: #{f} (#{sha1})")
 						next
 					end
 
 					insert_src_file_from_digest(srcpkg, sha1)
-					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{f} #{digest}: #{e['Source']} #{e['Source-Version']}")
+					$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source #{f} #{digest}: #{e['Source']} #{e['Source-Version']}")
 				end
 		end
 	end
@@ -1049,7 +1052,7 @@ class PackageIndexer
 	# if the .dsc lists sha1 sums we use them directly,
 	# if it only lists md5 sums we search the file by name, check the
 	# md5 sum matches and import it into the db.
-	def index_source_package(mirrorrun_id, path, name, dscdigest)
+	def index_source_package(path, name, dscdigest)
 		# first line
 		fd = $storage.open(dscdigest)
 		lines = fd.readlines.collect{ |x| x.chomp }
@@ -1078,93 +1081,103 @@ class PackageIndexer
 		end
 
 		unless hash_has_all_keys(e, %w(Source Version Files))
-			$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} has incomplete source information.    [existing keys: #{e.keys.join(', ')}]")
+			$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} has incomplete source information.    [existing keys: #{e.keys.join(', ')}]")
 			return
 		end
 
 		e['Source-Version'] = e['Version']
 		srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
 		insert_src_file_from_digest(srcpkg, dscdigest)
-		$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{name} (#{dscdigest}): #{e['Source']} #{e['Source-Version']}")
+		$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source #{path}/#{name} (#{dscdigest}): #{e['Source']} #{e['Source-Version']}")
 
 		if e['Checksums-Sha1']
 			e['Checksums-Sha1'].each do |line|
 				hash, size, itemname, rest = line.split(/ /)
 				insert_src_file_from_digest(srcpkg, hash)
-				$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source by digest: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source by digest: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
 			end
 		else
 			e['Files'].each do |line|
 				expect_md5, size, itemname, rest = line.split(/ /)
 
 				candidates = []
-				sha1 = get_file_digest(mirrorrun_id, path+"/"+itemname)
+				sha1 = get_file_digest(path+"/"+itemname)
 				if sha1
 					candidates = [sha1]
 				else
 					@db.query("SELECT DISTINCT hash FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
 					           WHERE first_run <= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
 					             AND last_run  >= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
-					             AND file.name=?", mirrorrun_id, mirrorrun_id, itemname) do |row|
+					             AND file.name=?", @mirrorrun_id, @mirrorrun_id, itemname) do |row| #XXX
 						candidates << row['hash']
 					end
 				end
 
 				if candidates.length == 0
-					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we do not have")
+					$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} which we do not have")
 					next
 				elsif candidates.length > 1
-					$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} of which we have different ones!")
+					$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} of which we have different ones!")
 				end
 
 				candidates.each do |sha1|
 					is_md5 = Digest::MD5.hexdigest( $storage.open(sha1).read )
 					if is_md5 != expect_md5
-						$logger.warn("[indexrun ##{mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} with md5 #{expect_md5}) but we have md5 hash #{is_md5}")
+						$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} references #{itemname} with md5 #{expect_md5}) but we have md5 hash #{is_md5}")
 						next
 					end
 
 					insert_src_file_from_digest(srcpkg, sha1)
-					$logger.debug("[indexrun ##{mirrorrun_id}] Inserting for source #{path}/#{itemname} (#{sha1}): #{e['Source']} #{e['Source-Version']}")
+					$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source #{path}/#{itemname} (#{sha1}): #{e['Source']} #{e['Source-Version']}")
 				end
 			end
 		end
 	end
 
 	# Recurse into a path, indexing any binary and source packages found.
-	def recurse_into(mirrorrun_id, path)
+	def recurse_into(path)
+		# XXX use dirtree?
 		if not @quick
 			query = "SELECT filetype, name, digest FROM readdir(?,?)"
-			args = [path, mirrorrun_id]
+			args = [path, @mirrorrun_id]
 		else
 			query = "SELECT filetype, name, digest FROM readdir(?,?) AS readdir JOIN node ON node.node_id = readdir.node_id WHERE (NOT filetype = '-') OR node.first=?"
-			args = [path, mirrorrun_id, mirrorrun_id]
+			args = [path, @mirrorrun_id, @mirrorrun_id]
 		end
 		@db.query(query, *args) do |row|
 			case row['filetype']
 				when "d"
-					recurse_into(mirrorrun_id, path + (path == '/' ? '' : '/') +row['name'])
+					recurse_into(path + (path == '/' ? '' : '/') +row['name'])
 				when "-"
 					case row['name']
 						when /\.deb$|\.udeb$/
-							index_binary_package(mirrorrun_id, path, row['name'], row['digest'])
+							index_binary_package(path, row['name'], row['digest'])
 						when /\.dsc/
-							index_source_package(mirrorrun_id, path, row['name'], row['digest'])
+							index_source_package(path, row['name'], row['digest'])
 					end
 			end
 		end
 	end
 
 	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
-	def index_mirrorrun_from_parsing(mirrorrun_id)
-		recurse_into(mirrorrun_id, '/')
+	def index_mirrorrun_from_parsing()
+		recurse_into('/')
 		source = 'recurse'
 		source += '(Q)' if @quick
 		return source
 	end
 
-	def index_mirrorrun(mirrorrun_id)
-		source = index_mirrorrun_from_index(mirrorrun_id)
+	def index_mirrorrun(mirrorrun_id, run = nil, archive_id = nil)
+		if run.nil? or archive_id.nil?
+			row = @db.query_row("SELECT run, archive_id FROM mirrorrun WHERE mirrorrun_id=?", mirrorrun_id)
+			run = row['run']
+			archive_id = row['archive_id']
+		end
+		@mirrorrun_id = mirrorrun_id;
+		@mirrorrun_run = run
+		@mirrorrun_archive_id = archive_id
+
+		source = index_mirrorrun_from_index()
 		return source if source
 		source = index_mirrorrun_from_parsing(mirrorrun_id)
 		return source
