@@ -68,7 +68,6 @@ class ArchiveController(BaseController):
                 h['Content-Type'] = type
             if not encoding is None:
                 h['Content-Encoding'] = encoding
-            print path
             fa = FileApp(path, **h);
             return fa(request.environ, self.start_response)
         except os.error, error:
