@@ -176,6 +176,29 @@ class SnapshotModel:
         prefix2 = digest[2:4]
         return os.path.join(self.farmpath, prefix1, prefix2, digest)
 
+    def packages_get_source_versions(self, source):
+        db = DBInstance(self.pool)
+
+        rows = db.query("""SELECT version FROM srcpkg WHERE name=%(source)s ORDER BY version DESC""",
+                { 'source': source } )
+        db.close();
+
+        return map(lambda x: x['version'], rows)
+
+    def packages_get_source_files(self, source, version):
+        db = DBInstance(self.pool)
+
+        rows = db.query("""SELECT hash
+                           FROM file_srcpkg_mapping
+                               JOIN srcpkg
+                               ON srcpkg.srcpkg_id=file_srcpkg_mapping.srcpkg_id
+                           WHERE name=%(source)s AND version=%(version)s""",
+                { 'source': source,
+                  'version': version} )
+        db.close();
+
+        return map(lambda x: x['hash'], rows)
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:

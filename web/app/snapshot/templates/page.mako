@@ -5,10 +5,20 @@
 <body>
 <div class="pageheader">snapshot.debian.org</div>
 % if not c.breadcrumbs is UNDEFINED:
-%  for crumb in c.breadcrumbs:
-${crumb} /
-%  endfor
-<br />
+	% for crumb in c.breadcrumbs:
+		% if crumb['url'] is None:
+			${crumb['name']}
+		% else:
+			<a href="${crumb['url']}">${crumb['name']}</a>
+		% endif
+		% if not 'sep' in crumb:
+			/
+		% else:
+			${crumb['sep']}
+		% endif
+
+	% endfor
+	<br />
 % endif
 
 % if not c.msg is UNDEFINED:

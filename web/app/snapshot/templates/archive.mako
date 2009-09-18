@@ -1,5 +1,7 @@
 <%inherit file="/page.mako" />
 
+<h1>Archive ${c.archive}</h1>
+
 %for year in c.yearmonths:
 <li>${year['year']}:
 % for month in year['months']:

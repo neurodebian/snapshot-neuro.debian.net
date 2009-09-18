@@ -33,6 +33,8 @@ class ArchiveController(BaseController):
             abort(404)
 
         c.yearmonths = yearmonths
+        c.archive = archive
+        c.breadcrumbs = self._build_crumbs(archive)
         return render('/archive.mako')
 
     def _archive_ym(self, archive, year, month):
@@ -45,6 +47,10 @@ class ArchiveController(BaseController):
         if runs is None:
             abort(404)
 
+        c.archive = archive
+        c.year = year
+        c.month = "%02d"%(int(month))
+        c.breadcrumbs = self._build_crumbs(archive, year=int(year), month=int(month))
         c.runs = map(lambda r:
                         { 'run'   : r['run'],
                           # make a machine readable version of a timestamp
@@ -78,6 +84,39 @@ class ArchiveController(BaseController):
             else:
                 raise
 
+    def _build_crumbs(self, archive, run=None, path=None, year=None, month=None):
+        crumbs = []
+
+        url = request.environ.get('SCRIPT_NAME') + "/"
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+
+        url += 'archive/' + archive + "/"
+        crumbs.append( { 'url': url, 'name': archive, 'sep': '' });
+
+        if run:
+            if not year is None or not month is None:
+                raise "Cannot set both run and year/month"
+            year = run['run'].year
+            month = run['run'].month
+
+        if not year is None and not month is None:
+            ym = (year, month)
+            crumbs.append( { 'url': url+"?year=%d&month=%d"%ym, 'name': '(%d-%02d)'%ym });
+
+        if run:
+            url += self._urlify_timestamp(run['run']) + '/'
+            crumbs.append( { 'url': url, 'name': run['run'] });
+
+            if path and path != '/':
+                for path_element in path.strip('/').split('/'):
+                    url += path_element + '/'
+                    crumbs.append( { 'url': url, 'name': path_element });
+
+        crumbs[-1]['url'] = None
+
+        return crumbs
+
+
     def _dir_helper(self, archive, run, stat):
         realpath = os.path.join('/archive', archive, self._urlify_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ.get('PATH_INFO'):
@@ -99,8 +138,7 @@ class ArchiveController(BaseController):
           'last': node_info['last_run'] }
 
         # XXX add links and stuff.
-        c.breadcrumbs = realpath.rstrip('/').split('/')
-
+        c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
         return render('/archive-dir.mako')
 
     def dir(self, archive, date, url):
