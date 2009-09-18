@@ -4,30 +4,54 @@
 <a href="${entry['target']}/">${entry['name']}</a><br />
 %endfor
 
-prev: ${c.neighbors['prev']}<br />
-next: ${c.neighbors['next']}<br />
+first: ${c.nav['first']}<br />
+prev: ${c.nav['prev']}<br />
+now: ${c.run['run']}<br />
+next: ${c.nav['next']}<br />
+last: ${c.nav['last']}<br />
 
-<div class="readdir">
-%	if not c.readdir is UNDEFINED:
-%		for entry in c.readdir:
-			${entry['filetype']}
-%			if entry['filetype'] == 'd':
-				<a href="${entry['name']}/">${entry['name']}/</a>
-%			elif entry['filetype'] == '-':
-				<a href="${entry['name']}">${entry['name']}</a>
-				${entry['size']}
-##				${entry['digest']}
-%			elif entry['filetype'] == 'l':
-				<a href="${entry['name']}">${entry['name']}</a> -&gt;
-				<a href="${entry['target']}">${entry['target']}</a>
-%			else:
-				Unknown filetype ${entry}
-%			endif
-			<br/>
-%		endfor
+<table class="readdir">
+	%if not c.readdir is UNDEFINED:
+			<tr>
+				<th>&nbsp;</th>
+				<th>Name</th>
+				<th style='text-align: right'>Size</th>
+				<th>first seen</th>
+				<th>last seen</th>
+			</tr>
+		%for entry in c.readdir:
+			<tr>
+				<td>${entry['filetype']}</td>
+				% if entry['filetype'] == 'd':
+					<td colspan="2"><a href="${entry['name']}/">${entry['name']}/</a></td>
+				% elif entry['filetype'] == '-':
+					<td><a href="${entry['name']}">${entry['name']}</a></td>
+					<td style='text-align: right'>${entry['size']}</td>
+				% elif entry['filetype'] == 'l':
+					<td colspan="2">
+						<a href="${entry['name']}">${entry['name']}</a> -&gt;
+						<a href="${entry['target']}">${entry['target']}</a>
+					</td>
+				% else:
+					<td colspan="2">
+						Unknown filetype ${entry}
+					</td>
+				% endif
+				<td>
+					% if not entry['first_run'] is None:
+						${entry['first_run']}
+					% endif
+				</td>
+				<td>
+					% if not entry['last_run'] is None:
+						${entry['last_run']}
+					% endif
+				</td>
+			</tr>
+		% endfor
 		<br />
-%	endif
-</div>
+	% endif
+</table>
 
 ## vim:syn=html
 ## vim:set ts=4:

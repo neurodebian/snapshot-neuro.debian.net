@@ -146,10 +146,25 @@ class SnapshotModel:
 
         return stat
 
+    def mirrorruns_get_first_last_from_node(self, node_id):
+        db = DBInstance(self.pool)
+
+        first_last = db.query_one("""SELECT first_run, last_run
+                                     FROM node_with_ts
+                                     WHERE node_id=%(node_id)s""",
+                { 'node_id': node_id } )
+        db.close();
+
+        return first_last
+
     def mirrorruns_readdir(self, mirrorrun_id, path):
         db = DBInstance(self.pool)
 
-        readdir = db.query("""SELECT filetype, name, digest, size, target FROM readdir(%(path)s, %(mirrorrun_id)s) ORDER BY name""",
+        readdir = db.query("""SELECT filetype, name, digest, size, target, first_run, last_run
+                              FROM readdir(%(path)s, %(mirrorrun_id)s)
+                              JOIN node_with_ts
+                                ON readdir.node_id = node_with_ts.node_id
+                              ORDER BY name""",
                 { 'mirrorrun_id': mirrorrun_id,
                   'path': path } )
         db.close();

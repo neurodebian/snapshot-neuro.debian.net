@@ -83,11 +83,21 @@ class ArchiveController(BaseController):
         realpath = os.path.join('/archive', archive, self._urlify_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ.get('PATH_INFO'):
             return redirect_to(self.unicode_encode(realpath))
+
         list = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
         if stat['path'] != '/':
-            list = [ { 'filetype': 'd', 'name': '..' } ] + list
+            list = [ { 'filetype': 'd', 'name': '..', 'first_run': None, 'last_run': None } ] + list
+
+        node_info = g.shm.mirrorruns_get_first_last_from_node(stat['node_id'])
+        neighbors = g.shm.mirrorruns_get_neighbors(run['mirrorrun_id'])
+
+        c.run = run
         c.readdir = list
-        c.neighbors = g.shm.mirrorruns_get_neighbors(run['mirrorrun_id'])
+        c.nav = {
+          'first': node_info['first_run'],
+          'prev': neighbors['prev'],
+          'next': neighbors['next'],
+          'last': node_info['last_run'] }
 
         # XXX add links and stuff.
         c.breadcrumbs = realpath.rstrip('/').split('/')
