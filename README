@@ -127,3 +127,19 @@ Bugs:
 	   mirrorun belong to a set of packages, but in a subsequent
 	   run get added to more packages (orig.tar.gz files do that all
 	   the time).
+	node_with_ts is horribly slow:
+		 SELECT hash
+			   FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
+			   WHERE first_run <= '2009-09-15 21:32:24'
+			     AND last_run  >= '2009-09-15 21:32:24'
+			     AND name = 'openssl_0.9.8g.orig.tar.gz'
+			     AND parent=320
+
+		takes about 10 times as long as the equivalent:
+
+		SELECT hash
+			   FROM file JOIN node ON file.node_id = node.node_id
+			   WHERE (SELECT run FROM mirrorrun WHERE mirrorrun_id=first) <= '2009-09-15 21:32:24'
+			     AND (SELECT run FROM mirrorrun WHERE mirrorrun_id=last) >= '2009-09-15 21:32:24'
+			     AND name = 'openssl_0.9.8g.orig.tar.gz'
+			     AND parent=320
