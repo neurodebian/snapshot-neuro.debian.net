@@ -47,6 +47,10 @@ last: ${c.nav['last']}<br />
 						${entry['last_run']}
 					% endif
 				</td>
+				## debugging only
+				% if entry['filetype'] == '-':
+					<td>${entry['digest']}</td>
+				% endif
 			</tr>
 		% endfor
 		<br />
