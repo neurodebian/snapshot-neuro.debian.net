@@ -110,3 +110,4 @@ Missing wanted features:
  [ o .. done; - to do ]
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
+Web-Depends: python-pylons
