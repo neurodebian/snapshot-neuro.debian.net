@@ -78,6 +78,31 @@ class ArchiveController(BaseController):
             else:
                 raise
 
+    def _build_crumbs(self, archive, run, path):
+        crumbs = []
+
+        url = request.environ.get('SCRIPT_NAME') + "/"
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+
+        url += 'archive/' + archive + "/"
+        crumbs.append( { 'url': url, 'name': archive, 'sep': '' });
+
+        ym = (run['run'].year, run['run'].month);
+        crumbs.append( { 'url': url+"?year=%d&month=%d"%ym, 'name': '(%d-%02d)'%ym });
+
+        url += self._urlify_timestamp(run['run']) + '/'
+        crumbs.append( { 'url': url, 'name': run['run'] });
+
+        if path != '/':
+            for path_element in path.strip('/').split('/'):
+                url += path_element + '/'
+                crumbs.append( { 'url': url, 'name': path_element });
+
+        crumbs[-1]['url'] = None
+
+        return crumbs
+
+
     def _dir_helper(self, archive, run, stat):
         realpath = os.path.join('/archive', archive, self._urlify_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ.get('PATH_INFO'):
@@ -99,8 +124,7 @@ class ArchiveController(BaseController):
           'last': node_info['last_run'] }
 
         # XXX add links and stuff.
-        c.breadcrumbs = realpath.rstrip('/').split('/')
-
+        c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
         return render('/archive-dir.mako')
 
     def dir(self, archive, date, url):
