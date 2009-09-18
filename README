@@ -118,3 +118,12 @@ Missing wanted features:
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
 Web-Depends: python-pylons
+
+
+
+Bugs:
+	package indexing:
+	 - --quick fails to properly add files to the index that in one
+	   mirrorun belong to a set of packages, but in a subsequent
+	   run get added to more packages (orig.tar.gz files do that all
+	   the time).
