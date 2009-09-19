@@ -1108,7 +1108,8 @@ class PackageIndexer
 					@db.query("SELECT DISTINCT hash FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
 					           WHERE first_run <= ?
 					             AND last_run  >= ?
-					             AND file.name=?", @mirrorrun_run, @mirrorrun_run, itemname) do |row|
+					             AND node_with_ts.archive_id = ?
+					             AND file.name=?", @mirrorrun_run, @mirrorrun_run, @mirrorrun_archive_id, itemname) do |row|
 						candidates << row['hash']
 					end
 				end
