@@ -64,27 +64,35 @@ class PackageController(BaseController):
         try:
             ensure_directory()
 
-            hashes = g.shm.packages_get_source_files(self._db(), source, version)
-
-            if len(hashes) == 0:
+            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
+            if len(sourcefiles) == 0:
+                # XXX maybe we have no sources but binaries?
                 abort(404)
 
+            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            binpkgs = map(lambda b: { 'name':      b['name'],
+                                      'version':   b['version'],
+                                      'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
+            binhashes = []
+            for binpkg in binpkgs:
+                binpkg['files'] = g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id'])
+                binhashes += binpkg['files']
+
             fileinfo = {}
-            for hash in hashes:
+            for hash in sourcefiles + binhashes:
                 fileinfo[hash] = g.shm.packages_get_file_info(self._db(), hash)
-                # XXX what if we got zero rows?  handle that somehow...
-
-            hashes.sort(key=lambda a: (fileinfo[a][0]['name'], a))
-
             for hash in fileinfo:
                 fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash]) # copy fileinfo into a real dict, not a psycopg2 pseudo dict
                 for fi in fileinfo[hash]:
                     fi['dirlink'] = build_url_archive(fi['archive_name'], fi['run'], fi['path'])
                     fi['link'] = build_url_archive(fi['archive_name'], fi['run'], os.path.join(fi['path'], fi['name']), isadir=False )
 
+            sourcefiles.sort(key=lambda a: (fileinfo[a][0]['name'], a)) # reproducible file order
+
             c.src = source
             c.version = version
-            c.sourcefiles = hashes
+            c.sourcefiles = sourcefiles
+            c.binpkgs = binpkgs
             c.fileinfo = fileinfo
             c.breadcrumbs = self._build_crumbs(source, version)
             return render('/package-source-one.mako')
