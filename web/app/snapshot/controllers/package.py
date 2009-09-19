@@ -20,6 +20,23 @@ class PackageController(BaseController):
         if not self.db is None:
             self.db.close()
 
+    def _build_crumbs(self, srcpkg=None, version=None):
+        crumbs = []
+
+        url = request.environ.get('SCRIPT_NAME') + "/"
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+
+        if srcpkg:
+            url += 'package/' + srcpkg + '/'
+            crumbs.append( { 'url': url, 'name': srcpkg });
+
+            if version:
+                url += version + '/'
+                crumbs.append( { 'url': url, 'name': version });
+
+        crumbs[-1]['url'] = None
+        return crumbs
+
     def root(self):
         ensure_directory()
         if not 'src' in request.params:
@@ -38,6 +55,7 @@ class PackageController(BaseController):
 
             c.src = source
             c.sourceversions = sourceversions
+            c.breadcrumbs = self._build_crumbs(source)
             return render('/package-source.mako')
         finally:
             self._db_close()
@@ -68,6 +86,7 @@ class PackageController(BaseController):
             c.version = version
             c.sourcefiles = hashes
             c.fileinfo = fileinfo
+            c.breadcrumbs = self._build_crumbs(source, version)
             return render('/package-source-one.mako')
         finally:
             self._db_close()
