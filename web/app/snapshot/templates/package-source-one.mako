@@ -1,6 +1,6 @@
 <%inherit file="/page.mako" />
 
-<h1>Source package ${c.src} ${c.version}</h1>
+<h1><a name="top">Source package ${c.src} ${c.version}</a></h1>
 <h3>Source files</h3>
 <dl>
 	% for hash in c.sourcefiles:
@@ -28,9 +28,15 @@
 	</li>
 	%endfor
 </dl>
-<h2>Binary packages</h2>
+<h2><a name="binpkgs">Binary packages</a></h2>
+	<ul>
 	% for binpkg in c.binpkgs:
-		<h3>${binpkg['name']} ${binpkg['version']}</h3>
+		<li><a href="#${binpkg['name']} ${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></li>
+	%endfor
+	</ul>
+	% for binpkg in c.binpkgs:
+		<h3><a name="${binpkg['name']} ${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></h3>
+		<div style="font-size: x-small"><a href="#top">top</a> - <a href="#binpkgs">up to binary packages</a></div>
 		<dl>
 			% for hash in binpkg['files']:
 				<dt style="font-size: x-small"><code>${hash}</code>:</td>
@@ -38,7 +44,7 @@
 					<dd>
 						<dl>
 						% for fi in c.fileinfo[hash]:
-							<td><a href="${fi['link']}"><code style="font-size: x-large"><strong>${fi['name']}</strong></code></a></td>
+							<td><a href="${fi['link']}"><code style="font-size: large"><strong>${fi['name']}</strong></code></a></td>
 							<dd>
 								Seen in ${fi['archive_name']} on ${fi['run']} in
 								% if 'dirlink' in fi:
