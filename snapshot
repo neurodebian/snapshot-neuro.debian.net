@@ -1180,7 +1180,7 @@ class PackageIndexer
 
 		source = index_mirrorrun_from_index()
 		return source if source
-		source = index_mirrorrun_from_parsing(mirrorrun_id)
+		source = index_mirrorrun_from_parsing()
 		return source
 	end
 
