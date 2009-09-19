@@ -150,7 +150,7 @@ class SnapshotModel:
         db = DBInstance(self.pool)
 
         first_last = db.query_one("""SELECT first_run, last_run
-                                     FROM node_with_ts
+                                     FROM node_with_ts2
                                      WHERE node_id=%(node_id)s""",
                 { 'node_id': node_id } )
         db.close();
@@ -162,8 +162,8 @@ class SnapshotModel:
 
         readdir = db.query("""SELECT filetype, name, digest, size, target, first_run, last_run
                               FROM readdir(%(path)s, %(mirrorrun_id)s)
-                              JOIN node_with_ts
-                                ON readdir.node_id = node_with_ts.node_id
+                              JOIN node_with_ts2
+                                ON readdir.node_id = node_with_ts2.node_id
                               ORDER BY name""",
                 { 'mirrorrun_id': mirrorrun_id,
                   'path': path } )
