@@ -837,7 +837,7 @@ class PackageIndexer
 
 		digest = get_file_digest(path)
 		unless digest
-			$logger.warn("[indexrun ##{@mirrorrun_id}] File #{path} is referenced in index but does not exist in mirrorrun)") if @warn_bad_indexfile_references
+			$logger.warn("[indexrun ##{@mirrorrun_id}] File #{path} is referenced in index but does not exist in mirrorrun)")
 			return false
 		end
 
@@ -865,8 +865,6 @@ class PackageIndexer
 		index = open_file('/indices/package-file.map.bz2')
 		return unless index
 
-		@warn_bad_indexfile_references = true
-
 		changed_files = nil
 		if (@quick)
 			# how many files are new in this mirrorrun?
@@ -886,7 +884,6 @@ class PackageIndexer
 				end
 			else
 				$logger.debug("[indexrun ##{@mirrorrun_id}] A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
-				@warn_bad_indexfile_references = false
 			end
 		end
 
