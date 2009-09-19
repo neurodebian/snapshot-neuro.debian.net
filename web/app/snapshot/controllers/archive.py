@@ -9,6 +9,8 @@ import mimetypes
 import error
 import errno
 from snapshot.lib.control_helpers import *
+from paste.request import construct_url
+from paste.httpexceptions import HTTPMovedPermanently
 
 log = logging.getLogger(__name__)
 
@@ -113,8 +115,10 @@ class ArchiveController(BaseController):
 
     def _dir_helper(self, archive, run, stat):
         realpath = os.path.join('/archive', archive, urlify_timestamp(run['run']), stat['path'].strip('/'), '')
-        if realpath != request.environ.get('PATH_INFO'):
-            return redirect_to(unicode_encode(realpath))
+        if realpath != request.environ['PATH_INFO']:
+            request.environ['PATH_INFO'] = realpath
+            url = construct_url(request.environ)
+            raise HTTPMovedPermanently(url)
 
         list = g.shm.mirrorruns_readdir(run['mirrorrun_id'], stat['path'])
         if stat['path'] != '/':

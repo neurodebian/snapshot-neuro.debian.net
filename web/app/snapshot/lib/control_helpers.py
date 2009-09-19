@@ -1,6 +1,8 @@
 import logging
 from snapshot.lib.dbinstance import DBInstance
 from snapshot.lib.base import *
+from paste.request import construct_url
+from paste.httpexceptions import HTTPMovedPermanently
 
 def urlify_timestamp(ts):
     return ts.strftime('%Y%m%dT%H%M%S')
@@ -41,8 +43,10 @@ def unicode_encode(path):
         return path
 
 def ensure_directory():
-    if not request.environ.get('PATH_INFO')[-1:] == "/":
-        return redirect_to(os.path.basename(request.environ.get('PATH_INFO'))+"/")
+    if not request.environ['PATH_INFO'].endswith('/'):
+        request.environ['PATH_INFO'] += '/'
+        url = construct_url(request.environ)
+        raise HTTPMovedPermanently(url)
 
 # vim:set et:
 # vim:set ts=4:
