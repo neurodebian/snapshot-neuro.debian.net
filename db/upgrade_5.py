@@ -33,6 +33,7 @@ def upgrade(db):
                 (SELECT run FROM mirrorrun WHERE mirrorrun_id=node.last) AS last_run
             FROM node;
         """)
+    db.execute('GRANT SELECT ON node_with_ts2 TO public')
     db.execute("""
         CREATE FUNCTION get_file_from_path_at(in_archive_id integer, in_run TIMESTAMP, in_directory VARCHAR, in_filename VARCHAR) RETURNS CHAR(40) AS $$
         DECLARE
