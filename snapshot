@@ -1106,9 +1106,9 @@ class PackageIndexer
 					candidates = [sha1]
 				else
 					@db.query("SELECT DISTINCT hash FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
-					           WHERE first_run <= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
-					             AND last_run  >= (SELECT run FROM mirrorrun WHERE mirrorrun_id=?)
-					             AND file.name=?", @mirrorrun_id, @mirrorrun_id, itemname) do |row| #XXX
+					           WHERE first_run <= ?
+					             AND last_run  >= ?
+					             AND file.name=?", @mirrorrun_run, @mirrorrun_run, itemname) do |row|
 						candidates << row['hash']
 					end
 				end
