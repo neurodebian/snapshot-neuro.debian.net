@@ -20,7 +20,7 @@ class Globals(object):
         conffile = app_conf['snapshot.conf']
         self.snap_conf = yaml.load(open(conffile).read())
         self.pool = PooledDB(psycopg2, 5, **self.snap_conf['db-ro'])
-        self.shm = SnapshotModel(self.pool, self.snap_conf['snapshot']['farmpath'])
+        self.shm = SnapshotModel(self.snap_conf['snapshot']['farmpath'])
 
 # vim:set et:
 # vim:set ts=4:
