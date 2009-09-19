@@ -6,7 +6,9 @@ log = logging.getLogger(__name__)
 
 class RootController(BaseController):
     def index(self):
-        c.names = g.shm.archives_get_list()
+        db = DBInstance(g.pool)
+        c.names = g.shm.archives_get_list(db)
+        db.close()
         return render('/root.mako')
 
 # vim:set et:
