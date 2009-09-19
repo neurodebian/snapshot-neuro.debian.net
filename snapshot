@@ -745,13 +745,24 @@ class PackageIndexer
 		@mirrorrun_archive_id = nil
 	end
 
-	def get_file_digest(filename)
-		row = @db.query_row("SELECT get_file_from_path_at(?, ?, ?, ?) AS hash", @mirrorrun_archive_id, @mirrorrun_run, File.dirname(filename), File.basename(filename))
+	def _get_archive_and_run_from_mirrorrun(mirrorrun_id)
+		row = @db.query_row("SELECT run, archive_id FROM mirrorrun WHERE mirrorrun_id=?", mirrorrun_id)
+		return row['archive_id'], row['run']
+	end
+
+	def get_file_digest(filename, mirrorrun_id=nil)
+		if mirrorrun_id
+			archive_id, run = _get_archive_and_run_from_mirrorrun(mirrorrun_id)
+		else
+			archive_id = @mirrorrun_archive_id
+			run = @mirrorrun_run
+		end
+		row = @db.query_row("SELECT get_file_from_path_at(?, ?, ?, ?) AS hash", archive_id, run, File.dirname(filename), File.basename(filename))
 		return row['hash']
 	end
 
-	def open_file(filename)
-		digest = get_file_digest(filename)
+	def open_file(filename, mirrorrun_id=nil)
+		digest = get_file_digest(filename, mirrorrun_id)
 		return nil if digest.nil?
 		return $storage.open(digest)
 	end
@@ -865,31 +876,34 @@ class PackageIndexer
 		index = open_file('/indices/package-file.map.bz2')
 		return unless index
 
-		changed_files = nil
+		previously_seen = nil
 		if (@quick)
-			# how many files are new in this mirrorrun?
-			# XXX this is inherently broken
-			row = @db.query_row("SELECT count(*) AS count FROM file JOIN node ON file.node_id = node.node_id WHERE first=?", @mirrorrun_id);
-			# if it's not too many, keep a hash of files that are new
-			# XXX MAGIC CONSTANT
-			if row['count'] <= 10000
-				changed_files = {}
-				$logger.debug("[indexrun ##{@mirrorrun_id}] Only #{row['count']} files are new this mirrorrun, building a list")
-
-				@db.query("SELECT directory.path || '/' || name AS filename
-				           FROM file JOIN node ON file.node_id = node.node_id
-				                     JOIN directory on node.parent = directory.directory_id
-				           WHERE first=?", @mirrorrun_id) do | row|
-					changed_files[row['filename']] = true
+			row = @db.query_row("SELECT mirrorrun_id as prev FROM mirrorrun
+			                       WHERE archive_id=?
+			                         AND run < ?
+			                       ORDER BY run DESC
+			                       LIMIT 1", @mirrorrun_archive_id, @mirrorrun_run)
+			unless row.nil?
+				prev_run_id = row['prev']
+				$logger.debug("[indexrun ##{@mirrorrun_id}] previous run was ##{prev_run_id}")
+				prev_index = open_file('/indices/package-file.map.bz2', prev_run_id)
+				unless prev_index.nil?
+					previously_seen = {}
+					prev_index = BZ2::Reader.new(prev_index)
+					prev_index.each_line(sep_string='') do |block|
+						previously_seen[Digest::SHA1.digest(block)] = 1
+					end
+				else
+					$logger.warn("[indexrun ##{@mirrorrun_id}] quick mode selected but no previous (##{prev_run_id}) package-file.map")
 				end
-			else
-				$logger.debug("[indexrun ##{@mirrorrun_id}] A lot of files (#{row['count']}) files are new this mirrorrun, no point in building a list")
 			end
 		end
 
-		index = BZ2::Reader.new(index)
 		lineno = 0
+		index = BZ2::Reader.new(index)
 		index.each_line(sep_string='') do |block|
+			next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
+
 			e = {}
 			block.split("\n").each do |line|
 				key,value = line.split(/: */, 2)
@@ -904,8 +918,6 @@ class PackageIndexer
 			end
 
 			e['Path'][0..0] = '' if e['Path'][0..0] = '.'
-
-			next if changed_files and not changed_files.has_key? e['Path']
 
 			unless hash_has_all_keys(e, %w(Source Source-Version))
 				$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete source information before line #{lineno}")
@@ -1168,9 +1180,7 @@ class PackageIndexer
 	def index_mirrorrun(mirrorrun_id, run = nil, archive_id = nil)
 		# set @mirrorrun_{id,run,archive_id} class instance "globals"
 		if run.nil? or archive_id.nil?
-			row = @db.query_row("SELECT run, archive_id FROM mirrorrun WHERE mirrorrun_id=?", mirrorrun_id)
-			run = row['run']
-			archive_id = row['archive_id']
+			archive_id, run = _get_archive_and_run_from_mirrorrun(mirrorrun_id)
 		end
 		@mirrorrun_id = mirrorrun_id;
 		@mirrorrun_run = run

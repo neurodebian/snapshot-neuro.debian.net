@@ -122,11 +122,6 @@ Web-Depends: python-pylons
 
 
 Bugs:
-	package indexing:
-	 - --quick fails to properly add files to the index that in one
-	   mirrorun belong to a set of packages, but in a subsequent
-	   run get added to more packages (orig.tar.gz files do that all
-	   the time).
 	node_with_ts is horribly slow:
 		 SELECT hash
 			   FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
