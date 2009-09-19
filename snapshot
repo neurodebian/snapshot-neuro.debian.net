@@ -746,7 +746,7 @@ class PackageIndexer
 	end
 
 	def get_file_digest(filename)
-		row = @db.query_row("SELECT get_file_from_mirrorrun_with_path(?, ?, ?) AS hash", @mirrorrun_id, File.dirname(filename), File.basename(filename))
+		row = @db.query_row("SELECT get_file_from_path_at(?, ?, ?, ?) AS hash", @mirrorrun_archive_id, @mirrorrun_run, File.dirname(filename), File.basename(filename))
 		return row['hash']
 	end
 
