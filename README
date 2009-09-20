@@ -102,9 +102,9 @@ Missing wanted features:
    - find list of hashes referenced in the DB but not in the farm.
 
  . Write a nice web frontend.
-   - handle symlinks (in the database stat() function)
+   o handle symlinks (in the database stat() function)
    o make breadcrumbs useful links
-   - packages
+   o packages
    - handle XSS
      - either verify that mako escapes all the input,
      - check if it does in 0.9.7 (there is some filter config option)
