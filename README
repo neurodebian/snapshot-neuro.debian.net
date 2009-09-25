@@ -105,10 +105,13 @@ Missing wanted features:
    o handle symlinks (in the database stat() function)
    o make breadcrumbs useful links
    o packages
-   - handle XSS
-     - either verify that mako escapes all the input,
-     - check if it does in 0.9.7 (there is some filter config option)
-     - or add some layer that copies stuff to the template context doing that
+   o handle XSS
+     x either verify that mako escapes all the input,
+     x check if it does in 0.9.7 (there is some filter config option)
+     x or add some layer that copies stuff to the template context doing that
+     * pylons 0.9.7's mako config automatically escapes any special
+       chars in template variables.
+   - handle 'bobby tables' as datestring in urls
 
  . Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject

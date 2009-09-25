@@ -1,15 +1,20 @@
 import logging
+
+from pylons import request, response, session, tmpl_context as c, g
+from pylons.controllers.util import abort, redirect_to
+
+from snapshot.lib.base import BaseController, render
+
 from snapshot.lib.dbinstance import DBInstance
-from snapshot.lib.base import *
-from paste.fileapp import FileApp
-import paste.httpexceptions
+from snapshot.lib.control_helpers import *
+
 import os.path
 import re
 import mimetypes
 import error
 import errno
-from snapshot.lib.control_helpers import *
 from paste.request import construct_url
+from paste.fileapp import FileApp
 from paste.httpexceptions import HTTPMovedPermanently
 
 log = logging.getLogger(__name__)
@@ -28,10 +33,7 @@ class ArchiveController(BaseController):
 
 
     def root(self):
-        if request.environ.get('PATH_INFO')[-1:] == "/":
-            return redirect_to("../")
-        else:
-            return redirect_to("./")
+        return redirect_to("../")
 
     def archive_base(self, archive):
         try:

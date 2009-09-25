@@ -1,10 +1,13 @@
 import logging
+
+from pylons import request, response, session, tmpl_context as c, g
+from pylons.controllers.util import abort, redirect_to
+
+from snapshot.lib.base import BaseController, render
+
 from snapshot.lib.dbinstance import DBInstance
-from snapshot.lib.base import *
-from paste.fileapp import FileApp
-import paste.httpexceptions
-import os.path
 from snapshot.lib.control_helpers import *
+import os.path
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +41,6 @@ class PackageController(BaseController):
         return crumbs
 
     def root(self):
-        ensure_directory()
         if not 'src' in request.params:
             return redirect_to("../")
         return redirect_to(unicode_encode(request.params['src'] + "/"))
@@ -46,8 +48,6 @@ class PackageController(BaseController):
 
     def source(self, source):
         try:
-            ensure_directory()
-
             sourceversions = g.shm.packages_get_source_versions(self._db(), source)
 
             if len(sourceversions) == 0:
@@ -62,8 +62,6 @@ class PackageController(BaseController):
 
     def source_version(self, source, version):
         try:
-            ensure_directory()
-
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
             if len(sourcefiles) == 0:
                 # XXX maybe we have no sources but binaries?
