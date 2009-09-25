@@ -1,2 +1,3 @@
+include snapshot/config/deployment.ini_tmpl
 recursive-include snapshot/public *
 recursive-include snapshot/templates *
