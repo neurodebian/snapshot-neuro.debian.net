@@ -1,6 +1,6 @@
 import logging
 from snapshot.lib.dbinstance import DBInstance
-from snapshot.lib.base import *
+from pylons import request
 from paste.request import construct_url
 from paste.httpexceptions import HTTPMovedPermanently
 
