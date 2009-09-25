@@ -1,5 +1,10 @@
 import logging
-from snapshot.lib.base import *
+
+from pylons import request, response, session, tmpl_context as c, g
+from pylons.controllers.util import abort, redirect_to
+
+from snapshot.lib.base import BaseController, render
+
 from snapshot.lib.dbinstance import DBInstance
 
 log = logging.getLogger(__name__)
