@@ -16,8 +16,8 @@ last: ${c.nav['last']}<br />
 				<th>&nbsp;</th>
 				<th>Name</th>
 				<th style='text-align: right'>Size</th>
-				<th>first seen</th>
-				<th>last seen</th>
+##				<th>first seen</th>
+##				<th>last seen</th>
 			</tr>
 		%for entry in c.readdir:
 			<tr>
@@ -37,20 +37,20 @@ last: ${c.nav['last']}<br />
 						Unknown filetype ${entry}
 					</td>
 				% endif
-				<td>
-					% if not entry['first_run'] is None:
-						${entry['first_run']}
-					% endif
-				</td>
-				<td>
-					% if not entry['last_run'] is None:
-						${entry['last_run']}
-					% endif
-				</td>
-				## debugging only
-				% if entry['filetype'] == '-':
-					<td>${entry['digest']}</td>
-				% endif
+##				<td>
+##					% if not entry['first_run'] is None:
+##						${entry['first_run']}
+##					% endif
+##				</td>
+##				<td>
+##					% if not entry['last_run'] is None:
+##						${entry['last_run']}
+##					% endif
+##				</td>
+##				## debugging only
+##				% if entry['filetype'] == '-':
+##					<td>${entry['digest']}</td>
+##				% endif
 			</tr>
 		% endfor
 		<br />
