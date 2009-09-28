@@ -4,11 +4,25 @@
 <a href="${entry['target']}/">${entry['name']}</a><br />
 %endfor
 
-first: ${c.nav['first']}<br />
-prev: ${c.nav['prev']}<br />
-now: ${c.run['run']}<br />
-next: ${c.nav['next']}<br />
-last: ${c.nav['last']}<br />
+<div style="font-size: x-small">
+	% if c.nav['first'] != c.run['run']:
+		<acronym title="${c.nav['first']}"><a href="${c.nav['first_link']}">first</a></acronym>
+		&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+		<acronym title="${c.nav['prev']}"><a href="${c.nav['prev_link']}">prev</a></acronym>
+	% else:
+		No previous version of this directory available.
+	% endif
+	&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+	${c.run['run']}
+	&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+	% if c.nav['last'] != c.run['run']:
+		<acronym title="${c.nav['next']}"><a href="${c.nav['next_link']}">next</a></acronym>
+		&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
+		<acronym title="${c.nav['last']}"><a href="${c.nav['last_link']}">last</a></acronym>
+	% else:
+		No later version of this directory available.
+	%endif
+</div>
 
 <table class="readdir">
 	%if not c.readdir is UNDEFINED:

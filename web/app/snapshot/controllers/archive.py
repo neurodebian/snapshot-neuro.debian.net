@@ -152,6 +152,10 @@ class ArchiveController(BaseController):
           'next': neighbors['next'],
           'last': node_info['last_run'] }
 
+        for key in c.nav.keys():
+            if not c.nav[key] is None:
+                c.nav[key+'_link'] = os.path.join('/archive', archive, urlify_timestamp(c.nav[key]), stat['path'].strip('/'), '')
+
         # XXX add links and stuff.
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
         return render('/archive-dir.mako')
