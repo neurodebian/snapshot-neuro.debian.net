@@ -143,14 +143,17 @@ class ArchiveController(BaseController):
 
         node_info = g.shm.mirrorruns_get_first_last_from_node(self._db(), stat['node_id'])
         neighbors = g.shm.mirrorruns_get_neighbors(self._db(), run['mirrorrun_id'])
+        neighbors_change = g.shm.mirrorruns_get_neighbors_change(self._db(), run['archive_id'], run['run'], stat['directory_id']) 
 
         c.run = run
         c.readdir = list
         c.nav = {
-          'first': node_info['first_run'],
-          'prev': neighbors['prev'],
-          'next': neighbors['next'],
-          'last': node_info['last_run'] }
+          'first':       node_info['first_run'],
+          'prev_change': neighbors_change['prev'],
+          'prev':        neighbors['prev'],
+          'next':        neighbors['next'],
+          'next_change': neighbors_change['next'],
+          'last':        node_info['last_run'] }
 
         for key in c.nav.keys():
             if not c.nav[key] is None:

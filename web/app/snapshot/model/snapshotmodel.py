@@ -72,7 +72,7 @@ class SnapshotModel:
         result = None
 
         rows = db.query("""
-                SELECT run, mirrorrun_id
+                SELECT run, mirrorrun_id, mirrorrun.archive_id
                   FROM mirrorrun JOIN archive ON mirrorrun.archive_id = archive.archive_id
                   WHERE archive.name=%(archive)s
                     AND mirrorrun.run <= %(datespec)s
@@ -102,6 +102,30 @@ class SnapshotModel:
             WHERE mirrorrun_id=%(mirrorrun_id)s
               """,
             { 'mirrorrun_id': mirrorrun_id })
+        return result
+
+    def mirrorruns_get_neighbors_change(self, db, archive_id, mirrorrun_run, directory_id):
+        """Retrun the date of the previous and next mirrorrun where anything
+           actually changed in this directory"""
+        result = db.query_one("""
+            SELECT prev.prev, next.next FROM
+
+                    (SELECT min(next.next) AS next FROM
+                     (  SELECT min(first_run) AS next from node_with_ts2 where parent = %(directory_id)s and first_run > %(mirrorrun_run)s
+                      UNION ALL
+                        SELECT min(run) AS next FROM mirrorrun WHERE archive_id=%(archive_id)s AND run > (SELECT min(last_run) AS next from node_with_ts2 where parent = %(directory_id)s and last_run >= %(mirrorrun_run)s)
+                     ) AS next) AS next,
+
+                    (SELECT max(prev.prev) AS prev FROM
+                     (  SELECT max(run) AS prev FROM mirrorrun WHERE archive_id=%(archive_id)s AND run < (SELECT max(first_run) AS prev from node_with_ts2 where parent = %(directory_id)s and first_run <= %(mirrorrun_run)s)
+                      UNION ALL
+                        SELECT max(last_run) AS prev from node_with_ts2 where parent = %(directory_id)s and last_run < %(mirrorrun_run)s
+                     ) AS prev) AS prev
+
+              """,
+            { 'mirrorrun_run': mirrorrun_run,
+              'archive_id': archive_id,
+              'directory_id': directory_id })
         return result
 
     def _strip_multi_slash(self, str):
