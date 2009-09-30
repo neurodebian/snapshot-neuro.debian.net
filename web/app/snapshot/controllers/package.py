@@ -36,7 +36,7 @@ class PackageController(BaseController):
                 start = srcpkg[0:1]
 
         url += 'package/'
-        crumbs.append( { 'url': url + '?start=%s'%start, 'name': start+'*' } )
+        crumbs.append( { 'url': url + '?cat=%s'%start, 'name': start+'*' } )
 
         if not srcpkg is None:
             url += srcpkg + '/'
@@ -52,9 +52,9 @@ class PackageController(BaseController):
     def root(self):
         if 'src' in request.params:
             return redirect_to(unicode_encode(request.params['src'] + "/"))
-        elif 'start' in request.params:
+        elif 'cat' in request.params:
             try:
-                start = request.params['start']
+                start = request.params['cat']
                 pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
                 if pkgs is None:
                     abort(404)

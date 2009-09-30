@@ -18,7 +18,7 @@ Enter source package name: <input name="src" /> <input type="submit" value="Subm
 or search in the index:</br>
 <div class="box">
 %for letter in c.srcstarts:
-	<a href="package/?start=${letter}">${letter}</a>
+	<a href="package/?cat=${letter}">${letter}</a>
 	% if letter != c.srcstarts[-1]:
 		-
 	% endif
