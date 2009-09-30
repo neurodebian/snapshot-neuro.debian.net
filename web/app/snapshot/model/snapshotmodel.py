@@ -98,19 +98,17 @@ class SnapshotModel:
 
         return result
 
-    def mirrorruns_get_last_mirrorrun(self, db, archive_id):
-        result = None
-
-        rows = db.query("""
-                SELECT max(run) AS run
+    def mirrorruns_get_last_mirrorrun(self, db, archive):
+        row = db.query_one("""
+                SELECT max(run)::TIMESTAMP WITH TIME ZONE AS run
                   FROM mirrorrun
-                  WHERE archive_id=%(archive_id)s
+                  WHERE archive_id=(SELECT archive_id FROM archive WHERE name=%(archive)s)
                   """,
-                { 'archive_id': archive_id } )
-        if len(rows) != 0:
-            result = rows[0]
+                { 'archive': archive } )
+        if row is None:
+            return None
 
-        return result
+        return row['run']
 
     def mirrorruns_get_neighbors(self, db, mirrorrun_id):
         result = db.query_one("""

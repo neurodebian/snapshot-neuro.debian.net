@@ -33,7 +33,12 @@ ${self.body()}
 Made by Peter Palfrader &mdash;
 Graphics design and layout too (Can't you tell?) &mdash;
 git: <a href="http://asteria.noreply.org/~weasel/snapshot.git">http://asteria.noreply.org/~weasel/snapshot.git</a> &mdash;
-Report bugs and issues to weasel (XXX: eventually bugs.d.o)
+Report bugs and issues to weasel (XXX: eventually bugs.d.o)<br />
+<%
+	import datetime
+	now = datetime.datetime.now()
+%>
+Built at ${now}
 </div>
 </body>
 </html>

@@ -17,7 +17,33 @@ from paste.request import construct_url
 from paste.fileapp import FileApp
 from paste.httpexceptions import HTTPMovedPermanently
 
+import wsgiref.handlers
+import time
+
 log = logging.getLogger(__name__)
+
+expires_index = datetime.timedelta(minutes=10)
+expires_dir = datetime.timedelta(minutes=10)
+expires_file = datetime.timedelta(days=10)
+
+class SnapshotFileApp(FileApp):
+    def __init__(self, path, filename, digest):
+        (type, encoding) = mimetypes.guess_type(filename)
+        h = {}
+        if not type is None:
+            h['Content-Type'] = type
+        if not encoding is None:
+            h['Content-Encoding'] = encoding
+        expires = datetime.datetime.now() + expires_file
+        h['Expires'] = wsgiref.handlers.format_date_time( time.mktime( expires.timetuple() ))
+        h['Cache-Control'] = 'public'
+
+        FileApp.__init__(self, path, **h)
+
+        self.digest = digest
+
+    def calculate_etag(self):
+        return self.digest
 
 class ArchiveController(BaseController):
     db = None
@@ -37,6 +63,9 @@ class ArchiveController(BaseController):
 
     def archive_base(self, archive):
         try:
+            modified_since( g.shm.mirrorruns_get_last_mirrorrun(self._db(), archive) )
+            response.expires = datetime.datetime.now() + expires_index;
+
             if 'year' in request.params and 'month' in request.params:
                 y = request.params['year']
                 m = request.params['month']
@@ -79,15 +108,9 @@ class ArchiveController(BaseController):
             self._db_close()
 
     def _regular_file(self, stat):
-        path = g.shm.get_filepath(self._db(), stat['digest'])
         try:
-            (type, encoding) = mimetypes.guess_type(stat['path'])
-            h = {}
-            if not type is None:
-                h['Content-Type'] = type
-            if not encoding is None:
-                h['Content-Encoding'] = encoding
-            fa = FileApp(path, **h);
+            path = g.shm.get_filepath(self._db(), stat['digest'])
+            fa = SnapshotFileApp(path, stat['path'], stat['digest'])
             return fa(request.environ, self.start_response)
         except os.error, error:
             if (error.errno == errno.ENOENT):
@@ -161,10 +184,16 @@ class ArchiveController(BaseController):
 
         # XXX add links and stuff.
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
+        response.expires = datetime.datetime.now() + expires_dir;
+        response.cache_control = 'public'
+        response.pragma = None
         return render('/archive-dir.mako')
+
 
     def dir(self, archive, date, url):
         try:
+            modified_since( g.shm.mirrorruns_get_last_mirrorrun(self._db(), archive) )
+
             run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:
                 abort(404)
