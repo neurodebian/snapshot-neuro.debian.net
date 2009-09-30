@@ -11,11 +11,7 @@ Browse ftp archive snapshots from one of the following archives:
 
 <h1>Packages</h1>
 
-<form action="package/">
-Enter source package name: <input name="src" /> <input type="submit" value="Submit" />
-</form>
-
-or search in the index:</br>
+Search in the index:</br>
 <div class="box">
 %for letter in c.srcstarts:
 	<a href="package/?cat=${letter}">${letter}</a>
@@ -24,3 +20,8 @@ or search in the index:</br>
 	% endif
 %endfor
 </div>
+
+<form action="package/">
+Or enter a source package name directly: <input name="src" /> <input type="submit" value="Submit" />
+</form>
+
