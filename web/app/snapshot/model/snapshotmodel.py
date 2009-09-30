@@ -1,9 +1,22 @@
 from snapshot.lib.dbinstance import DBInstance
 import os.path
+from snapshot.lib.dbinstance import DBInstance
 
 class SnapshotModel:
-    def __init__(self, farmpath):
-        self.farmpath = farmpath
+    def __init__(self, farmpath, pool):
+        try:
+            db = None
+            self.farmpath = farmpath
+
+            db = DBInstance(pool)
+            rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM srcpkg
+                               UNION ALL
+                               SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM srcpkg WHERE name LIKE 'lib_%%'
+                               ORDER BY start""")
+            self.packages_name_starts =  map(lambda x: x['start'], rows)
+        finally:
+            if not db is None:
+                db.close()
 
     def archives_get_list(self, db):
         rows = db.query("SELECT name FROM archive ORDER BY name")
@@ -80,6 +93,20 @@ class SnapshotModel:
                   LIMIT 1""",
                 { 'archive': archive,
                   'datespec': datespec })
+        if len(rows) != 0:
+            result = rows[0]
+
+        return result
+
+    def mirrorruns_get_last_mirrorrun(self, db, archive_id):
+        result = None
+
+        rows = db.query("""
+                SELECT max(run) AS run
+                  FROM mirrorrun
+                  WHERE archive_id=%(archive_id)s
+                  """,
+                { 'archive_id': archive_id } )
         if len(rows) != 0:
             result = rows[0]
 
@@ -234,6 +261,20 @@ class SnapshotModel:
                         { 'hash': hash } )
 
         return rows
+
+    def packages_get_name_starts(self):
+        return self.packages_name_starts
+
+    def packages_get_name_starts_with(self, db, start):
+        if not start in self.packages_name_starts:
+            return None
+        if start == "l":
+            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",
+                            {'start': start+"%" })
+        else:
+            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s ORDER BY name""",
+                            {'start': start+"%" })
+        return map(lambda x: x['name'], rows)
 
 # vim:set et:
 # vim:set ts=4:

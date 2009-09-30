@@ -11,10 +11,13 @@ log = logging.getLogger(__name__)
 
 class RootController(BaseController):
     def index(self):
-        db = DBInstance(g.pool)
-        c.names = g.shm.archives_get_list(db)
-        db.close()
-        return render('/root.mako')
+        try:
+            db = DBInstance(g.pool)
+            c.names = g.shm.archives_get_list(db)
+            c.srcstarts = g.shm.packages_get_name_starts()
+            return render('/root.mako')
+        finally:
+            db.close()
 
 # vim:set et:
 # vim:set ts=4:

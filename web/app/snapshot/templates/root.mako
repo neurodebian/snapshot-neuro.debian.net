@@ -14,3 +14,13 @@ Browse ftp archive snapshots from one of the following archives:
 <form action="package/">
 Enter source package name: <input name="src" /> <input type="submit" value="Submit" />
 </form>
+
+or search in the index:</br>
+<div class="box">
+%for letter in c.srcstarts:
+	<a href="package/?start=${letter}">${letter}</a>
+	% if letter != c.srcstarts[-1]:
+		-
+	% endif
+%endfor
+</div>

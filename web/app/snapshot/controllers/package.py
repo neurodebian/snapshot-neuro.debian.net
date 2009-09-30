@@ -23,14 +23,23 @@ class PackageController(BaseController):
         if not self.db is None:
             self.db.close()
 
-    def _build_crumbs(self, srcpkg=None, version=None):
+    def _build_crumbs(self, srcpkg=None, version=None, start=None):
         crumbs = []
 
         url = request.environ.get('SCRIPT_NAME') + "/"
         crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
 
-        if srcpkg:
-            url += 'package/' + srcpkg + '/'
+        if not start:
+            if srcpkg.startswith('lib') and len(srcpkg) >= 4:
+                start = srcpkg[0:4]
+            else:
+                start = srcpkg[0:1]
+
+        url += 'package/'
+        crumbs.append( { 'url': url + '?start=%s'%start, 'name': start+'*' } )
+
+        if not srcpkg is None:
+            url += srcpkg + '/'
             crumbs.append( { 'url': url, 'name': srcpkg });
 
             if version:
@@ -41,10 +50,22 @@ class PackageController(BaseController):
         return crumbs
 
     def root(self):
-        if not 'src' in request.params:
+        if 'src' in request.params:
+            return redirect_to(unicode_encode(request.params['src'] + "/"))
+        elif 'start' in request.params:
+            try:
+                start = request.params['start']
+                pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
+                if pkgs is None:
+                    abort(404)
+                c.start = start
+                c.packages = pkgs
+                c.breadcrumbs = self._build_crumbs(start=start)
+                return render('/package-list-packages.mako')
+            finally:
+                self._db_close()
+        else:
             return redirect_to("../")
-        return redirect_to(unicode_encode(request.params['src'] + "/"))
-
 
     def source(self, source):
         try:
