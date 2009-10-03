@@ -43,11 +43,6 @@ class SnapshotFileApp(FileApp):
     def calculate_etag(self):
         return self.digest
 
-def set_expires(max_age):
-    response.expires = datetime.datetime.now() + datetime.timedelta(seconds = max_age);
-    response.cache_control = 'public, max-age=%d'%max_age
-    response.pragma = None
-
 class ArchiveController(BaseController):
     db = None
 

@@ -1,7 +1,7 @@
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g
-from pylons.controllers.util import abort, redirect_to
+from pylons import request, response, session, tmpl_context as c, g, config
+from pylons.controllers.util import abort, redirect_to, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -54,6 +54,9 @@ class PackageController(BaseController):
             return redirect_to(unicode_encode(request.params['src'] + "/"))
         elif 'cat' in request.params:
             try:
+                etag_cache( g.shm.packages_get_etag(self._db()) )
+                set_expires(int(config['app_conf']['expires.package.root_cat']))
+
                 start = request.params['cat']
                 pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
                 if pkgs is None:
@@ -69,6 +72,9 @@ class PackageController(BaseController):
 
     def source(self, source):
         try:
+            etag_cache( g.shm.packages_get_etag(self._db()) )
+            set_expires(int(config['app_conf']['expires.package.source']))
+
             sourceversions = g.shm.packages_get_source_versions(self._db(), source)
 
             if len(sourceversions) == 0:
@@ -83,6 +89,9 @@ class PackageController(BaseController):
 
     def source_version(self, source, version):
         try:
+            etag_cache( g.shm.packages_get_etag(self._db()) )
+            set_expires(int(config['app_conf']['expires.package.source_version']))
+
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
             if len(sourcefiles) == 0:
                 # XXX maybe we have no sources but binaries?
