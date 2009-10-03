@@ -63,7 +63,13 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
 
     if asbool(static_files):
         # Serve static files
-        static_app = StaticURLParser(config['pylons.paths']['static_files'])
+        static_app = StaticURLParser(
+            config['pylons.paths']['static_files'],
+            cache_max_age = int(config['app_conf']['expires.static']))
         app = Cascade([static_app, app])
 
     return app
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:

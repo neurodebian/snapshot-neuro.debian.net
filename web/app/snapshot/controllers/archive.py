@@ -1,7 +1,7 @@
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g
-from pylons.controllers.util import abort, redirect_to
+from pylons import request, response, session, tmpl_context as c, g, config
+from pylons.controllers.util import abort, redirect_to, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -22,9 +22,7 @@ import time
 
 log = logging.getLogger(__name__)
 
-expires_index = datetime.timedelta(minutes=10)
-expires_dir = datetime.timedelta(minutes=10)
-expires_file = datetime.timedelta(days=10)
+expires_file = datetime.timedelta(seconds = int(config['app_conf']['expires.archive.file']))
 
 class SnapshotFileApp(FileApp):
     def __init__(self, path, filename, digest):
@@ -34,9 +32,9 @@ class SnapshotFileApp(FileApp):
             h['Content-Type'] = type
         if not encoding is None:
             h['Content-Encoding'] = encoding
-        expires = datetime.datetime.now() + expires_file
+        expires = datetime.datetime.now() + datetime.timedelta(seconds = int(config['app_conf']['expires.archive.file']))
         h['Expires'] = wsgiref.handlers.format_date_time( time.mktime( expires.timetuple() ))
-        h['Cache-Control'] = 'public'
+        h['Cache-Control'] = 'public, max-age=%d'%int(config['app_conf']['expires.archive.file'])
 
         FileApp.__init__(self, path, **h)
 
@@ -44,6 +42,11 @@ class SnapshotFileApp(FileApp):
 
     def calculate_etag(self):
         return self.digest
+
+def set_expires(max_age):
+    response.expires = datetime.datetime.now() + datetime.timedelta(seconds = max_age);
+    response.cache_control = 'public, max-age=%d'%max_age
+    response.pragma = None
 
 class ArchiveController(BaseController):
     db = None
@@ -63,8 +66,8 @@ class ArchiveController(BaseController):
 
     def archive_base(self, archive):
         try:
-            modified_since( g.shm.mirrorruns_get_last_mirrorrun(self._db(), archive) )
-            response.expires = datetime.datetime.now() + expires_index;
+            etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            set_expires(int(config['app_conf']['expires.archive.index']))
 
             if 'year' in request.params and 'month' in request.params:
                 y = request.params['year']
@@ -184,15 +187,13 @@ class ArchiveController(BaseController):
 
         # XXX add links and stuff.
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
-        response.expires = datetime.datetime.now() + expires_dir;
-        response.cache_control = 'public'
-        response.pragma = None
+        set_expires(int(config['app_conf']['expires.archive.dir']))
         return render('/archive-dir.mako')
 
 
     def dir(self, archive, date, url):
         try:
-            modified_since( g.shm.mirrorruns_get_last_mirrorrun(self._db(), archive) )
+            etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
 
             run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:

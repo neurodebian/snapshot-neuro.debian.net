@@ -1,22 +1,11 @@
 from snapshot.lib.dbinstance import DBInstance
 import os.path
-from snapshot.lib.dbinstance import DBInstance
+import hashlib
+from pylons.decorators.cache import beaker_cache
 
 class SnapshotModel:
     def __init__(self, farmpath, pool):
-        try:
-            db = None
-            self.farmpath = farmpath
-
-            db = DBInstance(pool)
-            rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM srcpkg
-                               UNION ALL
-                               SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM srcpkg WHERE name LIKE 'lib_%%'
-                               ORDER BY start""")
-            self.packages_name_starts =  map(lambda x: x['start'], rows)
-        finally:
-            if not db is None:
-                db.close()
+        self.farmpath = farmpath
 
     def archives_get_list(self, db):
         rows = db.query("SELECT name FROM archive ORDER BY name")
@@ -98,17 +87,43 @@ class SnapshotModel:
 
         return result
 
-    def mirrorruns_get_last_mirrorrun(self, db, archive):
-        row = db.query_one("""
-                SELECT max(run)::TIMESTAMP WITH TIME ZONE AS run
-                  FROM mirrorrun
-                  WHERE archive_id=(SELECT archive_id FROM archive WHERE name=%(archive)s)
-                  """,
-                { 'archive': archive } )
-        if row is None:
-            return None
+    @beaker_cache(expire=600, cache_response=False, type='memory', key='archive')
+    def mirrorruns_get_etag(self, db, archive):
+        """We use this result as an identifier for the state of the system,
+           returning this value as a HTTP ETag token for client side caching
+           purposes."""
+        # XXX it might be nice to hash the state of the application
+        # (code, templates) into this as well.
+        key = hashlib.sha1()
+        cursor = None
+        try:
+            cursor = db.execute("""SELECT mirrorrun_uuid
+                                   FROM mirrorrun
+                                   WHERE archive_id = (SELECT archive_id FROM archive WHERE name=%(archive)s)
+                                   ORDER BY mirrorrun_uuid""",
+                                { 'archive': archive })
+            while True:
+                n = cursor.fetchone()
+                if n is None:
+                    break
+                key.update(n['mirrorrun_uuid'])
 
-        return row['run']
+            return key.hexdigest()
+        finally:
+            if not cursor is None:
+                cursor.close()
+
+    #def mirrorruns_get_last_mirrorrun(self, db, archive):
+    #    row = db.query_one("""
+    #            SELECT max(run)::TIMESTAMP WITH TIME ZONE AS run
+    #              FROM mirrorrun
+    #              WHERE archive_id=(SELECT archive_id FROM archive WHERE name=%(archive)s)
+    #              """,
+    #            { 'archive': archive } )
+    #    if row is None:
+    #        return None
+    #
+    #    return row['run']
 
     def mirrorruns_get_neighbors(self, db, mirrorrun_id):
         result = db.query_one("""
@@ -260,8 +275,13 @@ class SnapshotModel:
 
         return rows
 
-    def packages_get_name_starts(self):
-        return self.packages_name_starts
+    @beaker_cache(expire=600, cache_response=False, type='memory', key=None)
+    def packages_get_name_starts(self, db):
+        rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM srcpkg
+                           UNION ALL
+                           SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM srcpkg WHERE name LIKE 'lib_%%'
+                           ORDER BY start""")
+        return map(lambda x: x['start'], rows)
 
     def packages_get_name_starts_with(self, db, start):
         if not start in self.packages_name_starts:

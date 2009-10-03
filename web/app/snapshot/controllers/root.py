@@ -14,7 +14,7 @@ class RootController(BaseController):
         try:
             db = DBInstance(g.pool)
             c.names = g.shm.archives_get_list(db)
-            c.srcstarts = g.shm.packages_get_name_starts()
+            c.srcstarts = g.shm.packages_get_name_starts(db)
             return render('/root.mako')
         finally:
             db.close()
