@@ -60,7 +60,7 @@ class PackageController(BaseController):
                 start = request.params['cat']
                 pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
                 if pkgs is None:
-                    abort(404)
+                    abort(404, 'No source packages in this category.')
                 c.start = start
                 c.packages = pkgs
                 c.breadcrumbs = self._build_crumbs(start=start)
@@ -78,7 +78,7 @@ class PackageController(BaseController):
             sourceversions = g.shm.packages_get_source_versions(self._db(), source)
 
             if len(sourceversions) == 0:
-                abort(404)
+                abort(404, 'No such source package')
 
             c.src = source
             c.sourceversions = sourceversions
@@ -95,7 +95,7 @@ class PackageController(BaseController):
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
             if len(sourcefiles) == 0:
                 # XXX maybe we have no sources but binaries?
-                abort(404)
+                abort(404, 'No source files found.')
 
             binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
             binpkgs = map(lambda b: { 'name':      b['name'],

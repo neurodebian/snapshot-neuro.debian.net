@@ -72,7 +72,7 @@ class ArchiveController(BaseController):
             yearmonths = g.shm.mirrorruns_get_yearmonths_from_archive(self._db(), archive)
 
             if yearmonths is None:
-                abort(404)
+                abort(404, 'Archive "%s" does not exist'%(archive))
 
             c.yearmonths = yearmonths
             c.archive = archive
@@ -84,13 +84,15 @@ class ArchiveController(BaseController):
     def _archive_ym(self, archive, year, month):
         try:
             if not re.match('\d{4}$', year): # match matches only at start of string
-                abort(404)
+                abort(404, 'Year "%s" is not valid.'%(year))
             if not re.match('\d{1,2}$', month): # match matches only at start of string
-                abort(404)
+                abort(404, 'Month "%s" is not valid.'%(month))
 
             runs = g.shm.mirrorruns_get_runs_from_archive_ym(self._db(), archive, year, month)
             if runs is None:
-                abort(404)
+                abort(404, 'Archive "%s" does not exist'%(archive))
+            if len(runs) == 0:
+                abort(404, 'Found no mirrorruns for archive %s in %s-%s.'%(archive, year, month))
 
             c.archive = archive
             c.year = year
@@ -112,9 +114,9 @@ class ArchiveController(BaseController):
             return fa(request.environ, self.start_response)
         except os.error, error:
             if (error.errno == errno.ENOENT):
-                abort(404)
+                abort(404, "Ooops, we do not have a file with digest %s altho we should.  You might want to report this."%(stat['digest']))
             elif (error.errno != errno.EACCESS):
-                abort(403)
+                abort(403, "Ooops, cannot read file with digest %s.  Maybe this file is not redistributable and this was done on purpose.  If in doubt report this."%(stat['digest']))
             else:
                 raise
 
@@ -192,11 +194,11 @@ class ArchiveController(BaseController):
 
             run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:
-                abort(404)
+                abort(404, 'No mirrorrun found at this date.')
 
             stat = g.shm.mirrorruns_stat(self._db(), run['mirrorrun_id'], '/'+url)
             if stat is None:
-                abort(404)
+                abort(404, 'No such file or directory.')
 
             if stat['filetype'] == 'd':
                 return self._dir_helper(archive, run, stat)

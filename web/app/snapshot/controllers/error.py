@@ -1,12 +1,12 @@
 import cgi
 
 from paste.urlparser import PkgResourcesParser
-from pylons import request
+from pylons import request, config, tmpl_context as c
 from pylons.controllers.util import forward
 from pylons.middleware import error_document_template
 from webhelpers.html.builder import literal
 
-from snapshot.lib.base import BaseController
+from snapshot.lib.base import BaseController, render
 
 class ErrorController(BaseController):
 
@@ -24,11 +24,18 @@ class ErrorController(BaseController):
         """Render the error document"""
         resp = request.environ.get('pylons.original_response')
         content = literal(resp.body) or cgi.escape(request.GET.get('message', ''))
-        page = error_document_template % \
-            dict(prefix=request.environ.get('SCRIPT_NAME', ''),
-                 code=cgi.escape(request.GET.get('code', str(resp.status_int))),
-                 message=content)
-        return page
+
+        if config['debug']:
+            page = error_document_template % \
+                dict(prefix=request.environ.get('SCRIPT_NAME', ''),
+                     code=cgi.escape(request.GET.get('code', str(resp.status_int))),
+                     message=content)
+            return page
+        else:
+            c.code = cgi.escape(request.GET.get('code', str(resp.status_int)))
+            c.title = 'Error %s'%(c.code)
+            c.content = content
+            return render('/error.mako')
 
     def img(self, id):
         """Serve Pylons' stock images"""
@@ -44,3 +51,7 @@ class ErrorController(BaseController):
         """
         request.environ['PATH_INFO'] = '/%s' % path
         return forward(PkgResourcesParser('pylons', 'pylons'))
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
