@@ -86,7 +86,7 @@ Missing wanted features:
    can get "sarge r2" from the system.  Again, it should be able to
    build on top of what is already there.
 
- - A mirrorrun import should write out a "transaction log"-style flat
+ o A mirrorrun import should write out a "transaction log"-style flat
    file that lists all the nodes added in this mirrorrun, plus data
    identifying the mirrorrun (id, date, archive).  This can be then used
    to inject this run's metadata into a mirror.
@@ -116,6 +116,10 @@ Missing wanted features:
  . Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject
    mirrorruns without having to dump/reload the entire DB.
+
+ - snapshotfs (the fuse filesystem) doesn't handle the case where
+   a source package has more than one version of a binary package of a given
+   name (such as with binnmus).  e.g. fuse/packages/g/gtk2-engines/1:2.16.1-2
 
  [ o .. done; - to do; . partially done ]
 
