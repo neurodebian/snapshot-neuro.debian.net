@@ -77,6 +77,7 @@ class ArchiveController(BaseController):
             c.yearmonths = yearmonths
             c.archive = archive
             c.breadcrumbs = self._build_crumbs(archive)
+            c.title = '%s - snapshot.debian.org'%(archive)
             return render('/archive.mako')
         finally:
             self._db_close()
@@ -103,6 +104,7 @@ class ArchiveController(BaseController):
                               # make a machine readable version of a timestamp
                               'run_mr': urlify_timestamp(r['run'])
                             }, runs)
+            c.title = '%s:%s-%02d - snapshot.debian.org'%(archive, year, int(month))
             return render('/archive-runs.mako')
         finally:
             self._db_close()
@@ -182,9 +184,9 @@ class ArchiveController(BaseController):
             if not c.nav[key] is None:
                 c.nav[key+'_link'] = os.path.join('/archive', archive, urlify_timestamp(c.nav[key]), stat['path'].strip('/'), '')
 
-        # XXX add links and stuff.
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
         set_expires(int(config['app_conf']['expires.archive.dir']))
+        c.title = '%s:%s (%s) - snapshot.debian.org'%(archive, stat['path'], run['run'])
         return render('/archive-dir.mako')
 
 

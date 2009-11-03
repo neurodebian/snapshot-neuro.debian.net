@@ -64,6 +64,7 @@ class PackageController(BaseController):
                 c.start = start
                 c.packages = pkgs
                 c.breadcrumbs = self._build_crumbs(start=start)
+                c.title = '%s* - snapshot.debian.org'%(start)
                 return render('/package-list-packages.mako')
             finally:
                 self._db_close()
@@ -83,6 +84,7 @@ class PackageController(BaseController):
             c.src = source
             c.sourceversions = sourceversions
             c.breadcrumbs = self._build_crumbs(source)
+            c.title = '%s - snapshot.debian.org'%(source)
             return render('/package-source.mako')
         finally:
             self._db_close()
@@ -123,6 +125,7 @@ class PackageController(BaseController):
             c.binpkgs = binpkgs
             c.fileinfo = fileinfo
             c.breadcrumbs = self._build_crumbs(source, version)
+            c.title = '%s (%s) - snapshot.debian.org'%(source, version)
             return render('/package-source-one.mako')
         finally:
             self._db_close()
