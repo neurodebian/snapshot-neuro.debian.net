@@ -95,11 +95,12 @@ class PackageController(BaseController):
             set_expires(int(config['app_conf']['expires.package.source_version']))
 
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            if len(sourcefiles) == 0:
-                # XXX maybe we have no sources but binaries?
-                abort(404, 'No source files found.')
-
             binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+
+            # we may have binaries without sources.
+            if len(sourcefiles) == 0 and len(binpkgs) == 0:
+                abort(404, 'No source or binary packages foun')
+
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'],
                                       'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
