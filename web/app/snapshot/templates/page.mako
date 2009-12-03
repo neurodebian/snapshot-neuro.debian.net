@@ -1,9 +1,17 @@
 <html><head>
-<title>snapshot.debian.org</title>
+% if c.title == "":
+	<title>snapshot.debian.org</title>
+% else:
+	<title>${c.title}</title>
+% endif
 <link rel="stylesheet" type="text/css" href="/static/snapshot.css"/>
 </head>
 <body>
-<div class="pageheader">snapshot.debian.org</div>
+% if c.title == "":
+	<div class="pageheader">snapshot.debian.org</div>
+% else:
+	<div class="pageheader">${c.title}</div>
+% endif
 % if not c.breadcrumbs is UNDEFINED:
 	% for crumb in c.breadcrumbs:
 		% if crumb['url'] is None:

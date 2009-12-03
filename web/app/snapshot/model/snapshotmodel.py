@@ -113,6 +113,30 @@ class SnapshotModel:
             if not cursor is None:
                 cursor.close()
 
+    @beaker_cache(expire=600, cache_response=False, type='memory', key=None)
+    def packages_get_etag(self, db):
+        """We use this result as an identifier for the state of the system,
+           returning this value as a HTTP ETag token for client side caching
+           purposes."""
+        # XXX it might be nice to hash the state of the application
+        # (code, templates) into this as well.
+        key = hashlib.sha1()
+        cursor = None
+        try:
+            cursor = db.execute("""SELECT mirrorrun_uuid
+                                   FROM mirrorrun JOIN indexed_mirrorrun ON mirrorrun.mirrorrun_id = indexed_mirrorrun.mirrorrun_id
+                                   ORDER BY mirrorrun_uuid""")
+            while True:
+                n = cursor.fetchone()
+                if n is None:
+                    break
+                key.update(n['mirrorrun_uuid'])
+
+            return key.hexdigest()
+        finally:
+            if not cursor is None:
+                cursor.close()
+
     #def mirrorruns_get_last_mirrorrun(self, db, archive):
     #    row = db.query_one("""
     #            SELECT max(run)::TIMESTAMP WITH TIME ZONE AS run
@@ -284,7 +308,7 @@ class SnapshotModel:
         return map(lambda x: x['start'], rows)
 
     def packages_get_name_starts_with(self, db, start):
-        if not start in self.packages_name_starts:
+        if not start in self.packages_get_name_starts(db):
             return None
         if start == "l":
             rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",

@@ -1,7 +1,7 @@
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g
-from pylons.controllers.util import abort, redirect_to
+from pylons import request, response, session, tmpl_context as c, g, config
+from pylons.controllers.util import abort, redirect_to, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -54,13 +54,17 @@ class PackageController(BaseController):
             return redirect_to(unicode_encode(request.params['src'] + "/"))
         elif 'cat' in request.params:
             try:
+                etag_cache( g.shm.packages_get_etag(self._db()) )
+                set_expires(int(config['app_conf']['expires.package.root_cat']))
+
                 start = request.params['cat']
                 pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
                 if pkgs is None:
-                    abort(404)
+                    abort(404, 'No source packages in this category.')
                 c.start = start
                 c.packages = pkgs
                 c.breadcrumbs = self._build_crumbs(start=start)
+                c.title = '%s* - snapshot.debian.org'%(start)
                 return render('/package-list-packages.mako')
             finally:
                 self._db_close()
@@ -69,26 +73,34 @@ class PackageController(BaseController):
 
     def source(self, source):
         try:
+            etag_cache( g.shm.packages_get_etag(self._db()) )
+            set_expires(int(config['app_conf']['expires.package.source']))
+
             sourceversions = g.shm.packages_get_source_versions(self._db(), source)
 
             if len(sourceversions) == 0:
-                abort(404)
+                abort(404, 'No such source package')
 
             c.src = source
             c.sourceversions = sourceversions
             c.breadcrumbs = self._build_crumbs(source)
+            c.title = '%s - snapshot.debian.org'%(source)
             return render('/package-source.mako')
         finally:
             self._db_close()
 
     def source_version(self, source, version):
         try:
-            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            if len(sourcefiles) == 0:
-                # XXX maybe we have no sources but binaries?
-                abort(404)
+            etag_cache( g.shm.packages_get_etag(self._db()) )
+            set_expires(int(config['app_conf']['expires.package.source_version']))
 
+            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
             binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+
+            # we may have binaries without sources.
+            if len(sourcefiles) == 0 and len(binpkgs) == 0:
+                abort(404, 'No source or binary packages foun')
+
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'],
                                       'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
@@ -114,6 +126,7 @@ class PackageController(BaseController):
             c.binpkgs = binpkgs
             c.fileinfo = fileinfo
             c.breadcrumbs = self._build_crumbs(source, version)
+            c.title = '%s (%s) - snapshot.debian.org'%(source, version)
             return render('/package-source-one.mako')
         finally:
             self._db_close()

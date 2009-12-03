@@ -1146,34 +1146,24 @@ class PackageIndexer
 		end
 	end
 
-	# Recurse into a path, indexing any binary and source packages found.
-	def recurse_into(path)
-		# XXX use dirtree?
-		if not @quick
-			query = "SELECT filetype, name, digest FROM readdir(?,?)"
-			args = [path, @mirrorrun_id]
-		else
-			query = "SELECT filetype, name, digest FROM readdir(?,?) AS readdir JOIN node ON node.node_id = readdir.node_id WHERE (NOT filetype = '-') OR node.first=?"
-			args = [path, @mirrorrun_id, @mirrorrun_id]
-		end
-		@db.query(query, *args) do |row|
-			case row['filetype']
-				when "d"
-					recurse_into(path + (path == '/' ? '' : '/') +row['name'])
-				when "-"
-					case row['name']
-						when /\.deb$|\.udeb$/
-							index_binary_package(path, row['name'], row['digest'])
-						when /\.dsc/
-							index_source_package(path, row['name'], row['digest'])
-					end
-			end
-		end
-	end
-
 	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
 	def index_mirrorrun_from_parsing()
-		recurse_into('/')
+		if not @quick
+			query = "SELECT path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)'"
+			args = [@mirrorrun_id]
+		else
+			query = "SELECT first, path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND first=?"
+			args = [@mirrorrun_id, @mirrorrun_id]
+		end
+		@db.query(query, *args) do |row|
+			case row['name']
+				when /\.deb$|\.udeb$/
+					index_binary_package(row['path'], row['name'], row['hash'])
+				when /\.dsc/
+					index_source_package(row['path'], row['name'], row['hash'])
+			end
+		end
+
 		source = 'recurse'
 		source += '(Q)' if @quick
 		return source
