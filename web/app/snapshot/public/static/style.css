@@ -69,6 +69,9 @@ a#logo{
     display:block;
 }
 
+div#pageheader{
+    border-bottom:1px solid black
+}
 
 /** navigationspfad  **/
 
@@ -78,9 +81,9 @@ ul#breadcrumbs {
 
 #breadcrumbs li {
     display:inline;
-    margin:0 0 0 1px;
-    padding:0 0 0 3px;
-    border-left:1px solid black;
+    /** margin:0 0 0 1px; */
+    /** padding:0 0 0 3px; */
+    /** border-left:1px solid black; */
     font:small serif;
 }
 

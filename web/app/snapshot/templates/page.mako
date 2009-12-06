@@ -5,7 +5,7 @@
 		% if c.title == "":
 			<title>snapshot.debian.org</title>
 		% else:
-			<title>${c.title}</title>
+			<title>${c.title} - snapshot.debian.org</title>
 		% endif
 		<link rel="stylesheet" type="text/css" href="/static/style.css"/>
 	</head>
@@ -14,21 +14,23 @@
 			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org"/></a>
 		</div>
 		% if c.title != "":
-			<div class="pageheader">${c.title}</div>
+			<div id="pageheader">${c.title}</div>
 		% endif
 		% if not c.breadcrumbs is UNDEFINED:
 			<ul id="breadcrumbs">
 				% for crumb in c.breadcrumbs:
+					<li>
 					% if crumb['url'] is None:
-						<li>${crumb['name']}</li>
+						${crumb['name']}
 					% else:
-						<li><a href="${crumb['url']}">${crumb['name']}</a></li>
+						<a href="${crumb['url']}">${crumb['name']}</a>
 					% endif
 					% if not 'sep' in crumb:
 						/
-					% else:
+					% elif crumb['sep'] != "":
 						${crumb['sep']}
 					% endif
+					</li>
 				% endfor
 			</ul>
 % endif
