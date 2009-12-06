@@ -1403,6 +1403,7 @@ ARGV.options do |opts|
 end
 
 
+File.umask(0022)
 
 
 show_help(ARGV.options, 1, STDERR) unless options['config']
