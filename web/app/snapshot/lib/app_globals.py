@@ -20,10 +20,13 @@ class Globals(object):
         """
         app_conf = config['app_conf']
 
-        conffile = app_conf['snapshot.conf']
-        self.snap_conf = yaml.load(open(conffile).read())
-        self.pool = PooledDB(psycopg2, 5, **self.snap_conf['db-ro'])
-        self.shm = SnapshotModel(self.snap_conf['snapshot']['farmpath'], self.pool)
+        db_config = {}
+        for key in filter(lambda e: e.startswith("snapshot.db."), app_conf.keys()):
+            newkey = key.replace("snapshot.db.", '', 1)
+            db_config[newkey] = app_conf[key]
+
+        self.pool = PooledDB(psycopg2, 5, **db_config)
+        self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
 # vim:set et:
 # vim:set ts=4:
