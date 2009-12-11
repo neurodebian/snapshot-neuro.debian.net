@@ -15,9 +15,10 @@ img {
     border-width:0px;
 }
 
-a{
+a {
     text-decoration:none;
     color:#4848a5;
+    /* color:#d70a53; */
 }
 
 a:hover{
@@ -38,8 +39,16 @@ h2 {
     font-size:large;
 }
 
-h3 h4 {
+h3, h4, h5 {
     font-size:medium;
+}
+
+h1 a, h2 a, h3 a, h4 a, h5 a {
+    color:black;
+}
+
+h1 a:hover, h2 a:hover, h3 a:hover, h4 a:hover, h5 a:hover {
+    text-decoration:none;
 }
 
 ul.inlineList {
@@ -81,15 +90,7 @@ ul#breadcrumbs {
 
 #breadcrumbs li {
     display:inline;
-    /** margin:0 0 0 1px; */
-    /** padding:0 0 0 3px; */
-    /** border-left:1px solid black; */
     font:small serif;
-}
-
-#breadcrumbs li:first-child {
-    border:none;
-    margin:0; padding:0;
 }
 
 /** unten **/
