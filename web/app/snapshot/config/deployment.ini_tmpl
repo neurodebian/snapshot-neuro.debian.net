@@ -4,10 +4,10 @@
 # The %(here)s variable will be replaced with the parent directory of this file
 #
 [DEFAULT]
-debug = true
-email_to = you@yourdomain.com
+debug = false
+email_to = @@EMAIL_TO@@
 smtp_server = localhost
-error_email_from = paste@localhost
+error_email_from = @@EMAIL_FROM@@
 
 [server:main]
 use = egg:Paste#http
@@ -23,6 +23,22 @@ cache_dir = %(here)s/data
 beaker.session.key = snapshot
 beaker.session.secret = ${app_instance_secret}
 app_instance_uuid = ${app_instance_uuid}
+
+snapshot.db.host = localhost
+snapshot.db.port = 5433
+snapshot.db.database = snapshot
+snapshot.db.user = guest
+
+snapshot.farmpath = /srv/snapshot.debian.org/farm
+
+expires.static = 900
+expires.archive.index = 600
+expires.archive.dir = 600
+expires.archive.file = 864000
+
+expires.package.root_cat = 600
+expires.package.source = 600
+expires.package.source_version = 600
 
 # If you'd like to fine-tune the individual locations of the cache data dirs
 # for the Cache data, or the Session saves, un-comment the desired settings
