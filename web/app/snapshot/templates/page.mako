@@ -1,32 +1,38 @@
-<html><head>
-% if c.title == "":
-	<title>snapshot.debian.org</title>
-% else:
-	<title>${c.title}</title>
-% endif
-<link rel="stylesheet" type="text/css" href="/static/snapshot.css"/>
-</head>
-<body>
-% if c.title == "":
-	<div class="pageheader">snapshot.debian.org</div>
-% else:
-	<div class="pageheader">${c.title}</div>
-% endif
-% if not c.breadcrumbs is UNDEFINED:
-	% for crumb in c.breadcrumbs:
-		% if crumb['url'] is None:
-			${crumb['name']}
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		% if c.title == "":
+			<title>snapshot.debian.org</title>
 		% else:
-			<a href="${crumb['url']}">${crumb['name']}</a>
+			<title>${c.title} - snapshot.debian.org</title>
 		% endif
-		% if not 'sep' in crumb:
-			/
-		% else:
-			${crumb['sep']}
+		<link rel="stylesheet" type="text/css" href="/static/style.css"/>
+	</head>
+	<body>
+		<div id="top">
+			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org"/></a>
+		</div>
+		% if c.title != "":
+			<div id="pageheader">${c.title}</div>
 		% endif
-
-	% endfor
-	<br />
+		% if not c.breadcrumbs is UNDEFINED:
+			<ul id="breadcrumbs">
+				% for crumb in c.breadcrumbs:
+					<li>
+					% if crumb['url'] is None:
+						${crumb['name']}
+					% else:
+						<a href="${crumb['url']}">${crumb['name']}</a>
+					% endif
+					% if not 'sep' in crumb:
+						/
+					% elif crumb['sep'] != "":
+						${crumb['sep']}
+					% endif
+					</li>
+				% endfor
+			</ul>
 % endif
 
 % if not c.msg is UNDEFINED:
@@ -35,20 +41,18 @@
 
 ${self.body()}
 
-<P> &nbsp; <P> &nbsp; <P>
-<div style="font-size: xx-small; text-align: center">
-<hr style="width: 75%; height: 1px; border-width: 0; color: gray; background-color: gray">
-Made by Peter Palfrader &mdash;
-Graphics design and layout too (Can't you tell?) &mdash;
-git: <a href="http://asteria.noreply.org/~weasel/snapshot.git">http://asteria.noreply.org/~weasel/snapshot.git</a> &mdash;
-Report bugs and issues to weasel (XXX: eventually bugs.d.o)<br />
-<%
-	import datetime
-	now = datetime.datetime.now()
-%>
-Built at ${now}
-</div>
-</body>
+		<div id="bottom">
+			Made by Peter Palfrader &mdash;
+			Graphics design Bernhard Weitzhofer &mdash;
+			git: <a href="http://asteria.noreply.org/~weasel/snapshot.git">http://asteria.noreply.org/~weasel/snapshot.git</a> &mdash;
+			Report bugs and issues to weasel (XXX: eventually bugs.d.o)<br />
+			<%
+				import datetime
+				now = datetime.datetime.now()
+			%>
+			Built at ${now}
+		</div>
+	</body>
 </html>
 ## vim:syn=html
 ## vim:set ts=4:

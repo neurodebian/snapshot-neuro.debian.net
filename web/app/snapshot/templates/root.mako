@@ -2,7 +2,8 @@
 
 <h1>Archives</h1>
 
-Browse ftp archive snapshots from one of the following archives:
+<p>Browse ftp archive snapshots from one of the following archives:</p>
+
 <ul>
 	% for name in c.names:
 	<li><a href="archive/${name}/">${name}</a></li>
@@ -12,16 +13,13 @@ Browse ftp archive snapshots from one of the following archives:
 <h1>Packages</h1>
 
 Search in the index:</br>
-<div class="box">
+<ul class="inlineList">
 %for letter in c.srcstarts:
-	<a href="package/?cat=${letter}">${letter}</a>
-	% if letter != c.srcstarts[-1]:
-		-
-	% endif
+	<li><a href="package/?cat=${letter}">${letter}</a></li>
 %endfor
-</div>
+</ul>
 
 <form action="package/">
-Or enter a source package name directly: <input name="src" /> <input type="submit" value="Submit" />
+<p>Or enter a source package name directly: <input name="src" /> <input type="submit" value="Submit" /></p>
 </form>
 
