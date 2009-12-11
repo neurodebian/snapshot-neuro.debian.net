@@ -1,3 +1,5 @@
 data/
 build/
 dist/
+Snapshot.egg-info/requires.txt
+Snapshot.egg-info/SOURCES.txt
