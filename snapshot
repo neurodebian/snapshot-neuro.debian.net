@@ -1188,7 +1188,12 @@ class PackageIndexer
 	def index
 		if @only_this_mirrorrun
 				@db.begin
-				$logger.info("Indexing mirrorrun ##{@only_this_mirrorrun} as requested")
+				row = @db.query_row("SELECT run, (SELECT name FROM archive WHERE archive.archive_id = mirrorrun.archive_id) AS archive
+									 FROM mirrorrun WHERE mirrorrun_id = ?", @only_this_mirrorrun)
+				if row.nil?
+					barf("Mirrorrun ##{@only_this_mirrorrun} does not exist.")
+				end
+				$logger.info("Indexing mirrorrun ##{@only_this_mirrorrun} of #{row['archive']} from #{row['run']} as requested")
 				@sourcepkgs = {}
 				@binarypkgs = {}
 				source = index_mirrorrun(@only_this_mirrorrun)
