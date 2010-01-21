@@ -112,3 +112,14 @@ div#bottom {
     text-decoration:underline;
     color:silver;
 }
+
+table.rootmaintable {
+	border-spacing: 12px;
+}
+table.rootmaintable td {
+	vertical-align:top;
+	border: 0px;
+} 
+div.rootmaintext p {
+	margin-left: 1em;
+}
