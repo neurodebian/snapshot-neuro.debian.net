@@ -52,7 +52,13 @@ Maecenas quam urna, laoreet eu condimentum eget, posuere vel libero. Ut vel arcu
 
 <h1>News</h1>
 <h2>2010-01-21</h2>
-<p>Syncing stuff to sibelius.
+<p>
+Syncing stuff to sibelius.
+</p>
+
+<h2>2010-01-01</h2>
+<p>
+It is 2010 now.
 </p>
 
 </div>
