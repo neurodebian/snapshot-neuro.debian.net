@@ -5,7 +5,7 @@ html {
 body {
     min-width:680px;
     position:relative;
-    margin:0; padding:0 8px; height:100%;
+    margin:0; padding:0 1em; height:100%;
     font-family:serif;
     color:black;
     background-color:white;
@@ -79,18 +79,19 @@ a#logo{
 }
 
 div#pageheader{
-    border-bottom:1px solid black
+    border-bottom:1px solid black;
+    font:medium serif;
 }
 
 /** navigationspfad  **/
 
 ul#breadcrumbs {
-    margin:0 0 0.5em 0; padding:0;
+    margin:0 0 1em 0; padding:0;
 }
 
 #breadcrumbs li {
     display:inline;
-    font:small serif;
+    font:medium serif;
 }
 
 /** unten **/
@@ -113,13 +114,23 @@ div#bottom {
     color:silver;
 }
 
+/** rootmaintable  **/
+
 table.rootmaintable {
-	border-spacing: 12px;
+    margin:0; padding:0;
+    border-collapse:collapse;
 }
 table.rootmaintable td {
-	vertical-align:top;
-	border: 0px;
-} 
-div.rootmaintext p {
-	margin-left: 1em;
+    border:none;
+    padding: 0 0 0 1em;
+    vertical-align:top;
+}
+
+table.rootmaintable td:first-child {
+    padding:0;
+}
+
+/** timeline  **/
+.timeline {
+    font-size:small;
 }

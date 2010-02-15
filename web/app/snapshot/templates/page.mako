@@ -43,7 +43,7 @@ ${self.body()}
 
 		<div id="bottom">
 			Made by Peter Palfrader &mdash;
-			Graphics design Bernhard Weitzhofer &mdash;
+			Web/Graphics design Bernhard Weitzhofer &mdash;
 			git: <a href="http://asteria.noreply.org/~weasel/snapshot.git">http://asteria.noreply.org/~weasel/snapshot.git</a> &mdash;
 			Report bugs and issues to weasel (XXX: eventually bugs.d.o)<br />
 			<%
