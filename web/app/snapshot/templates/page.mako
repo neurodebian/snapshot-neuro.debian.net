@@ -35,7 +35,7 @@
 			</ul>
 % endif
 
-% if not c.msg is UNDEFINED:
+% if not c.msg is UNDEFINED and c.msg != "":
 <p>${c.msg}</p>
 % endif
 
