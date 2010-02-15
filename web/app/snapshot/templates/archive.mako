@@ -2,6 +2,7 @@
 
 <h1>Archive ${c.archive}</h1>
 
+<ul>
 %for year in c.yearmonths:
 <li>${year['year']}:
 % for month in year['months']:
@@ -9,6 +10,7 @@
 % endfor
 </li>
 %endfor
+</ul>
 
 ## vim:syn=html
 ## vim:set ts=4:
