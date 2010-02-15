@@ -16,7 +16,7 @@
 
 <h1>Packages</h1>
 
-Search in the index:</br>
+Search in the index:<br />
 <ul class="inlineList">
 %for letter in c.srcstarts:
 	<li><a href="package/?cat=${letter}">${letter}</a></li>
