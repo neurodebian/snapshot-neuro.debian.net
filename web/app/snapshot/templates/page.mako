@@ -45,7 +45,7 @@ ${self.body()}
 			&mdash;
 			Web/Graphics design Bernhard Weitzhofer
 			&mdash;
-			git: <code>git://git.debian.org/mirror/snapshot.debian.org.git</code>
+			<code>git://git.debian.org/mirror/snapshot.debian.org.git</code>
 			(<a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git">gitweb on alioth</a>)
 			&mdash;
 			<a href="http://www.debian.org/Bugs/Reporting">Report bugs</a> and issues against the
