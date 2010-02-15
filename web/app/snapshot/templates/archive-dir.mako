@@ -91,7 +91,6 @@
 ##				% endif
 			</tr>
 		% endfor
-		<br />
 	% endif
 </table>
 

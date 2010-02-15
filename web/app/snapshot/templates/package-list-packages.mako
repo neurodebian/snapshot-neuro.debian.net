@@ -2,9 +2,11 @@
 
 <h1>Source packages ${c.start}*</h1>
 
+<p>
 %for pkg in c.packages:
 <a href="${pkg}/">${pkg}</a><br />
 %endfor
+</p>
 
 ## vim:syn=html
 ## vim:set ts=4:

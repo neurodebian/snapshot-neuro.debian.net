@@ -4,12 +4,12 @@
 <h3>Source files</h3>
 <dl>
 	% for hash in c.sourcefiles:
-		<dt style="font-size: x-small"><code>${hash}</code>:</td>
+		<dt style="font-size: x-small"><code>${hash}</code>:</dt>
 		% if hash in c.fileinfo:
 			<dd>
 				<dl>
 				% for fi in c.fileinfo[hash]:
-					<td><a href="${fi['link']}"><code style="font-size: x-large"><strong>${fi['name']}</strong></code></a></td>
+					<dt><a href="${fi['link']}"><code style="font-size: x-large"><strong>${fi['name']}</strong></code></a></dt>
 					<dd>
 						Seen in ${fi['archive_name']} on ${fi['run']} in
 						% if 'dirlink' in fi:
@@ -24,27 +24,25 @@
 				</dl>
 			</dd>
 		% endif
-
-	</li>
 	%endfor
 </dl>
 <h2><a name="binpkgs">Binary packages</a></h2>
 	<ul>
 	% for binpkg in c.binpkgs:
-		<li><a href="#${binpkg['name']} ${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></li>
+		<li><a href="#${binpkg['name']}_${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></li>
 	%endfor
 	</ul>
 	% for binpkg in c.binpkgs:
-		<h3><a name="${binpkg['name']} ${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></h3>
+		<h3><a name="${binpkg['name']}_${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></h3>
 		<div style="font-size: x-small"><a href="#top">top</a> - <a href="#binpkgs">up to binary packages</a></div>
 		<dl>
 			% for hash in binpkg['files']:
-				<dt style="font-size: x-small"><code>${hash}</code>:</td>
+				<dt style="font-size: x-small"><code>${hash}</code>:</dt>
 				% if hash in c.fileinfo:
 					<dd>
 						<dl>
 						% for fi in c.fileinfo[hash]:
-							<td><a href="${fi['link']}"><code style="font-size: large"><strong>${fi['name']}</strong></code></a></td>
+							<dt><a href="${fi['link']}"><code style="font-size: large"><strong>${fi['name']}</strong></code></a></dt>
 							<dd>
 								Seen in ${fi['archive_name']} on ${fi['run']} in
 								% if 'dirlink' in fi:
@@ -59,8 +57,6 @@
 						</dl>
 					</dd>
 				% endif
-
-			</li>
 			%endfor
 		</dl>
 	% endfor
