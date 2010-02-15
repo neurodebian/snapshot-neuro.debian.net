@@ -31,23 +31,25 @@ Search in the index:<br />
 
 <td>
 <div class="rootmaintext">
-<h1>Snapshot.debian.org</h1>
+<h1>snapshot.debian.org</h1>
 <p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque vehicula
-lobortis mauris vitae congue. In porttitor augue ut risus vulputate mattis. In
-ac ante augue, a fermentum neque. Mauris volutpat volutpat urna sed euismod.
-Cras nec consequat velit. Etiam id nibh id turpis bibendum rutrum. Quisque et
-eros nisi, ac mattis augue. In hac habitasse platea dictumst. Morbi nec leo
-turpis, non lacinia augue. Phasellus hendrerit mollis nunc, sit amet pulvinar
-sem vestibulum ac. Curabitur fermentum nulla et tortor viverra non sollicitudin
-lectus condimentum. Aliquam luctus fringilla dui, ut faucibus mi laoreet
-vehicula. In interdum, dui in dictum mollis, mi purus laoreet enim, non congue
-lacus metus ut felis. Nam nisi elit, dictum id accumsan sit amet, sodales vitae
-metus.
+The snapshot archive is a wayback machine that allows access to old
+packages based on dates and version numbers.  It consists of all
+past and current packages the Debian archive provides.
 </p>
 
 <p>
-Maecenas quam urna, laoreet eu condimentum eget, posuere vel libero. Ut vel arcu eu ante mollis ornare quis a turpis. Proin iaculis pulvinar massa, non hendrerit magna commodo ac. Sed vel felis augue, vel lobortis enim. Proin ultricies sem ac augue porta at vehicula dolor posuere. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse fermentum lectus at elit laoreet eget commodo arcu blandit. Aliquam pulvinar pretium elit, nec ultricies nisi consectetur sed. Ut lacinia nisi tempor tortor adipiscing consequat. Mauris a imperdiet odio. Sed dapibus viverra nulla eget tincidunt.
+The ability to install packages and view sourcecode from any given date
+in the past is very helpful for developers who try to fix regressions.
+Users frequently need an older version of the software in order to make
+a particular application run.
+</p>
+
+<p>
+The Debian Project wants to thank <a href="http://www.sanger.ac.uk/">Wellcome
+Trust Sanger Institute</a>, <a href="http://www.ece.ubc.ca/">UBC Electrical and
+Computer Engineering</a> and <a href="http://www.nordicbet.com/">Nordic
+Gaming</a> for providing hardware and hosting for this service.
 </p>
 
 <h1>News</h1>
