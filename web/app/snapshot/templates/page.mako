@@ -17,7 +17,7 @@
 			<div id="pageheader">${c.title}</div>
 		% endif
 		% if not c.breadcrumbs is UNDEFINED:
-			<ul id="breadcrumbs">
+			<ul id="breadcrumbs" style="font-size:small;">
 				% for crumb in c.breadcrumbs:
 					<li>
 					% if crumb['url'] is None:
