@@ -25,7 +25,7 @@
 		No previous version of this directory available.
 	% endif
 	&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
-	${c.run['run']}
+	<strong>${c.run['run']}</strong>
 	&nbsp;&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;&nbsp;
 	% if c.nav['last'] != c.run['run']:
 		<acronym title="${c.nav['next']}"><a href="${c.nav['next_link']}">next</a></acronym>
