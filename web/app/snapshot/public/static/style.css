@@ -86,7 +86,7 @@ div#pageheader{
 /** navigationspfad  **/
 
 ul#breadcrumbs {
-    margin:0 0 1em 0; padding:0;
+    margin:0 0 0 0; padding:0;
 }
 
 #breadcrumbs li {

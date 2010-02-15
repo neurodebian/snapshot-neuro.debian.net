@@ -13,10 +13,8 @@
 		<div id="top">
 			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org"/></a>
 		</div>
-		% if c.title != "":
-			<div id="pageheader">${c.title}</div>
-		% endif
 		% if not c.breadcrumbs is UNDEFINED:
+			<div id="pageheader">
 			<ul id="breadcrumbs" style="font-size:small;">
 				% for crumb in c.breadcrumbs:
 					<li>
@@ -33,7 +31,8 @@
 					</li>
 				% endfor
 			</ul>
-% endif
+			</div>
+		% endif
 
 % if not c.msg is UNDEFINED and c.msg != "":
 <p>${c.msg}</p>
