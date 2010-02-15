@@ -4,43 +4,43 @@
 <a href="${entry['target']}/">${entry['name']}</a><br />
 %endfor
 
-<div style="font-size: x-small">
+<div class="timeline">
 	% if c.nav['first'] != c.run['run']:
 		<acronym title="${c.nav['first']}"><a href="${c.nav['first_link']}">first</a></acronym>
 		% if c.nav['prev'] == c.nav['first']:
-			&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp; = &nbsp;&nbsp;
 		% else:
-			&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp; | &nbsp;&nbsp;
 		% endif
 		% if c.nav['prev_change']:
 			<acronym title="${c.nav['prev_change']}"><a href="${c.nav['prev_change_link']}">prev change</a></acronym>
 			% if c.nav['prev'] == c.nav['prev_change']:
-				&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp;&nbsp;
+				&nbsp;&nbsp; = &nbsp;&nbsp;
 			% else:
-				&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+				&nbsp;&nbsp; | &nbsp;&nbsp;
 			% endif
 		% endif
 		<acronym title="${c.nav['prev']}"><a href="${c.nav['prev_link']}">prev</a></acronym>
 	% else:
 		No previous version of this directory available.
 	% endif
-	&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp; | &nbsp;&nbsp;
 	<strong>${c.run['run']}</strong>
-	&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp; | &nbsp;&nbsp;
 	% if c.nav['last'] != c.run['run']:
 		<acronym title="${c.nav['next']}"><a href="${c.nav['next_link']}">next</a></acronym>
 		% if c.nav['next_change']:
 			% if c.nav['next'] == c.nav['next_change']:
-				&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp;&nbsp;
+				&nbsp;&nbsp; = &nbsp;&nbsp;
 			% else:
-				&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+				&nbsp;&nbsp; | &nbsp;&nbsp;
 			% endif
 			<acronym title="${c.nav['next_change']}"><a href="${c.nav['next_change_link']}">next change</a></acronym>
 		% endif
 		% if c.nav['next'] == c.nav['last']:
-			&nbsp;&nbsp;&nbsp; = &nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp; = &nbsp;&nbsp;
 		% else:
-			&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;
+			&nbsp;&nbsp; | &nbsp;&nbsp;
 		% endif
 		<acronym title="${c.nav['last']}"><a href="${c.nav['last_link']}">last</a></acronym>
 	% else:
