@@ -41,15 +41,22 @@
 ${self.body()}
 
 		<div id="bottom">
-			Made by Peter Palfrader &mdash;
-			Web/Graphics design Bernhard Weitzhofer &mdash;
-			git: <a href="http://asteria.noreply.org/~weasel/snapshot.git">http://asteria.noreply.org/~weasel/snapshot.git</a> &mdash;
-			Report bugs and issues to weasel (XXX: eventually bugs.d.o)<br />
+			Made by Peter Palfrader
+			&mdash;
+			Web/Graphics design Bernhard Weitzhofer
+			&mdash;
+			git: <code>git://git.debian.org/mirror/snapshot.debian.org.git</code>
+			<a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git">gitweb on alioth</a>
+			&mdash;
+			<a href="http://www.debian.org/Bugs/Reporting">Report bugs</a> and issues against the
+			  <a href="http://www.debian.org/snapshot">snapshot package</a> on bugs.debian.org.
+			<br />
 			<%
 				import datetime
 				now = datetime.datetime.now()
 			%>
-			Built at ${now}<br />
+			Built at ${now}
+			<br />
 			<a href="http://validator.w3.org/check?uri=referer">validate</a>
 		</div>
 	</body>
