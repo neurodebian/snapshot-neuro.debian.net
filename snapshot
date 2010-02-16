@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-# Copyright (c) 2009 Peter Palfrader
+# Copyright (c) 2009, 2010 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -52,8 +52,13 @@ class StorageBackend
 end
 
 class FileBackend < StorageBackend
-	def initialize(farmpath)
+	def initialize(farmpath, db)
 		@farmpath = farmpath
+		@db = db
+	end
+
+	def add_to_journal(hash)
+		@db.insert_row('farm_journal', { 'hash'  => hash } )
 	end
 
 	def _get_path(digest, mkdir=false)
@@ -84,6 +89,7 @@ class FileBackend < StorageBackend
 			File.copy(source, tmptarget)
 			begin
 				File.link(tmptarget, target)
+				add_to_journal(digest)
 			rescue Errno::EEXIST
 				# it may have jumped into existance, that's no problem.
 			end
@@ -1288,6 +1294,8 @@ class SnapshotDumpAll
 end
 
 class Snapshot
+	attr_reader :db
+
 	def initialize(conf)
 		@conf = conf
 		@db = SnapshotDB.new(conf['db'], $logger)
@@ -1422,8 +1430,8 @@ $logger = makeLogger(config['log'], options)
 
 barf("Configuration does not have a snapshot->farmpath.") unless config and config['snapshot'] and config['snapshot']['farmpath']
 barf("Please run with TZ=UTC") unless Time.now.zone == "UTC"
-$storage = FileBackend.new(config['snapshot']['farmpath'])
 snapshot = Snapshot.new(config)
+$storage = FileBackend.new(config['snapshot']['farmpath'], snapshot.db)
 
 case action
 	when "list-archives"
