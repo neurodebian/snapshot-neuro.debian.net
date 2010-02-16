@@ -8,6 +8,7 @@ from snapshot.lib.base import BaseController, render
 from snapshot.lib.dbinstance import DBInstance
 from snapshot.lib.control_helpers import *
 import os.path
+import re
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +90,9 @@ class PackageController(BaseController):
         finally:
             self._db_close()
 
+    def _attribute_escape(self, a):
+        return re.sub('[^a-zA-Z0-9_.-]', lambda m: ':%x:'%(ord(m.group())), a)
+
     def source_version(self, source, version):
         try:
             etag_cache( g.shm.packages_get_etag(self._db()) )
@@ -103,6 +107,8 @@ class PackageController(BaseController):
 
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'],
+                                      'escaped_name': self._attribute_escape(b['name']),
+                                      'escaped_version': self._attribute_escape(b['version']),
                                       'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
             binhashes = []
             for binpkg in binpkgs:

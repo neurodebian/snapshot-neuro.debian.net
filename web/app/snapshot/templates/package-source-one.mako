@@ -1,6 +1,6 @@
 <%inherit file="/page.mako" />
 
-<h1><a name="top">Source package ${c.src} ${c.version}</a></h1>
+<h1>Source package ${c.src} ${c.version}</h1>
 <h3>Source files</h3>
 <dl>
 	% for hash in c.sourcefiles:
@@ -29,11 +29,11 @@
 <h2><a name="binpkgs">Binary packages</a></h2>
 	<ul>
 	% for binpkg in c.binpkgs:
-		<li><a href="#${binpkg['name']}_${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></li>
+		<li><a href="#${binpkg['escaped_name']}_${binpkg['escaped_version']}">${binpkg['name']} ${binpkg['version']}</a></li>
 	%endfor
 	</ul>
 	% for binpkg in c.binpkgs:
-		<h3><a name="${binpkg['name']}_${binpkg['version']}">${binpkg['name']} ${binpkg['version']}</a></h3>
+		<h3><a name="${binpkg['escaped_name']}_${binpkg['escaped_version']}">${binpkg['name']} ${binpkg['version']}</a></h3>
 		<div style="font-size: x-small"><a href="#top">top</a> - <a href="#binpkgs">up to binary packages</a></div>
 		<dl>
 			% for hash in binpkg['files']:
