@@ -24,7 +24,7 @@ def upgrade(db):
     """Fix permissions on farm_journal"""
 
     db.execute('GRANT SELECT ON farm_journal TO public')
-    db.execute("UPDATE config SET value='9' WHERE name='db_revision' AND value='8'")
+    db.execute("UPDATE config SET value='11' WHERE name='db_revision' AND value='10'")
 
 # vim:set et:
 # vim:set ts=4:
