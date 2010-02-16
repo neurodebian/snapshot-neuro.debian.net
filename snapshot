@@ -80,7 +80,7 @@ class FileBackend < StorageBackend
 			dir = File.dirname(target)
 			fn = File.basename(target)
 
-			tmptarget = dir+"/."+randstring()+"."+(Process.pid.to_s)+"."+fn
+			tmptarget = dir+"/.tmp."+randstring()+"."+(Process.pid.to_s)+"."+fn
 			File.copy(source, tmptarget)
 			begin
 				File.link(tmptarget, target)
