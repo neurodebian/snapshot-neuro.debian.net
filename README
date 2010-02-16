@@ -124,6 +124,9 @@ Missing wanted features:
    a source package has more than one version of a binary package of a given
    name (such as with binnmus).  e.g. fuse/packages/g/gtk2-engines/1:2.16.1-2
 
+ - Come up with a testsuite that checks at least the most basic things still
+   work, such as importing a tree.
+
  [ o .. done; - to do; . partially done ]
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
