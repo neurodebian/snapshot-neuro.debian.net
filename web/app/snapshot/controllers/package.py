@@ -9,6 +9,7 @@ from snapshot.lib.dbinstance import DBInstance
 from snapshot.lib.control_helpers import *
 import os.path
 import re
+import urllib
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class PackageController(BaseController):
     def _build_crumbs(self, srcpkg=None, version=None, start=None):
         crumbs = []
 
-        url = request.environ.get('SCRIPT_NAME') + "/"
+        url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
         crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
 
         if not start:
@@ -37,14 +38,14 @@ class PackageController(BaseController):
                 start = srcpkg[0:1]
 
         url += 'package/'
-        crumbs.append( { 'url': url + '?cat=%s'%start, 'name': start+'*' } )
+        crumbs.append( { 'url': url + '?cat=%s'%urllib.quote(start), 'name': start+'*' } )
 
         if not srcpkg is None:
-            url += srcpkg + '/'
+            url += urllib.quote(srcpkg) + '/'
             crumbs.append( { 'url': url, 'name': srcpkg });
 
             if version:
-                url += version + '/'
+                url += urllib.quote(version) + '/'
                 crumbs.append( { 'url': url, 'name': version });
 
         crumbs[-1]['url'] = None
@@ -63,7 +64,7 @@ class PackageController(BaseController):
                 if pkgs is None:
                     abort(404, 'No source packages in this category.')
                 c.start = start
-                c.packages = pkgs
+                c.packages = link_quote_array(pkgs)
                 c.breadcrumbs = self._build_crumbs(start=start)
                 c.title = '%s*'%(start)
                 return render('/package-list-packages.mako')
@@ -83,7 +84,7 @@ class PackageController(BaseController):
                 abort(404, 'No such source package')
 
             c.src = source
-            c.sourceversions = sourceversions
+            c.sourceversions = link_quote_array(sourceversions)
             c.breadcrumbs = self._build_crumbs(source)
             c.title = source
             return render('/package-source.mako')

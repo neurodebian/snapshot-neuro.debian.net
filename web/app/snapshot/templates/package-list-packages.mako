@@ -4,7 +4,7 @@
 
 <p>
 %for pkg in c.packages:
-<a href="${pkg}/">${pkg}</a><br />
+<a href="${pkg['quoted']}/">${pkg['raw']}</a><br />
 %endfor
 </p>
 

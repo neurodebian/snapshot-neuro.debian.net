@@ -1,9 +1,5 @@
 <%inherit file="/page.mako" />
 
-%for entry in c.ls:
-<a href="${entry['target']}/">${entry['name']}</a><br />
-%endfor
-
 <div class="timeline">
 	% if c.nav['first'] != c.run['run']:
 		<acronym title="${c.nav['first']}"><a href="${c.nav['first_link']}">first</a></acronym>
@@ -61,14 +57,14 @@
 			<tr>
 				<td>${entry['filetype']}</td>
 				% if entry['filetype'] == 'd':
-					<td colspan="2"><a href="${entry['name']}/">${entry['name']}/</a></td>
+					<td colspan="2"><a href="${entry['quoted_name']}/">${entry['name']}/</a></td>
 				% elif entry['filetype'] == '-':
-					<td><a href="${entry['name']}">${entry['name']}</a></td>
+					<td><a href="${entry['quoted_name']}">${entry['name']}</a></td>
 					<td style='text-align: right'>${entry['size']}</td>
 				% elif entry['filetype'] == 'l':
 					<td colspan="2">
-						<a href="${entry['name']}">${entry['name']}</a> -&gt;
-						<a href="${entry['target']}">${entry['target']}</a>
+						<a href="${entry['quoted_name']}">${entry['name']}</a> -&gt;
+						<a href="${entry['quoted_target']}">${entry['target']}</a>
 					</td>
 				% else:
 					<td colspan="2">

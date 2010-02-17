@@ -10,7 +10,7 @@
 
 <ul>
 	% for name in c.names:
-	<li><a href="archive/${name}/">${name}</a></li>
+	<li><a href="archive/${name['quoted']}/">${name['raw']}</a></li>
 	%endfor
 </ul>
 
@@ -19,7 +19,7 @@
 Search in the index:<br />
 <ul class="inlineList">
 %for letter in c.srcstarts:
-	<li><a href="package/?cat=${letter}">${letter}</a></li>
+	<li><a href="package/?cat=${letter['quoted']}">${letter['raw']}</a></li>
 %endfor
 </ul>
 

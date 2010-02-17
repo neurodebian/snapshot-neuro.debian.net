@@ -5,6 +5,7 @@ from paste.request import construct_url
 from paste.httpexceptions import HTTPMovedPermanently
 import datetime
 from webob.exc import HTTPNotModified
+import urllib
 
 def urlify_timestamp(ts):
     return ts.strftime('%Y%m%dT%H%M%S')
@@ -14,6 +15,7 @@ def build_url_archive(archive, ts=None, path=None, isadir=True):
 
     url = request.environ.get('SCRIPT_NAME') + "/"
     url += 'archive/' + archive + "/"
+    url = urllib.quote(url)
 
     if not ts:
         return url
@@ -25,7 +27,7 @@ def build_url_archive(archive, ts=None, path=None, isadir=True):
 
     if path != '/':
         for path_element in path.strip('/').split('/'):
-            url += path_element + '/'
+            url += urllib.quote(path_element) + '/'
 
     if not isadir:
         url = url.rstrip('/')
@@ -49,6 +51,9 @@ def set_expires(max_age):
     response.cache_control = 'public, max-age=%d'%max_age
     response.pragma = None
 
+def link_quote_array(a):
+    return map(lambda x: { 'raw':    x,
+                           'quoted': urllib.quote(x) }, a)
 
 #def modified_since(last_mod):
 #    if last_mod is None:

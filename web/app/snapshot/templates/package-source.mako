@@ -6,7 +6,7 @@ Available versions:
 </p>
 <ul>
 	%for entry in c.sourceversions:
-	<li><a href="${entry}/">${entry}</a></li>
+	<li><a href="${entry['quoted']}/">${entry['raw']}</a></li>
 	%endfor
 </ul>
 
