@@ -20,6 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
+# The farm_journal database table keeps a journal of which files got
+# added to the farm recently.  This script outputs a tarball of the files
+# referenced in the journal to stdout.
+
 import tarfile
 import sys
 import yaml
@@ -31,7 +36,9 @@ from dbhelper import DBHelper
 parser = optparse.OptionParser()
 parser.set_usage("%prog --config=<conffile>")
 parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
-  help="Config file location")
+  help="Config file location.")
+parser.add_option("-s", "--since", dest="since", metavar="UNIXTIME",
+  help="Only include files added after this.")
 
 (options, args) = parser.parse_args()
 if options.conffile is None:
@@ -46,7 +53,13 @@ def make_path(digest):
   return os.path.join(config['snapshot']['farmpath'], prefix1, prefix2, digest)
 
 db = DBHelper(config['db']['connectstring'])
-c = db.execute("""SELECT hash FROM farm_journal""")
+
+args = {}
+query = 'SELECT hash FROM farm_journal WHERE true'
+if not options.since is None:
+    query += " AND added > TIMESTAMP 'epoch' + %(since)s * INTERVAL '1 second'"
+    args['since'] = options.since
+c = db.execute(query, args)
 
 tar = tarfile.open(mode="w|", fileobj=sys.stdout)
 while True:
@@ -58,7 +71,6 @@ while True:
 
 tar.close()
 c.close()
-db.close()
 
 
 # vim:set et:
