@@ -32,6 +32,13 @@ usage() {
 	echo "via ssh orig command: farm-journal-fetch [since]"
 }
 
+one_more_arg() {
+	if [ "$#" -lt 1 ]; then
+		usage >&2
+		exit 1
+	fi
+}
+
 info() {
 	logger -p daemon.info -t "$MYLOGNAME" "$1"
 }
@@ -52,6 +59,24 @@ farm_journal_fetch() {
 	"$HOME"/code/mirror/farm-journal-make-tarball -c "$SNAPCONFIG" -s "$since"
 }
 
+do_rsync() {
+	local allowed_command_prefixes
+	allowed_rsyncs=(
+		"--server --sender -logDtprze.iL . dumps/"
+		"--server --sender -vlogDtprze.iL . dumps/"
+	)
+	for cmd_idx in ${!allowed_rsyncs[*]}; do
+		allowed="${allowed_rsyncs[$cmd_idx]}"
+		if [ "$*" = "$allowed" ]; then
+			exec rsync $allowed
+			echo >&2 "Exec failed"
+			exit 1
+		fi
+	done
+
+	echo >&2 "This rsync command ($*) not allowed."
+	exit 1
+}
 
 
 if [ "${1-}" = "-h" ] || [ "${1-}" = "--help" ]; then
@@ -75,6 +100,16 @@ case "$action" in
 		farm_journal_fetch "$@"
 		;;
 
+	git-upload-pack)
+		repos='/srv/snapshot.debian.org/snapshot.git'
+		if [ "$1" != "'$repos'" ]; then
+			croak "May not access other repositories"
+		fi
+		exec git-upload-pack "$repos"
+		;;
+	rsync)
+		do_rsync "$@"
+		;;
 	*)
 		croak "Invalid operation '$action'"
 		;;
