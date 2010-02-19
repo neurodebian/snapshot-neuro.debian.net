@@ -49,7 +49,7 @@ farm_journal_fetch() {
 	fi
 
 	info "farm-journal-fetch since $since"
-	~/bin/farm-journal-make-tarball -c "$SNAPCONFIG" -s "$since"
+	"$HOME"/code/mirror/farm-journal-make-tarball -c "$SNAPCONFIG" -s "$since"
 }
 
 
