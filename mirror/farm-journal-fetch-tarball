@@ -97,7 +97,7 @@ def move_file_with_fallback(src, dst):
 tmpdir = tempfile.mkdtemp(prefix='.tmp.fetch-tarball.', dir=config['snapshot']['farmpath'])
 try:
     os.chdir(tmpdir)
-    retcode = subprocess.check_call('ssh snapshot-master.debian.org farm-journal-fetch | tar xf -', shell=True)
+    retcode = subprocess.check_call('ssh -C snapshot-master.debian.org farm-journal-fetch | tar xf -', shell=True)
     for fn in os.listdir('.'):
         if fn == "meta": continue
 
