@@ -1,4 +1,4 @@
-CONF="$HOME//snapshot.conf"
+CONF="$HOME/snapshot.conf"
 
 # daily: expire journal entries older than two days
 17 1 * * * code/mirror/farm-journal-expire -c "$CONF" -o 172800
