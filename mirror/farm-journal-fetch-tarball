@@ -55,6 +55,9 @@ if options.conffile is None:
 
 config = yaml.load(open(options.conffile).read())
 
+def get_statefile_path():
+    return os.path.join(config['snapshot']['farmpath'], '.farm-journal-fetch.state')
+
 def make_path(digest):
     prefix1 = digest[0:2]
     prefix2 = digest[2:4]
@@ -93,11 +96,19 @@ def move_file_with_fallback(src, dst):
     os.unlink(src)
 
 
-# read old statusfile
+
+statefile = get_statefile_path()
+since = 0
+if os.path.exists(statefile):
+    meta = yaml.load(open(statefile).read())
+    if 'latest-timestamp' in meta:
+        since = int(meta['latest-timestamp'])
+
 tmpdir = tempfile.mkdtemp(prefix='.tmp.fetch-tarball.', dir=config['snapshot']['farmpath'])
 try:
     os.chdir(tmpdir)
-    retcode = subprocess.check_call('ssh -C snapshot-master.debian.org farm-journal-fetch | tar xf -', shell=True)
+    command = 'ssh -C snapshot-master.debian.org farm-journal-fetch %d | tar xf -'%(since)
+    retcode = subprocess.check_call(command, shell=True)
     for fn in os.listdir('.'):
         if fn == "meta": continue
 
@@ -112,10 +123,18 @@ try:
         if options.verbose: print "%s -> %s"%(fn,target)
         move_file_with_fallback(fn, target)
 
-    # update from old status
+    if os.path.exists('meta'):
+        try:
+            meta = yaml.load(open('meta').read())
+            if 'latest-timestamp' in meta:
+                f = open(statefile, "w")
+                f.write(yaml.dump(meta))
+                f.close()
+        except:
+            pass
+
 finally:
     shutil.rmtree(tmpdir)
-
 
 # vim:set et:
 # vim:set ts=4:
