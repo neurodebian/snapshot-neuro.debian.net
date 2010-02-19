@@ -131,6 +131,7 @@ Missing wanted features:
 
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
 Web-Depends: python-pylons
+Web-Recommends: libapache2-mod-wsgi apache2
 
 
 
