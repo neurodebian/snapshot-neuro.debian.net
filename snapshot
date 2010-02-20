@@ -416,9 +416,7 @@ class FSNodeRegularBase < FSNode
 		       }
 		db.insert('file', elem)
 
-		unless $storage.exists?(@digest)
-			store_file
-		end
+		store_file
 	end
 end
 
@@ -469,11 +467,14 @@ class FSNodeRegular < FSNodeRegularBase
 end
 
 class FSNodeRegularFromDump < FSNodeRegularBase
-	def initialize(path, parent, size, digest)
+	def initialize(path, parent, size, digest, trust_files_are_there)
 		super(path, parent, size, digest)
+		@trust_files_are_there = trust_files_are_there
 	end
 
 	def store_file
+		return if @trust_files_are_there
+		return if $storage.exists?(@digest)
 		$logger.warn("[dump import] missing file in storage: #{@digest} #{@path}.")
 	end
 end
@@ -509,10 +510,11 @@ class FSReader
 end
 
 class DumpReader
-	def initialize(path)
+	def initialize(path, trust_files_are_there)
 		@fd = File.open( path )
 		@dir_cache = {}
 		@attrs = {}
+		@trust_files_are_there
 
 		while not (line = @fd.gets).nil?
 			line.chomp!
@@ -572,7 +574,7 @@ class DumpReader
 					throw "Invalid size #{size} in entry '#{line}'" if size =~ /[^0-9]/
 					throw "Invalid digest #{digest} in entry '#{line}'" if digest =~ /[^0-9a-f]/
 					throw "Invalid digest #{digest} in entry '#{line}'" if digest.length != 40
-					yield FSNodeRegularFromDump.new(path, parent, size, digest)
+					yield FSNodeRegularFromDump.new(path, parent, size, digest, @trust_files_are_there)
 				when 'l'
 					yield FSNodeSymlink.new(path, rest, parent)
 				else
@@ -715,10 +717,10 @@ class SnapshotImporter
 		$logger.info("[run ##{mirrorrun_id}] Mirrorrun #{mirrorrun_id} for #{archive} completed.")
 	end
 
-	def import_from_dump(path)
+	def import_from_dump(path, quick)
 		@db.begin
 
-		fs = DumpReader.new(path)
+		fs = DumpReader.new(path, quick)
 		archive_id = _get_archive_id(fs.archive)
 		mirrorrun_id = _insert_mirrorrun(archive_id, fs.date, fs.uuid, fs.importing_host)
 		prev_run, next_run = _get_prev_next(archive_id, mirrorrun_id)
@@ -1331,7 +1333,7 @@ class Snapshot
 	def import_dump(options)
 		barf("No path name given") unless options['path']
 		fs = SnapshotImporter.new(@db, options['timetravel'])
-		fs.import_from_dump(options['path'])
+		fs.import_from_dump(options['path'], options['quick'])
 	end
 
 	def index(options)
