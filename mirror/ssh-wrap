@@ -62,13 +62,13 @@ farm_journal_fetch() {
 do_rsync() {
 	local allowed_command_prefixes
 	allowed_rsyncs=(
-		"--server --sender -logDtprze.iL . dumps/"
-		"--server --sender -vlogDtprze.iL . dumps/"
+		'^--server --sender -v?logDtprze\.iL \. dumps/$'
+		'^--server --sender -v?logDtprze\.iL \. farm/[0-9a-f][0-9a-f]/$'
 	)
 	for cmd_idx in ${!allowed_rsyncs[*]}; do
 		allowed="${allowed_rsyncs[$cmd_idx]}"
-		if [ "$*" = "$allowed" ]; then
-			exec rsync $allowed
+		if [[ "$*" =~ $allowed ]]; then # do !not! quote regex
+			exec rsync "$@"
 			echo >&2 "Exec failed"
 			exit 1
 		fi
