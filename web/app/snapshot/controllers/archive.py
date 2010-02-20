@@ -203,7 +203,7 @@ class ArchiveController(BaseController):
         return render('/archive-dir.mako')
 
 
-    def _dateok(self, datestr):
+    def _dateok(self, date):
         try:
             time.strptime(date, "%Y%m%d")
             return True
