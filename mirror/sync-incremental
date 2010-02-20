@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+set -u
+
+CONF="$HOME/etc/snapshot.conf"
+BASE="$HOME/code"
+
+if [ "${1-}" = "--verbose" ]; then
+	v="--verbose"
+else
+	v=""
+fi
+
+SYNC_REQUIRED="$HOME/var/sync-required"
+LOCKFILE="$HOME/var/sync.lock"
+
+touch "$SYNC_REQUIRED"
+
+if ! lockfile -r 0 -l $(( 4 * 60 * 60)) "$LOCKFILE" 2>/dev/null; then
+	exit
+fi
+trap "rm -f '$LOCKFILE'" EXIT
+
+while [ -e "$SYNC_REQUIRED" ] ; do
+	rm -f "$SYNC_REQUIRED"
+
+	rsync -az snapshot-master.debian.org:dumps/ "$HOME"/stabile-dumps/ $v
+
+	$BASE/mirror/import-new-dumps -c "$CONF" -s ~/code/snapshot $v &
+	$BASE/mirror/farm-journal-fetch-tarball -c "$CONF" $v &
+	wait
+
+	$BASE/snapshot --config "$CONF" --verbose --quick index
+done
