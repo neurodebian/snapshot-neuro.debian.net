@@ -113,10 +113,10 @@ Missing wanted features:
        chars in template variables.
    - handle 'bobby tables' as datestring in urls
 
- . Write some scripts to help setting up a mirror.  This should be easy
+ o Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject
    mirrorruns without having to dump/reload the entire DB.
-   - keep a journal of recently added farm entries and use this for farm
+   o keep a journal of recently added farm entries and use this for farm
      syncing.  This will make syncing much faster than rsyncing the whole
      tree, which still can (and should) be done regularly as a safety net.
 
