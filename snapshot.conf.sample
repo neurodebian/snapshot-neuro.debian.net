@@ -14,6 +14,7 @@ db-ro:
   user: guest
 dump:
   dumppath: /srv/snapshot/dumps
+  incoming-dumppath: /srv/snapshot/dumps
 snapshot:
   farmpath: /srv/snapshot/farm2
 log:
