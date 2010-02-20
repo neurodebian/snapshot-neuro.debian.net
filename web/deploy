@@ -26,7 +26,7 @@ find "$HOME"/code/web/app/Snapshot.egg-info -mindepth 1 -print0 | xargs -0 rm -v
 [ -d "$HOME/web" ] || mkdir "$HOME/web"
 [ -e "$HOME/web/public" ] || ln -s ../web-app/lib/python2.5/site-packages/snapshot/public "$HOME/web/public"
 [ -d "$HOME/web-cache" ] || mkdir -m 01777 "$HOME/web-cache"
-[ -d "$HOME/bin" ] || mkdir -m 01777 "$HOME/bin"
+[ -d "$HOME/bin" ] || mkdir "$HOME/bin"
 [ -e "$HOME/bin/snapshot.wsgi" ] || ln -s ../code/web/snapshot.wsgi "$HOME/bin/"
 
 echo
