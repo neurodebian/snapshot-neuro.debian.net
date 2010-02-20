@@ -1,0 +1,86 @@
+#!/usr/bin/python
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+import sys
+import yaml
+import optparse
+import os
+import subprocess
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
+from dbhelper import DBHelper
+
+def get_dump_uuid(d):
+    f = open(d)
+    for line in f:
+        s = line.split(None, 1)
+        if len(s) < 2: continue
+        key = s[0].rstrip(':')
+        value = s[1].rstrip()
+        if key.upper() == 'UUID': return value
+    return None
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog --config=<conffile>")
+parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
+  help="Config file location.")
+parser.add_option("-v", "--verbose", action="store_true",
+  help="Be verbose.")
+parser.add_option("-s", "--snapshot", action="store", metavar="PATH", default='snapshot',
+  help="Path to the snapshot script.")
+
+(options, args) = parser.parse_args()
+if options.conffile is None:
+    parser.print_help()
+    sys.exit(1)
+
+config = yaml.load(open(options.conffile).read())
+db = DBHelper(config['db']['connectstring'])
+os.chdir(config['dump']['dumppath'])
+
+if not os.path.exists(options.snapshot) or not os.access(options.snapshot, os.X_OK):
+    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.snapshot))
+    sys.exit(1)
+
+pending_import = []
+files = os.listdir('.')
+files.sort(lambda a, b: int(a) - int(b))
+for d in files:
+    uuid = get_dump_uuid(d)
+    row = db.query_one('SELECT mirrorrun_id FROM mirrorrun WHERE mirrorrun_uuid=%(uuid)s', {'uuid': uuid})
+    if row is None:
+        pending_import.append(d)
+db.close()
+
+for d in pending_import:
+    if options.verbose: print "Doing %s."%(d)
+    c = [options.snapshot, '-c', options.conffile, '-p', d, '--quick', 'import-dump']
+    if options.verbose: c.append('--verbose')
+    subprocess.check_call(c)
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
