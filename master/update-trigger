@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e
+set -u
+
+if [ -e /srv/snapshot.debian.org/IGNORE-UPDATE-TRIGGERS ]; then
+	echo "Found IGNORE-UPDATE-TRIGGERS.  exiting."
+	exit 0
+fi
+
+if [ -z "${1:-""}" ]; then
+	echo "Usage: $0 <archivepath>" >&2
+	exit 1
+fi
+
+
+archive="$1"
+archive="${archive##/srv/mirrors/}"
+archive="${archive%%/}"
+
+logger -p user.info -t "snapshot-update-trugger" "Import run for $archive"
+
+env -i /srv/snapshot.debian.org/bin/import-run "$archive"

@@ -1,0 +1,46 @@
+#!/bin/sh
+
+set -e
+set -u
+
+PATH="/usr/bin:/bin:/srv/snapshot.debian.org/bin"
+export TZ=UTC
+umask 022
+
+BASE="/srv/snapshot.debian.org"
+CONFIG="$BASE/etc/snapshot.conf"
+
+
+if [ "${2:-""}" = "-v" ] ; then
+	verbose="--verbose"
+else
+	verbose=""
+fi
+
+archive="${1:-""}"
+
+#IGNORES="--ignore /Archive-Update-in-Progress-stabile.debian.org --ignore /Archive-Update-Required-stabile.debian.org"
+case "$archive" in
+	"debian"|"debian-security"|"debian-volatile"|"debian-archive"|"backports.org")
+		force_slow_flag="/srv/snapshot.debian.org/FORCE-SLOW-$archive"
+		if [ -e "$force_slow_flag" ]; then
+			quick=""
+		else
+			quick="--quick"
+		fi
+		snapshot import --config "$CONFIG" --archive "$archive" --path /srv/mirrors/"$archive" $quick $verbose
+		rm -f "$force_slow_flag"
+		snapshot dumpall --config "$CONFIG"
+
+		ssh -i "$BASE"/.ssh/id-trigger -f sibelius : overridden < /dev/null > /dev/null 2>&1 &
+
+		snapshot index --config "$CONFIG" --quick $verbose
+
+		ls -l "$BASE"/fuse/.ctrl-reload-database > /dev/null 2>&1 || true
+
+		;;
+	*)
+		echo "No/Unknown archive given: archive" >&2
+		exit 1
+esac
+
