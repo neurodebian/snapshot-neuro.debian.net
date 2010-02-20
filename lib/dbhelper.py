@@ -48,6 +48,9 @@ class DBHelper:
             return None
         return all[0]
 
+    def close(self):
+        self.db.close()
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
