@@ -23,5 +23,13 @@ mkdir -v -p "$PYTARGET"
 find "$HOME"/code/web/app/Snapshot.egg-info -mindepth 1 -print0 | xargs -0 rm -v
 (cd "$HOME"/code/web/app  && PYTHONPATH="$PYTARGET" python setup.py install --single-version-externally-managed --record /dev/null --prefix="$TARGET")
 
+if ! [ -e "$HOME/web" ]; then
+	mkdir "$HOME/web"
+	ln -s ../web-app/lib/python2.5/site-packages/snapshot/public "$HOME/web/public"
+fi
+if ! [ -e "$HOME/web-cache" ]; then
+	mkdir -m 01777 "$HOME/web-cache"
+fi
+
 echo
 echo "If you do not have a config yet, run 'PYTHONPATH="$PYTARGET" paster make-config snapshot ~/etc/web-app.ini.NEW'"
