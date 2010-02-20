@@ -1221,6 +1221,7 @@ class PackageIndexer
 				@db.commit
 			end
 		end
+		$logger.info("Indexing done")
 	end
 end
 
