@@ -203,14 +203,28 @@ class ArchiveController(BaseController):
         return render('/archive-dir.mako')
 
 
+    def _dateok(self, datestr):
+        try:
+            time.strptime(date, "%Y%m%d")
+            return True
+        except ValueError:
+            pass
+
+        try:
+            time.strptime(date, "%Y%m%dT%H%M%S")
+            return True
+        except ValueError:
+            pass
+
+        if date == "now": return True
+        return False
+
     def dir(self, archive, date, url):
         try:
             etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
 
-            if not re.match('\d{8}$', date) and \
-               not re.match('\d{8}T\d{6}', date) and \
-               not date == "now": # match matches only at start of string
-                abort(404, 'Invalid date string - nothing to be found there.')
+            if not self._dateok(date):
+                abort(404, 'Invalid date string - nothing to be found here.')
 
             run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:
