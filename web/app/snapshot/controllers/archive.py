@@ -204,17 +204,19 @@ class ArchiveController(BaseController):
 
 
     def _dateok(self, date):
-        try:
-            time.strptime(date, "%Y%m%d")
-            return True
-        except ValueError:
-            pass
+        if re.match('\d{8}$', date):
+            try:
+                time.strptime(date, "%Y%m%d")
+                return True
+            except ValueError:
+                pass
 
-        try:
-            time.strptime(date, "%Y%m%dT%H%M%S")
-            return True
-        except ValueError:
-            pass
+        if re.match('\d{8}T\d{6}', date):
+            try:
+                time.strptime(date, "%Y%m%dT%H%M%S")
+                return True
+            except ValueError:
+                pass
 
         if date == "now": return True
         return False
