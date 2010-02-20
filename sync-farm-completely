@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -u
+
+if [ "${1-}" = "--verbose" ]; then
+	v="--verbose"
+else
+	v=""
+fi
+
+c=""
+h="0 1 2 3 4 5 6 7 8 9 a b c d e f"
+for i in $h; do
+	for j in $h; do
+		c="$c $i$j"
+	done
+done
+
+cd "$HOME"
+for i in $c; do
+	! [ -n "$v" ] || echo "Doing $i"
+	rsync -az $v snapshot-master.debian.org:farm/$i/ ./farm/$i/
+done
