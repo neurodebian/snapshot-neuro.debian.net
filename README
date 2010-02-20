@@ -101,7 +101,7 @@ Missing wanted features:
       transaction)
    - find list of hashes referenced in the DB but not in the farm.
 
- . Write a nice web frontend.
+ o Write a nice web frontend.
    o handle symlinks (in the database stat() function)
    o make breadcrumbs useful links
    o packages
@@ -111,7 +111,7 @@ Missing wanted features:
      x or add some layer that copies stuff to the template context doing that
      * pylons 0.9.7's mako config automatically escapes any special
        chars in template variables.
-   - handle 'bobby tables' as datestring in urls
+   o handle 'bobby tables' as datestring in urls
 
  o Write some scripts to help setting up a mirror.  This should be easy
    given that our farm is easy to rsync and we (will) have a way to inject

@@ -207,6 +207,11 @@ class ArchiveController(BaseController):
         try:
             etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
 
+            if not re.match('\d{8}$', date) and \
+               not re.match('\d{8}T\d{6}', date) and \
+               not date == "now": # match matches only at start of string
+                abort(404, 'Invalid date string - nothing to be found there.')
+
             run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:
                 abort(404, 'No mirrorrun found at this date.')
