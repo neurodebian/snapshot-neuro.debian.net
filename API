@@ -8,6 +8,7 @@ output is json
 
 URL: /package
 summary: list source package names
+http status codes: 200 500 304
 output: a list of hashes.  each hash has at least a 'package' key with one source package name
 {   '_comment': "yadayadayda",
     'packages':
@@ -18,6 +19,7 @@ output: a list of hashes.  each hash has at least a 'package' key with one sourc
 }
 
 URL: /package/<package>
+http status codes: 200 500 404 304
 summary: list all available source versions for this package
 {   '_comment': "yadayadayda",
     'package': "tor",
@@ -30,6 +32,7 @@ summary: list all available source versions for this package
 }
 
 URL: /package/<package>/<version>/srcfiles
+http status codes: 200 500 404 304
 summary: list all source files associated with this package at that version
 {   '_comment': "yadayadayda",
     'package': "tor",
@@ -43,6 +46,7 @@ summary: list all source files associated with this package at that version
 }
 
 URL: /package/<package>/<version>/binpackages
+http status codes: 200 500 404 304
 summary: list all binary packages associated with this source package at that version
 {   '_comment': "yadayadayda",
     'package': "tor",
@@ -56,6 +60,7 @@ summary: list all binary packages associated with this source package at that ve
 }
 
 URL: /package/<package>/<version>/binfiles/<binpkg>/<binversion>
+http status codes: 200 500 404 304
 summary: list all files associated with a binary package
 {   '_comment': "yadayadayda",
     'package': "tor",
@@ -71,6 +76,7 @@ summary: list all files associated with a binary package
 }
 
 URL: /package/<package>/<version>/allfiles
+http status codes: 200 500 404 304
 summary: list all files associated with this source package at that version
 {   '_comment': "yadayadayda",
     'package': "tor",
@@ -92,9 +98,11 @@ summary: list all files associated with this source package at that version
 }
 
 URL: /file/<hash>
+http status codes: 200 500 404 403 304
 [return the file]
 
 URL: /file/<hash>/info
+http status codes: 200 500 404 304
 {   '_comment': "yadayadayda",
     'hash': "bae0f2e5bbedf1fcbdc88061f3f5b1f916824522",
     'seen':
