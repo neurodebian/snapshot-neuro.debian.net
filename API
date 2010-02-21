@@ -1,0 +1,125 @@
+machine readable output API
+
+stuff is available at http://$host/mr/$url
+output is json
+
+
+
+
+URL: /package
+summary: list source package names
+output: a list of hashes.  each hash has at least a 'package' key with one source package name
+{   '_comment': "yadayadayda",
+    'packages':
+        [   { 'package': "eglibc" },
+            { 'package': "tor" }
+            ...
+        ]
+}
+
+URL: /package/<package>
+summary: list all available source versions for this package
+{   '_comment': "yadayadayda",
+    'package': "tor",
+    'versions': 
+        [   { 'version': "0.1.2.20-1" },
+            { 'version': "0.1.2.20-2" },
+            { 'version': "0.1.2.21-1" },
+            ...
+        ]
+}
+
+URL: /package/<package>/<version>/srcfiles
+summary: list all source files associated with this package at that version
+{   '_comment': "yadayadayda",
+    'package': "tor",
+    'version': "0.1.2.20-1",
+    'files': 
+        [   { 'hash': "4955b5f663b9dccc84d7c264da9c483330ed3fdf" },
+            { 'hash': "b4e15cbc18155955311207a3b5db0aeb6680ecaf" },
+            { 'hash': "3beaecd47f4c0d3d5d182ef8d47166a81f9f62eb" },
+            ...
+        ]
+}
+
+URL: /package/<package>/<version>/binpackages
+summary: list all binary packages associated with this source package at that version
+{   '_comment': "yadayadayda",
+    'package': "tor",
+    'version': "0.2.1.22-1",
+    'binary-packages': 
+        [   { 'name": 'tor'      , 'version': '0.2.1.22-1' },
+            { 'name": 'tor-dbg'  , 'version': '0.2.1.22-1' },
+            { 'name": 'tor-geoip', 'version': '0.2.1.22-1' },
+            ...
+        ]
+}
+
+URL: /package/<package>/<version>/binfiles/<binpkg>/<binversion>
+summary: list all files associated with a binary package
+{   '_comment': "yadayadayda",
+    'package': "tor",
+    'version': "0.2.1.22-1",
+    'binary-package': "tor",
+    'binary-version': '0.2.1.22-1',
+    'binary-files'
+        [   { 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
+            { 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
+            { 'architecture': 'mips', hash: 'a2bfcdb202331e52b0a50cbce02623083328237e' },
+            ...
+        ]
+}
+
+URL: /package/<package>/<version>/allfiles
+summary: list all files associated with this source package at that version
+{   '_comment': "yadayadayda",
+    'package': "tor",
+    'version': "0.2.1.22-1",
+    'source':
+        [   { 'hash': "4955b5f663b9dccc84d7c264da9c483330ed3fdf" },
+            { 'hash': "b4e15cbc18155955311207a3b5db0aeb6680ecaf" },
+            { 'hash': "3beaecd47f4c0d3d5d182ef8d47166a81f9f62eb" },
+            ..
+        ]
+    'binary':
+        [   { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
+            { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
+            { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'mips', hash: 'a2bfcdb202331e52b0a50cbce02623083328237e' },
+                        ...
+            { 'name": 'tor-geoipdb', 'version': '0.2.1.22-1', 'architecture': 'all', hash: '1d8b7383b100f00a1b99664dd38914081e929aaf' },
+        ...
+        ]
+}
+
+URL: /file/<hash>
+[return the file]
+
+URL: /file/<hash>/info
+{   '_comment': "yadayadayda",
+    'hash': "bae0f2e5bbedf1fcbdc88061f3f5b1f916824522",
+    'seen':
+        [   {   'archive': 'debian-security',
+                'name': 'xulrunner_1.9.0.12.orig.tar.gz',
+                'path': '/pool/updates/main/x/xulrunner',
+                'size': 43962222,
+                'first-seen': 2009-07-23 10:10:51,
+                'last-seen': 2009-08-30 12:13:40 },
+            {   'archive': 'debian',
+                'name': 'iceweasel_3.0.12.orig.tar.gz',
+                'path': '/pool/main/i/iceweasel',
+                'size': 43962222,
+                'first-seen': 2009-08-01 19:23:39,
+                'last-seen': 2009-09-24 10:43:13 },
+            {   'archive': 'debian',
+                'name': 'xulrunner_1.9.0.12.orig.tar.gz',
+                'path': '/pool/main/x/xulrunner',
+                'size': 43962222,
+                'first-seen': 2009-08-01 19:23:39
+                'last-seen': 2009-08-30 04:26:06 },
+       ]
+}
+
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
