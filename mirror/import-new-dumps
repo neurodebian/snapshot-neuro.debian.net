@@ -80,7 +80,3 @@ for d in pending_import:
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
-
-# vim:set et:
-# vim:set ts=4:
-# vim:set shiftwidth=4:
