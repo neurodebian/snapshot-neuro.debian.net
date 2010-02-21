@@ -53,14 +53,11 @@ Gaming</a> for providing hardware and hosting for this service.
 </p>
 
 <h1>News</h1>
-<h2>2010-01-21</h2>
+<h2>2010-02-20</h2>
 <p>
-Syncing stuff to sibelius.
-</p>
-
-<h2>2010-01-01</h2>
-<p>
-It is 2010 now.
+Finished set up of mirroring scripts.  While snapshot-master (stabile) still is
+the entity importing new snapshots into the system all the data is now replicated
+to a secondary site (sibelius).  The web front-end runs on both of them.
 </p>
 
 </div>
