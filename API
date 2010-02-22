@@ -11,7 +11,7 @@ summary: list source package names
 http status codes: 200 500 304
 output: a list of hashes.  each hash has at least a 'package' key with one source package name
 {   '_comment': "yadayadayda",
-    'packages':
+    'result':
         [   { 'package': "eglibc" },
             { 'package': "tor" }
             ...
@@ -23,7 +23,7 @@ http status codes: 200 500 404 304
 summary: list all available source versions for this package
 {   '_comment': "yadayadayda",
     'package': "tor",
-    'versions': 
+    'result':
         [   { 'version': "0.1.2.20-1" },
             { 'version': "0.1.2.20-2" },
             { 'version': "0.1.2.21-1" },
@@ -37,7 +37,7 @@ summary: list all source files associated with this package at that version
 {   '_comment': "yadayadayda",
     'package': "tor",
     'version': "0.1.2.20-1",
-    'files': 
+    'result':
         [   { 'hash': "4955b5f663b9dccc84d7c264da9c483330ed3fdf" },
             { 'hash': "b4e15cbc18155955311207a3b5db0aeb6680ecaf" },
             { 'hash': "3beaecd47f4c0d3d5d182ef8d47166a81f9f62eb" },
@@ -51,7 +51,7 @@ summary: list all binary packages associated with this source package at that ve
 {   '_comment': "yadayadayda",
     'package': "tor",
     'version': "0.2.1.22-1",
-    'binary-packages': 
+    'result':
         [   { 'name": 'tor'      , 'version': '0.2.1.22-1' },
             { 'name": 'tor-dbg'  , 'version': '0.2.1.22-1' },
             { 'name": 'tor-geoip', 'version': '0.2.1.22-1' },
@@ -65,9 +65,9 @@ summary: list all files associated with a binary package
 {   '_comment': "yadayadayda",
     'package': "tor",
     'version': "0.2.1.22-1",
-    'binary-package': "tor",
+    'binary': "tor",
     'binary-version': '0.2.1.22-1',
-    'binary-files'
+    'result':
         [   { 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
             { 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
             { 'architecture': 'mips', hash: 'a2bfcdb202331e52b0a50cbce02623083328237e' },
@@ -81,20 +81,32 @@ summary: list all files associated with this source package at that version
 {   '_comment': "yadayadayda",
     'package': "tor",
     'version': "0.2.1.22-1",
-    'source':
-        [   { 'hash': "4955b5f663b9dccc84d7c264da9c483330ed3fdf" },
-            { 'hash': "b4e15cbc18155955311207a3b5db0aeb6680ecaf" },
-            { 'hash': "3beaecd47f4c0d3d5d182ef8d47166a81f9f62eb" },
-            ..
-        ]
-    'binary':
-        [   { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
-            { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
-            { 'name": 'tor', 'version': '0.2.1.22-1', 'architecture': 'mips', hash: 'a2bfcdb202331e52b0a50cbce02623083328237e' },
-                        ...
-            { 'name": 'tor-geoipdb', 'version': '0.2.1.22-1', 'architecture': 'all', hash: '1d8b7383b100f00a1b99664dd38914081e929aaf' },
-        ...
-        ]
+    'result': {
+        'source':
+            [   { 'hash': "4955b5f663b9dccc84d7c264da9c483330ed3fdf" },
+                { 'hash': "b4e15cbc18155955311207a3b5db0aeb6680ecaf" },
+                { 'hash': "3beaecd47f4c0d3d5d182ef8d47166a81f9f62eb" },
+                ..
+            ]
+        'binaries':
+            [   { 'name": 'tor',
+                  'version': '0.2.1.22-1',
+                  'files':
+                      [   { 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
+                          { 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
+                          ..
+                      ]
+                },
+                { 'name": 'tor-geoipdb',
+                  'version': '0.2.1.22-1',
+                  'files':
+                      [   { 'architecture': 'all', hash: '1d8b7383b100f00a1b99664dd38914081e929aaf' },
+                          ..
+                      ]
+                },
+            ...
+            ]
+    }
 }
 
 URL: /file/<hash>
