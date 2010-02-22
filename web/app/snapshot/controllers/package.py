@@ -56,7 +56,7 @@ class PackageController(BaseController):
             return redirect_to(unicode_encode(request.params['src'] + "/"))
         elif 'cat' in request.params:
             try:
-                etag_cache( g.shm.packages_get_etag(self._db()) )
+                #etag_cache( g.shm.packages_get_etag(self._db()) )
                 set_expires(int(config['app_conf']['expires.package.root_cat']))
 
                 start = request.params['cat']
@@ -75,7 +75,7 @@ class PackageController(BaseController):
 
     def source(self, source):
         try:
-            etag_cache( g.shm.packages_get_etag(self._db()) )
+            #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))
 
             sourceversions = g.shm.packages_get_source_versions(self._db(), source)
@@ -96,7 +96,7 @@ class PackageController(BaseController):
 
     def source_version(self, source, version):
         try:
-            etag_cache( g.shm.packages_get_etag(self._db()) )
+            #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source_version']))
 
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)

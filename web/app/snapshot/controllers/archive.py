@@ -62,7 +62,7 @@ class ArchiveController(BaseController):
 
     def archive_base(self, archive):
         try:
-            etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            #etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
             set_expires(int(config['app_conf']['expires.archive.index']))
 
             if 'year' in request.params and 'month' in request.params:
@@ -223,7 +223,7 @@ class ArchiveController(BaseController):
 
     def dir(self, archive, date, url):
         try:
-            etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            #etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
 
             if not self._dateok(date):
                 abort(404, 'Invalid date string - nothing to be found here.')
