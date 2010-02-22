@@ -26,7 +26,7 @@ def upgrade(db):
     db.execute("""
         CREATE TABLE removal_log (
             removal_log_id    SERIAL          PRIMARY KEY,
-            when              TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            entry_added       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
             reason            TEXT
         )
     """)
