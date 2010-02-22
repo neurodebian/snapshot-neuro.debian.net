@@ -10,6 +10,8 @@ from snapshot.lib.control_helpers import *
 import os.path
 import re
 import urllib
+from pylons.decorators import jsonify
+#import simplejson
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +106,7 @@ class PackageController(BaseController):
 
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
-                abort(404, 'No source or binary packages foun')
+                abort(404, 'No source or binary packages found')
 
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'],
@@ -113,7 +115,7 @@ class PackageController(BaseController):
                                       'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
             binhashes = []
             for binpkg in binpkgs:
-                binpkg['files'] = g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id'])
+                binpkg['files'] = map(lambda x: x['hash'], g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 binhashes += binpkg['files']
 
             fileinfo = {}
@@ -137,6 +139,101 @@ class PackageController(BaseController):
             return render('/package-source-one.mako')
         finally:
             self._db_close()
+
+
+
+
+    @jsonify
+    def mr_list(self):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.list']))
+            pkgs = g.shm.packages_get_all(self._db())
+            return { '_comment': "foo",
+                     'result': map(lambda x: { 'package': x }, pkgs) }
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_source(self, source):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source']))
+            sourceversions = g.shm.packages_get_source_versions(self._db(), source)
+            if len(sourceversions) == 0: abort(404, 'No such source package')
+            return { '_comment': "foo",
+                     'package': source,
+                     'result': map(lambda x: { 'version': x }, sourceversions) }
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_source_version_srcfiles(self, source, version):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source_version']))
+            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
+            if len(sourcefiles) == 0: abort(404, 'No such source package or no sources found')
+            return { '_comment': "foo",
+                     'package': source,
+                     'version': version,
+                     'result': map(lambda x: { 'hash': x }, sourcefiles) }
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_source_version_binpackages(self, source, version):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source_version']))
+            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            if len(binpkgs) == 0: abort(404, 'No such source package or no binary packages found')
+            binpkgs = map(lambda b: { 'name':      b['name'],
+                                      'version':   b['version'] }, binpkgs)
+            return { '_comment': "foo",
+                     'package': source,
+                     'version': version,
+                     'result': binpkgs }
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_source_version_binfiles(self, source, version, binary, binary_version):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source_version']))
+            binfiles = g.shm.packages_get_binary_files_from_packagenames(self._db(), source, version, binary, binary_version)
+            if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
+            binfiles = map(lambda b: { 'architecture': b['architecture'],
+                                       'hash':         b['hash'] }, binfiles)
+            return { '_comment': "foo",
+                     'package': source,
+                     'version': version,
+                     'binary': binary,
+                     'binary_version': binary_version,
+                     'result': binfiles }
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_source_version_allfiles(self, source, version):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source_version']))
+            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
+            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            # we may have binaries without sources.
+            if len(sourcefiles) == 0 and len(binpkgs) == 0:
+                abort(404, 'No source or binary packages found')
+            binpkgs = map(lambda b: { 'name':      b['name'],
+                                      'version':   b['version'],
+                                      'binpkg_id': b['binpkg_id'] }, binpkgs)
+            for binpkg in binpkgs:
+                binpkg['files'] = map(lambda x: { 'hash': x['hash'], 'architecture': x['architecture'] }, g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
+                del binpkg['binpkg_id']
+
+            return { '_comment': "foo",
+                     'package': source,
+                     'version': version,
+                     'result': { 'source': sourcefiles, 'binaries': binpkgs }
+                   }
+        finally:
+            self._db_close()
+
 
 
 # vim:set et:

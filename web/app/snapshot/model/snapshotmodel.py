@@ -274,12 +274,26 @@ class SnapshotModel:
         return rows
 
     def packages_get_binary_files_from_id(self, db, binpkg_id):
-        rows = db.query("""SELECT hash
+        rows = db.query("""SELECT hash, architecture
                            FROM file_binpkg_mapping
                            WHERE binpkg_id=%(binpkg_id)s
                            ORDER BY architecture""",
                 { 'binpkg_id': binpkg_id } )
-        return map(lambda x: x['hash'], rows)
+        return rows
+
+    def packages_get_binary_files_from_packagenames(self, db, source, version, binary, binary_version):
+        rows = db.query("""SELECT file_binpkg_mapping.architecture, file_binpkg_mapping.hash
+                           FROM file_binpkg_mapping
+                                JOIN binpkg ON file_binpkg_mapping.binpkg_id = binpkg.binpkg_id
+                           WHERE binpkg.srcpkg_id = (SELECT srcpkg_id FROM srcpkg WHERE name=%(source)s AND version=%(version)s)
+                                 AND binpkg.name = %(binary)s
+                                 AND binpkg.version = %(binary_version)s
+                           """,
+                { 'source': source,
+                  'version': version,
+                  'binary': binary,
+                  'binary_version': binary_version } )
+        return rows
 
     def packages_get_file_info(self, db, hash):
         rows = db.query("""SELECT
@@ -316,6 +330,10 @@ class SnapshotModel:
         else:
             rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s ORDER BY name""",
                             {'start': start+"%" })
+        return map(lambda x: x['name'], rows)
+
+    def packages_get_all(self, db):
+        rows = db.query("""SELECT DISTINCT name FROM srcpkg""")
         return map(lambda x: x['name'], rows)
 
 # vim:set et:

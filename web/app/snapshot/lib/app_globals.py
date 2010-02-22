@@ -28,6 +28,9 @@ class Globals(object):
         self.pool = PooledDB(psycopg2, 5, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
+        for key in ('expires.package.mr.list', 'expires.package.mr.source', 'expires.package.mr.source_version'):
+            if not key in config['app_conf']: config['app_conf'][key] = 5
+
         try:
             self.thishost = open('/etc/hostname').read()
         except:

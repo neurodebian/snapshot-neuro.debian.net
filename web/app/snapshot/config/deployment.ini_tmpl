@@ -40,6 +40,10 @@ expires.package.root_cat = 600
 expires.package.source = 600
 expires.package.source_version = 600
 
+expires.package.mr.list = 3600
+expires.package.mr.source = 600
+expires.package.mr.source_version = 600
+
 # If you'd like to fine-tune the individual locations of the cache data dirs
 # for the Cache data, or the Session saves, un-comment the desired settings
 # here:
