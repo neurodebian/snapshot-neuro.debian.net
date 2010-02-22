@@ -28,6 +28,11 @@ class Globals(object):
         self.pool = PooledDB(psycopg2, 5, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
+        try:
+            self.thishost = open('/etc/hostname').read()
+        except:
+            self.thishost = 'unknown'
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:

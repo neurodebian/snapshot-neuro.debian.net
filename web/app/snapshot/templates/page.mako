@@ -55,7 +55,7 @@ ${self.body()}
 				import datetime
 				now = datetime.datetime.now()
 			%>
-			Built at ${now}
+			Built at ${now} on ${g.thishost}
 			<br />
 			<a href="http://validator.w3.org/check?uri=referer">validate</a>
 		</div>
