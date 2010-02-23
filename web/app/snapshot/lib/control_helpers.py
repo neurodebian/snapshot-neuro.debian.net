@@ -7,7 +7,7 @@ import datetime
 from webob.exc import HTTPNotModified
 import urllib
 
-def urlify_timestamp(ts):
+def rfc3339_timestamp(ts):
     return ts.strftime('%Y%m%dT%H%M%SZ')
 
 def build_url_archive(archive, ts=None, path=None, isadir=True):
@@ -20,7 +20,7 @@ def build_url_archive(archive, ts=None, path=None, isadir=True):
     if not ts:
         return url
 
-    url += urlify_timestamp(ts) + '/'
+    url += rfc3339_timestamp(ts) + '/'
 
     if not path:
         return url

@@ -103,7 +103,7 @@ class ArchiveController(BaseController):
             c.runs = map(lambda r:
                             { 'run'   : r['run'],
                               # make a machine readable version of a timestamp
-                              'run_mr': urlify_timestamp(r['run'])
+                              'run_mr': rfc3339_timestamp(r['run'])
                             }, runs)
             c.title = '%s:%s-%02d'%(archive, year, int(month))
             return render('/archive-runs.mako')
@@ -144,7 +144,7 @@ class ArchiveController(BaseController):
             crumbs.append( { 'url': url+"?year=%d&month=%d"%ym, 'name': '(%d-%02d)'%ym });
 
         if run:
-            url += urlify_timestamp(run['run']) + '/'
+            url += rfc3339_timestamp(run['run']) + '/'
             crumbs.append( { 'url': url, 'name': run['run'] });
 
             if path and path != '/':
@@ -157,7 +157,7 @@ class ArchiveController(BaseController):
         return crumbs
 
     def _dir_helper(self, archive, run, stat):
-        realpath = os.path.join('/archive', archive, urlify_timestamp(run['run']), stat['path'].strip('/'), '')
+        realpath = os.path.join('/archive', archive, rfc3339_timestamp(run['run']), stat['path'].strip('/'), '')
         if realpath != request.environ['PATH_INFO']:
             request.environ['PATH_INFO'] = realpath
             url = construct_url(request.environ)
@@ -195,7 +195,7 @@ class ArchiveController(BaseController):
 
         for key in c.nav.keys():
             if not c.nav[key] is None:
-                c.nav[key+'_link'] = os.path.join('/archive', archive, urlify_timestamp(c.nav[key]), stat['path'].strip('/'), '')
+                c.nav[key+'_link'] = os.path.join('/archive', archive, rfc3339_timestamp(c.nav[key]), stat['path'].strip('/'), '')
 
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
         set_expires(int(config['app_conf']['expires.archive.dir']))
