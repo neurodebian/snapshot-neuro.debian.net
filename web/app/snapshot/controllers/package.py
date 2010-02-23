@@ -108,13 +108,11 @@ class PackageController(BaseController):
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
                 abort(404, 'No source or binary packages found')
 
-            binpkgs = map(lambda b: { 'name':      b['name'],
-                                      'version':   b['version'],
-                                      'escaped_name': self._attribute_escape(b['name']),
-                                      'escaped_version': self._attribute_escape(b['version']),
-                                      'binpkg_id': b['binpkg_id'] }, binpkgs) # real dict, not psycopg2 thing
+            binpkgs = map(lambda b: dict(b), binpkgs)
             binhashes = []
             for binpkg in binpkgs:
+                binpkg['escaped_name'] = self._attribute_escape(binpkg['name'])
+                binpkg['escaped_version'] = self._attribute_escape(binpkg['version'])
                 binpkg['files'] = map(lambda x: x['hash'], g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 binhashes += binpkg['files']
 
@@ -122,7 +120,7 @@ class PackageController(BaseController):
             for hash in sourcefiles + binhashes:
                 fileinfo[hash] = g.shm.packages_get_file_info(self._db(), hash)
             for hash in fileinfo:
-                fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash]) # copy fileinfo into a real dict, not a psycopg2 pseudo dict
+                fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash])
                 for fi in fileinfo[hash]:
                     fi['dirlink'] = build_url_archive(fi['archive_name'], fi['run'], fi['path'])
                     fi['link'] = build_url_archive(fi['archive_name'], fi['run'], os.path.join(fi['path'], fi['name']), isadir=False )
@@ -212,8 +210,7 @@ class PackageController(BaseController):
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             binfiles = g.shm.packages_get_binary_files_from_packagenames(self._db(), source, version, binary, binary_version)
             if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
-            binfiles = map(lambda b: { 'architecture': b['architecture'],
-                                       'hash':         b['hash'] }, binfiles)
+            binfiles = map(lambda b: dict(b), binfiles)
             r = { '_comment': "foo",
                      'package': source,
                      'version': version,
@@ -235,13 +232,11 @@ class PackageController(BaseController):
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
                 abort(404, 'No source or binary packages found')
-            binpkgs = map(lambda b: { 'name':      b['name'],
-                                      'version':   b['version'],
-                                      'binpkg_id': b['binpkg_id'] }, binpkgs)
+            binpkgs = map(lambda b: dict(b), binpkgs)
 
             binhashes = []
             for binpkg in binpkgs:
-                binpkg['files'] = map(lambda x: { 'hash': x['hash'], 'architecture': x['architecture'] }, g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
+                binpkg['files'] = map(lambda x: dict(x), g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 del binpkg['binpkg_id']
                 binhashes += map(lambda x: x['hash'], binpkg['files'])
 

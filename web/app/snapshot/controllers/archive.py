@@ -164,16 +164,9 @@ class ArchiveController(BaseController):
             raise HTTPMovedPermanently(url)
 
         list = g.shm.mirrorruns_readdir(self._db(), run['mirrorrun_id'], stat['path'])
-        list = map(lambda b: {
-                               'filetype'      : b['filetype'],
-                               'name'          : b['name'],
-                               'quoted_name'   : urllib.quote(b['name']),
-                               'size'          : b['size'],
-                               'target'        : b['target'],
-                               'first_run'     : b['first_run'],
-                               'last_run'      : b['last_run']
-                             }, list)
+        list = map(lambda b: dict(b), list)
         for e in list:
+            e['quoted_name'] = urllib.quote(e['name'])
             if not e['target'] is None:
                 e['quoted_target'] = urllib.quote(e['target'])
         if stat['path'] != '/':
