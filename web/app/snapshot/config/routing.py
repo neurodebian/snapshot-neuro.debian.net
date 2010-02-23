@@ -38,6 +38,9 @@ def make_map():
     map.connect('/mr/package/{source}/{version}/binfiles/{binary}/{binary_version}', controller='package', action='mr_source_version_binfiles')
     map.connect('/mr/package/{source}/{version}/allfiles', controller='package', action='mr_source_version_allfiles')
 
+    map.connect('/file/{hash}', controller='archive', action='file')
+    map.connect('/mr/file/{hash}/info', controller='package', action='mr_fileinfo')
+
     #map.connect('/{controller}/{action}')
     #map.connect('/{controller}/{action}/{id}')
 

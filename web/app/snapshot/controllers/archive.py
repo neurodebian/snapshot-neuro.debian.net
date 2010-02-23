@@ -26,13 +26,14 @@ log = logging.getLogger(__name__)
 expires_file = datetime.timedelta(seconds = int(config['app_conf']['expires.archive.file']))
 
 class SnapshotFileApp(FileApp):
-    def __init__(self, path, filename, digest):
-        (type, encoding) = mimetypes.guess_type(filename)
+    def __init__(self, path, digest, filename=None):
         h = {}
-        if not type is None:
-            h['Content-Type'] = type
-        if not encoding is None:
-            h['Content-Encoding'] = encoding
+        if not filename is None:
+            (type, encoding) = mimetypes.guess_type(filename)
+            if not type is None:
+                h['Content-Type'] = type
+            if not encoding is None:
+                h['Content-Encoding'] = encoding
         expires = datetime.datetime.now() + datetime.timedelta(seconds = int(config['app_conf']['expires.archive.file']))
         h['Expires'] = wsgiref.handlers.format_date_time( time.mktime( expires.timetuple() ))
         h['Cache-Control'] = 'public, max-age=%d'%int(config['app_conf']['expires.archive.file'])
@@ -110,10 +111,10 @@ class ArchiveController(BaseController):
         finally:
             self._db_close()
 
-    def _regular_file(self, stat):
+    def _regular_file(self, digest, visiblepath=None):
         try:
-            path = g.shm.get_filepath(self._db(), stat['digest'])
-            fa = SnapshotFileApp(path, stat['path'], stat['digest'])
+            realpath = g.shm.get_filepath(self._db(), digest)
+            fa = SnapshotFileApp(realpath, digest, visiblepath)
             return fa(request.environ, self.start_response)
         except os.error, error:
             if (error.errno == errno.ENOENT):
@@ -232,9 +233,16 @@ class ArchiveController(BaseController):
             if stat['filetype'] == 'd':
                 return self._dir_helper(archive, run, stat)
             elif stat['filetype'] == '-':
-                return self._regular_file(stat)
+                return self._regular_file(stat['digest'], stat['path'])
         finally:
             self._db_close()
+
+
+    def file(self, hash):
+        if re.match('[0-9a-f]{40}$', hash): # match matches only at start of string
+            return self._regular_file(hash)
+        else:
+            abort(404, 'Invalid hash format.')
 
 # vim:set et:
 # vim:set ts=4:

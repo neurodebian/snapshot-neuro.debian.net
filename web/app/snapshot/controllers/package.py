@@ -142,13 +142,15 @@ class PackageController(BaseController):
 
 
 
+    def _get_fileinfo_for_mr_one(self, hash):
+        fileinfo = map(lambda x: dict(x), g.shm.packages_get_file_info(self._db(), hash))
+        for fi in fileinfo:
+            fi['run'] = rfc3339_timestamp(fi['run'])
+        return fileinfo
     def _get_fileinfo_for_mr(self, hashes):
         r = {}
         for hash in hashes:
-            fileinfo = map(lambda x: dict(x), g.shm.packages_get_file_info(self._db(), hash))
-            for fi in fileinfo:
-                fi['run'] = rfc3339_timestamp(fi['run'])
-            r[hash] = fileinfo
+            r[hash] = self._get_fileinfo_for_mr_one(hash)
         return r
 
     @jsonify
@@ -247,6 +249,19 @@ class PackageController(BaseController):
                    }
             if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
                 r['fileinfo'] = self._get_fileinfo_for_mr(sourcefiles + binhashes)
+            return r
+        finally:
+            self._db_close()
+
+    @jsonify
+    def mr_fileinfo(self, hash):
+        if not re.match('[0-9a-f]{40}$', hash): # match matches only at start of string
+            abort(404, 'Invalid hash format.')
+
+        try:
+            return { '_comment': "foo",
+                     'hash': hash,
+                     'result': self._get_fileinfo_for_mr_one(hash) }
             return r
         finally:
             self._db_close()
