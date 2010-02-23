@@ -8,7 +8,7 @@ from webob.exc import HTTPNotModified
 import urllib
 
 def urlify_timestamp(ts):
-    return ts.strftime('%Y%m%dT%H%M%S')
+    return ts.strftime('%Y%m%dT%H%M%SZ')
 
 def build_url_archive(archive, ts=None, path=None, isadir=True):
     crumbs = []

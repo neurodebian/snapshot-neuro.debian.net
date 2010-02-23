@@ -211,9 +211,9 @@ class ArchiveController(BaseController):
             except ValueError:
                 pass
 
-        if re.match('\d{8}T\d{6}', date):
+        if re.match('\d{8}T\d{6}Z', date):
             try:
-                time.strptime(date, "%Y%m%dT%H%M%S")
+                time.strptime(date, "%Y%m%dT%H%M%SZ")
                 return True
             except ValueError:
                 pass
