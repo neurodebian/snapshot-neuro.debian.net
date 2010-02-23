@@ -143,6 +143,16 @@ class PackageController(BaseController):
 
 
 
+
+    def _get_fileinfo_for_mr(self, hashes):
+        r = {}
+        for hash in hashes:
+            fileinfo = map(lambda x: dict(x), g.shm.packages_get_file_info(self._db(), hash))
+            for fi in fileinfo:
+                fi['run'] = rfc3339_timestamp(fi['run'])
+            r[hash] = fileinfo
+        return r
+
     @jsonify
     def mr_list(self):
         try:
@@ -171,10 +181,13 @@ class PackageController(BaseController):
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
             if len(sourcefiles) == 0: abort(404, 'No such source package or no sources found')
-            return { '_comment': "foo",
+            r = { '_comment': "foo",
                      'package': source,
                      'version': version,
                      'result': map(lambda x: { 'hash': x }, sourcefiles) }
+            if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
+                r['fileinfo'] = self._get_fileinfo_for_mr(sourcefiles)
+            return r
         finally:
             self._db_close()
 
@@ -201,12 +214,15 @@ class PackageController(BaseController):
             if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
             binfiles = map(lambda b: { 'architecture': b['architecture'],
                                        'hash':         b['hash'] }, binfiles)
-            return { '_comment': "foo",
+            r = { '_comment': "foo",
                      'package': source,
                      'version': version,
                      'binary': binary,
                      'binary_version': binary_version,
                      'result': binfiles }
+            if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
+                r['fileinfo'] = self._get_fileinfo_for_mr(map(lambda x: x['hash'], binfiles))
+            return r
         finally:
             self._db_close()
 
@@ -222,15 +238,21 @@ class PackageController(BaseController):
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'],
                                       'binpkg_id': b['binpkg_id'] }, binpkgs)
+
+            binhashes = []
             for binpkg in binpkgs:
                 binpkg['files'] = map(lambda x: { 'hash': x['hash'], 'architecture': x['architecture'] }, g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 del binpkg['binpkg_id']
+                binhashes += map(lambda x: x['hash'], binpkg['files'])
 
-            return { '_comment': "foo",
+            r = { '_comment': "foo",
                      'package': source,
                      'version': version,
                      'result': { 'source': sourcefiles, 'binaries': binpkgs }
                    }
+            if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
+                r['fileinfo'] = self._get_fileinfo_for_mr(sourcefiles + binhashes)
+            return r
         finally:
             self._db_close()
 

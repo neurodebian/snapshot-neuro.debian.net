@@ -32,6 +32,7 @@ summary: list all available source versions for this package
 }
 
 URL: /package/<package>/<version>/srcfiles
+Options: fileinfo=1  includes fileinfo section
 http status codes: 200 500 404 304
 summary: list all source files associated with this package at that version
 {   '_comment': "yadayadayda",
@@ -60,6 +61,7 @@ summary: list all binary packages associated with this source package at that ve
 }
 
 URL: /package/<package>/<version>/binfiles/<binpkg>/<binversion>
+Options: fileinfo=1  includes fileinfo section
 http status codes: 200 500 404 304
 summary: list all files associated with a binary package
 {   '_comment': "yadayadayda",
@@ -76,6 +78,7 @@ summary: list all files associated with a binary package
 }
 
 URL: /package/<package>/<version>/allfiles
+Options: fileinfo=1  includes fileinfo section
 http status codes: 200 500 404 304
 summary: list all files associated with this source package at that version
 {   '_comment': "yadayadayda",
@@ -113,11 +116,11 @@ URL: /file/<hash>
 http status codes: 200 500 404 403 304
 [return the file]
 
-URL: /file/<hash>/info
+URL: /mr/file/<hash>/info
 http status codes: 200 500 404 304
 {   '_comment': "yadayadayda",
     'hash': "bae0f2e5bbedf1fcbdc88061f3f5b1f916824522",
-    'seen':
+    'result':
         [   {   'archive': 'debian-security',
                 'name': 'xulrunner_1.9.0.12.orig.tar.gz',
                 'path': '/pool/updates/main/x/xulrunner',
@@ -139,6 +142,29 @@ http status codes: 200 500 404 304
        ]
 }
 
+
+
+Fileinfo section:
+
+An additional block in the result hash, listing for each hash when it was seen
+similar to the result attribute in /file/<hash>/info's result:
+
+{   '_comment': 'foo',
+    'fileinfo':
+        {   '03bac2ae872d47ebaba2a7d90e242e89e420d33a': [{'archive_name': 'debian',
+                                                          'name': 'tor_0.2.1.23.orig.tar.gz',
+                                                          'path': '/pool/main/t/tor',
+                                                          'run': '20100215T155930Z',
+                                                          'size': 2396565}],
+            '0588383298e7fe2bfd62fd2838057489bfd3d2ac': [{'archive_name': 'debian',
+                                                          'name': 'tor_0.2.1.23-2_sparc.deb',
+                                                          'path': '/pool/main/t/tor',
+                                                          'run': '20100218T221946Z',
+                                                          'size': 1502742}],
+            ...
+            }
+    'result': ...
+}
 
 # vim:set et:
 # vim:set ts=4:
