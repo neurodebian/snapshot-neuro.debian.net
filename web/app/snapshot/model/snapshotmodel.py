@@ -310,7 +310,6 @@ class SnapshotModel:
                            WHERE hash=%(hash)s
                            ORDER BY run""",
                         { 'hash': hash } )
-
         return rows
 
     @beaker_cache(expire=600, cache_response=False, type='memory', key=None)
