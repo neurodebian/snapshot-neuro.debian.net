@@ -214,11 +214,11 @@ class PackageController(BaseController):
             if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
             binfiles = map(lambda b: dict(b), binfiles)
             r = { '_comment': "foo",
-                     'package': source,
-                     'version': version,
-                     'binary': binary,
-                     'binary_version': binary_version,
-                     'result': binfiles }
+                  'package': source,
+                  'version': version,
+                  'binary': binary,
+                  'binary_version': binary_version,
+                  'result': binfiles }
             if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
                 r['fileinfo'] = self._get_fileinfo_for_mr(map(lambda x: x['hash'], binfiles))
             return r
@@ -243,9 +243,9 @@ class PackageController(BaseController):
                 binhashes += map(lambda x: x['hash'], binpkg['files'])
 
             r = { '_comment': "foo",
-                     'package': source,
-                     'version': version,
-                     'result': { 'source': sourcefiles, 'binaries': binpkgs }
+                  'package': source,
+                  'version': version,
+                  'result': { 'source': sourcefiles, 'binaries': binpkgs }
                    }
             if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
                 r['fileinfo'] = self._get_fileinfo_for_mr(sourcefiles + binhashes)
