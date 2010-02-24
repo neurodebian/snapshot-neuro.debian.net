@@ -6,7 +6,7 @@ output is json
 
 
 
-URL: /mr/package
+URL: /mr/package/
 summary: list source package names
 http status codes: 200 500 304
 output: a list of hashes.  each hash has at least a 'package' key with one source package name
@@ -18,7 +18,7 @@ output: a list of hashes.  each hash has at least a 'package' key with one sourc
         ]
 }
 
-URL: /mr/package/<package>
+URL: /mr/package/<package>/
 http status codes: 200 500 404 304
 summary: list all available source versions for this package
 {   '_comment': "yadayadayda",
