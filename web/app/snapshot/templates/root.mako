@@ -69,9 +69,9 @@ the import runs into an alternate database for just such occassions.  This
 occurance prompted us to somewhat expediate that project.
 </p><p>
 So while currently snapshot will not get any updates we should be able to
-inject most current mirrorruns into snapshot-master when it gets back.  We'll
-have lost a few runs of volatile and the main debian archive, but we should
-not see a gap longer than roughly a day.
+inject most mirrorruns into snapshot-master when it gets back.  We'll have lost
+a few runs of volatile and the main debian archive, but we should not see a gap
+longer than roughly a day.
 </p>
 
 <h2>2010-02-20</h2>
