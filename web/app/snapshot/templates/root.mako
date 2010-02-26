@@ -60,7 +60,7 @@ Of course this means that now a disk controller breaks in the snapshot-master
 machine and thus half of our disks are rendered inaccessible.  Even raid6
 doesn't like that very much.
 </p><p>
-Therefore snapshot will not get any new data currently, and the service is
+Therefore snapshot will not get any new data currently and the service is
 provided by only one of the servers of what was previously a DNS round robin
 rotation.
 </p><p>
