@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import sys
+import os
+import threading
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/lib/python2.5/site-packages')
+import hasher
+
+class HashingThread(threading.Thread):
+    def run(self):
+        print hasher.hash_file("/aux1/test.iso")
+
+for x in xrange ( 2 ):
+   HashingThread().start()
+
+
+# vim:set ts=4:
+# vim:set et:
+# vim:set shiftwidth=4:
