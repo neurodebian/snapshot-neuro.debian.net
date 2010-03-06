@@ -96,7 +96,7 @@ if [ "${1-}" = "-h" ] || [ "${1-}" = "--help" ]; then
 	exit 0
 fi
 
-one_more_arg
+one_more_arg "$@"
 if [ "$1" = "master" ]; then master=1
 elif [ "$1" = "secondary" ]; then master=0
 else croak "Need to know if I am running on the master or on a secondary host."
