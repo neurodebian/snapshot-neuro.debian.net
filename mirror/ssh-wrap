@@ -30,6 +30,9 @@ SNAPCONFIG="$HOME/etc/snapshot.conf"
 usage() {
 	echo "local Usage: $0 master|secondary"
 	echo "via ssh orig command: farm-journal-fetch [since]"
+	echo "                      git-upload-pack [path]"
+	echo "                      rsync <arguments>"
+	echo "                      sync-incremental"
 }
 
 one_more_arg() {
