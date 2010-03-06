@@ -28,7 +28,7 @@ MYLOGNAME="`basename "$0"`[$$]"
 SNAPCONFIG="$HOME/etc/snapshot.conf"
 
 usage() {
-	echo "local Usage: $0"
+	echo "local Usage: $0 master|secondary"
 	echo "via ssh orig command: farm-journal-fetch [since]"
 }
 
@@ -47,6 +47,19 @@ croak() {
 	logger -s -p daemon.warn -t "$MYLOGNAME" "$1"
 	exit 1
 }
+
+require_master() {
+	if [ "$master" != "1" ] ; then
+		croak "This command only works on master"
+	fi
+}
+require_secondary() {
+	if [ "$master" != "0" ] ; then
+		croak "This command only works on secondary"
+	fi
+}
+
+
 
 farm_journal_fetch() {
 	local since=${1-0}
@@ -78,11 +91,18 @@ do_rsync() {
 	exit 1
 }
 
-
 if [ "${1-}" = "-h" ] || [ "${1-}" = "--help" ]; then
 	usage
 	exit 0
 fi
+
+one_more_arg
+if [ "$1" = "master" ]; then master=1
+elif [ "$1" = "secondary" ]; then master=0
+else croak "Need to know if I am running on the master or on a secondary host."
+fi
+shift
+
 
 # check/parse remote command line
 if [ -z "${SSH_ORIGINAL_COMMAND:-}" ] ; then
@@ -97,10 +117,14 @@ shift
 
 case "$action" in
 	farm-journal-fetch)
+		require_master
+
 		farm_journal_fetch "$@"
 		;;
 
 	git-upload-pack)
+		require_master
+
 		repos='/srv/snapshot.debian.org/snapshot.git'
 		if [ "$1" != "'$repos'" ]; then
 			croak "May not access other repositories"
@@ -109,6 +133,12 @@ case "$action" in
 		;;
 	rsync)
 		do_rsync "$@"
+		;;
+	sync-incremental)
+		require_secondary
+
+		"$HOME/code/mirror/sync-incremental" &
+		disown
 		;;
 	*)
 		croak "Invalid operation '$action'"
