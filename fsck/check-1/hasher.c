@@ -41,6 +41,8 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 	SHA_CTX ctx;
 	PyObject *res = NULL;
 	PyThreadState *_save;
+	char res_s[2*SHA1SIZE + 1];
+	int r;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
 		goto done;
@@ -74,16 +76,22 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 		py_err("Cannot open bar", filename);
 
 	/** reacquire GIL **/
-	Py_BLOCK_THREADS
-
-	res =  PyString_FromFormat("%02x%02x%02x%02x%02x"
-	                           "%02x%02x%02x%02x%02x"
-	                           "%02x%02x%02x%02x%02x"
-	                           "%02x%02x%02x%02x%02x",
-	    obuf[ 0], obuf[ 1], obuf[ 2], obuf[ 3], obuf[ 4], 
-	    obuf[ 5], obuf[ 6], obuf[ 7], obuf[ 8], obuf[ 9], 
-	    obuf[10], obuf[11], obuf[12], obuf[13], obuf[14], 
+	r = snprintf(res_s, sizeof(res_s),
+	             "%02x%02x%02x%02x%02x"
+	             "%02x%02x%02x%02x%02x"
+	             "%02x%02x%02x%02x%02x"
+	             "%02x%02x%02x%02x%02x",
+	    obuf[ 0], obuf[ 1], obuf[ 2], obuf[ 3], obuf[ 4],
+	    obuf[ 5], obuf[ 6], obuf[ 7], obuf[ 8], obuf[ 9],
+	    obuf[10], obuf[11], obuf[12], obuf[13], obuf[14],
 	    obuf[15], obuf[16], obuf[17], obuf[18], obuf[19]);
+	if (r >= sizeof(res_s)) {
+		printf("%d vs %d\n", r, sizeof(res_s));
+		py_err("snprintf failure", filename);
+	}
+
+	Py_BLOCK_THREADS
+	return PyString_FromStringAndSize(res_s, sizeof(res_s)-1);
 
 done:
 	return res;
