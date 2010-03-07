@@ -33,12 +33,12 @@ class HashingThread(threading.Thread):
                 actual_hash = hasher.hash_file(os.path.join(path, filename))
             except Exception, e:
                 errors.append((filename, 'Exception: %s'%(e)))
-                if verbose >= 4: print "%s: Exception (%s)"%(filename, e)
+                if verbose >= 3: print "%s: Exception (%s)"%(filename, e)
                 continue
 
             if actual_hash != filename:
                 errors.append((filename, 'Hash mismatch (%s)'%(actual_hash)))
-                if verbose >= 4: print "%s: Hash mismatch (%s)"%(filename, actual_hash)
+                if verbose >= 3: print "%s: Hash mismatch (%s)"%(filename, actual_hash)
             else:
                 if verbose >= 4: print "%s: OK"%(filename)
                 elif verbose >= 2: sys.stdout.write("."); sys.stdout.flush()
