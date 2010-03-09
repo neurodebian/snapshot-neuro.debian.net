@@ -1,0 +1,81 @@
+#!/usr/bin/python
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Check if all hashes we know of in the database are in fact also in the farm
+
+import errno
+import optparse
+import os
+import sys
+import yaml
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../../lib')
+from dbhelper import DBHelper
+parser = optparse.OptionParser()
+parser.set_usage("%prog --config=<conffile>")
+parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
+  help="Config file location.")
+
+(options, args) = parser.parse_args()
+if options.conffile is None:
+    parser.print_help()
+    sys.exit(1)
+
+config = yaml.load(open(options.conffile).read())
+
+def make_path(digest):
+  prefix1 = digest[0:2]
+  prefix2 = digest[2:4]
+  return os.path.join(config['snapshot']['farmpath'], prefix1, prefix2, digest)
+
+
+errors = []
+verbose = 3
+
+def record(filename, msg):
+    errors.append((filename, msg))
+    if verbose >= 3: print "%s: %s"%(filename, msg)
+
+db = DBHelper(config['db']['connectstring'])
+c = db.execute("SELECT DISTINCT hash, size FROM file ORDER BY hash", args)
+while True:
+    f = c.fetchone()
+    if f is None: break
+
+    try:
+        s = os.stat(make_path(f['hash']))
+        if s.st_size != f['size']:
+            record(f['hash'], 'wrong size (expected %d, got %d)'%(f['size'], s.st_size))
+        elif verbose >= 4: sys.stdout.write("."); sys.stdout.flush()
+    except OSError, e:
+        if e.errno == errno.ENOENT:
+            record(f['hash'], 'missing')
+        else:
+            raise
+
+print
+
+for e in errors:
+    print "%s: %s"%(e[0], e[1])
+
+# vim:set ts=4:
+# vim:set et:
+# vim:set shiftwidth=4:
