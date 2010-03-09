@@ -21,6 +21,10 @@
 # SOFTWARE.
 
 
+# Imports all mirrorruns found in an incoming-dumppath directory into
+# the database.  Just imports metadata, does not get any actualy content (i.e. does
+# not populate the farm).
+
 import sys
 import yaml
 import optparse
