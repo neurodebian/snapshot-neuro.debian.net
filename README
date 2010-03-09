@@ -94,12 +94,13 @@ Missing wanted features:
  o When adding files to the farm, copy them to a .temp-hash filename,
    and only link them in place once they are there.
 
- - farm fsck:
-   - check for all the files whether their hashsum matches their name.
+ . farm fsck:
+   o check for all the files whether their hashsum matches their name.
    - check if all of them are references in the database
      (new ones might not be there yet, instead being added in that
       transaction)
-   - find list of hashes referenced in the DB but not in the farm.
+   o find list of hashes referenced in the DB but not in the farm.
+   - integrate parts into one coherent tool
 
  o Write a nice web frontend.
    o handle symlinks (in the database stat() function)
