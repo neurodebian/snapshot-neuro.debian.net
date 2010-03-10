@@ -84,11 +84,11 @@ the empty file), as a result of XFS failing to write the files' contents
 when the disks went away two weeks ago.  Given that those import runs'
 metadata never got committed in PostgreSQL either we could simply remove
 those files.<br />
-Another four files of the two latest mirrorruns of the debian archive
-actually turned out to be corrupt.  In all likelyhood also as a result
-of XFS not liking when suddenly its block device disappears partially.
-The files in questions were Packages.{gz,bz2} of the sid installer for
-amd64 and s390.  The corrupted files have been removed.  We are
+Another four files of the two latest mirrorruns of the debian archive that did
+make it to our database actually turned out to be corrupt.  In all likelyhood
+also as a result of XFS not liking when suddenly its block device disappears
+partially.  The files in questions were Packages.{gz,bz2} of the sid installer
+for amd64 and s390.  The corrupted files have been removed.  We are
 considering trying to reconstruct those files from the rest of the
 ftp tree (it should after all just be an apt-ftparchive run), but
 it is not a very high priority.
