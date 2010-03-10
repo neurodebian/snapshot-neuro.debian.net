@@ -78,12 +78,12 @@ file on disk actual had the correct content as referenced by Release
 and Packages files, but for some reason we calculated the wrong hash
 during import time.  Yay.  This was relatively easy to repair as it
 only required renaming the files on disk and updating all references
-in the database.<br>
+in the database.<br />
 Then there were some 20 or 40 files with the same checksum (the hash of
 the empty file), as a result of XFS failing to write the files' contents
 when the disks went away two weeks ago.  Given that those import runs'
-metadata never got committed in postgresql either we could simply remove
-those files.<br>
+metadata never got committed in PostgreSQL either we could simply remove
+those files.<br />
 Another four files of the two latest mirrorruns of the debian archive
 actually turned out to be corrupt.  In all likelyhood also as a result
 of XFS not liking when suddenly its block device disappears partially.
@@ -96,7 +96,7 @@ it is not a very high priority.
 <li>The other check verified that for each hash referenced in the
 PostgreSQL database we actually have the corresponding item in the
 farm.  No errors were found by this check (except the four files
-reportedly removed above)
+reportedly removed above).
 </li></ul>
 <p>
 We are also currently importing historical snapshots of the debian-ports
