@@ -2,11 +2,30 @@
 
 set -u
 
-if [ "${1-}" = "--verbose" ]; then
-	v="--verbose"
-else
-	v=""
-fi
+verbose=''
+remote='snapshot-master.debian.org'
+identity=""
+remotefarmpath='farm'
+localfarmpath="$HOME/farm"
+
+usage() {
+	echo "Usage: $0 [-v] [-r <remotehost>] [-i <sshidentityfile]"
+}
+
+set -- `getopt vr:i:h "$@"`
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		-v)	verbose='--verbose';;
+		-r)	remote="$2"; shift;;
+		-i)	identity="$2"; shift;;
+		--)	shift; break;;
+		-h)	usage; exit 0;;
+		-*)	usage >&2; exit 1;;
+		*)	break;;
+	esac
+	shift
+done
+if [ "$#" -gt 0 ]; then usage >&2; exit 1; fi
 
 c=""
 h="0 1 2 3 4 5 6 7 8 9 a b c d e f"
@@ -16,8 +35,11 @@ for i in $h; do
 	done
 done
 
-cd "$HOME"
+
+if [ -n "$identity" ] ; then ssh="-e 'ssh -i $identity'"
+                        else ssh=""; fi
+
 for i in $c; do
-	! [ -n "$v" ] || echo "Doing $i"
-	rsync -az $v snapshot-master.debian.org:farm/$i/ ./farm/$i/
+	! [ -n "$verbose" ] || echo "Doing $i"
+	echo rsync -az $verbose $ssh "$remote":"$remotefarmpath"/$i/ "$localfarmpath"/$i/
 done
