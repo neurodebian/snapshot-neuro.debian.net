@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -u
 
@@ -36,10 +36,11 @@ for i in $h; do
 done
 
 
-if [ -n "$identity" ] ; then ssh="-e 'ssh -i $identity'"
-                        else ssh=""; fi
+if [ -n "$identity" ] ; then
+	export RSYNC_RSH="ssh -i $identity"
+fi
 
 for i in $c; do
 	! [ -n "$verbose" ] || echo "Doing $i"
-	echo rsync -az $verbose $ssh "$remote":"$remotefarmpath"/$i/ "$localfarmpath"/$i/
+	rsync -az $verbose "$remote":"$remotefarmpath"/$i/ "$localfarmpath"/$i/
 done
