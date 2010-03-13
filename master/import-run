@@ -21,7 +21,7 @@ archive="${1:-""}"
 
 #IGNORES="--ignore /Archive-Update-in-Progress-stabile.debian.org --ignore /Archive-Update-Required-stabile.debian.org"
 case "$archive" in
-	"debian"|"debian-security"|"debian-volatile"|"debian-archive"|"backports.org")
+	"debian"|"debian-security"|"debian-volatile"|"debian-archive"|"backports.org"|"debian-ports")
 		force_slow_flag="/srv/snapshot.debian.org/FORCE-SLOW-$archive"
 		if [ -e "$force_slow_flag" ]; then
 			quick=""
