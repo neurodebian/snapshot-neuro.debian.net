@@ -53,6 +53,13 @@ Gaming</a> for providing hardware and hosting for this service.
 </p>
 
 <h1>News</h1>
+<h2>2010-03-15</h2>
+<p>
+The host stabile.debian.org is once again creating snapshots as snapshot-master,
+all the data from the secondary setup on sibelius have been merged, so all is
+back to normal.
+</p>
+
 <h2>2010-03-09</h2>
 <p>
 In the meantime we found a new controller and snapshot-master now is back
