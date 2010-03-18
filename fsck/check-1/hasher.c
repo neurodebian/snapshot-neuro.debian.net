@@ -75,7 +75,6 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 	if (close(fd) < 0)
 		py_err("Cannot open bar", filename);
 
-	/** reacquire GIL **/
 	r = snprintf(res_s, sizeof(res_s),
 	             "%02x%02x%02x%02x%02x"
 	             "%02x%02x%02x%02x%02x"
@@ -90,6 +89,7 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 		py_err("snprintf failure", filename);
 	}
 
+	/** reacquire GIL **/
 	Py_BLOCK_THREADS
 	return PyString_FromStringAndSize(res_s, sizeof(res_s)-1);
 
