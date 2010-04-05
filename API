@@ -92,7 +92,7 @@ summary: list all files associated with this source package at that version
                 ..
             ]
         'binaries':
-            [   { 'name": 'tor',
+            [   { 'name': 'tor',
                   'version': '0.2.1.22-1',
                   'files':
                       [   { 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
