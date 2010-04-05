@@ -1,0 +1,220 @@
+#!/usr/bin/python
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+# The farm_journal database table keeps a journal of which files got
+# added to the farm recently.  This script outputs a tarball of the files
+# referenced in the journal to stdout.
+
+import optparse
+import os
+import pwd
+import simplejson
+import subprocess
+import sys
+import tempfile
+import time
+import urllib2
+import yaml
+sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
+from dbhelper import DBHelper
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog [<options>] <sourcepackage>")
+parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
+  help="Config file location.")
+parser.add_option("-u", "--url", dest="baseurl", metavar="BASEURL",
+  help="Base URL to snapshot machine readable interface.")
+
+(options, args) = parser.parse_args()
+
+if options.baseurl is None:
+    options.baseurl = 'http://snapshot-dev.debian.org/'
+if options.conffile is None and 'SNAPSHOT_CONF' in os.environ:
+    options.conffile = os.environ['SNAPSHOT_CONF']
+
+if options.conffile is None:
+    sys.stderr.write("No --config option is given and environment variable SNAPSHOT_CONF is not set.\n")
+    parser.print_help()
+    sys.exit(1)
+if len(args) != 1:
+    parser.print_help()
+    sys.exit(1)
+
+config = yaml.load(open(options.conffile).read())
+
+
+def get_versions(package):
+    url = options.baseurl + 'mr/package/' + urllib2.quote(package) +'/'
+    f = urllib2.urlopen(url)
+    s = simplejson.load(f)
+    versions = map(lambda l: l['version'], s['result'])
+    return versions
+
+def get_files(package, version):
+    url = options.baseurl + 'mr/package/' + urllib2.quote(package) +'/' + urllib2.quote(version) +'/allfiles?fileinfo=1'
+    f = urllib2.urlopen(url)
+    s = simplejson.load(f)
+    return s
+
+def extract_info(h, json, seen):
+    info = None
+    try:
+        info = json['fileinfo'][h][0]['name']
+    except KeyError:
+        info = '(unknown)'
+
+    result = None
+    if h in seen:
+        result = '# %s (dup) %s'%(h, info)
+    else:
+        result = '%s %s'%(h, info)
+        seen[h] = True
+    return result
+
+package = args[0]
+versions = get_versions(package)
+pwinfo = pwd.getpwuid(os.getuid())
+editbuffer = [ '%s - unredistributable'%(package),
+               '',
+               '',
+               ' -- %s (%s) on host %s at %s'%(
+                    pwinfo[4].rstrip(','),
+                    pwinfo[0],
+                    open('/etc/hostname').read().rstrip(),
+                    time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+                 ),
+               '# Please give a reason for removing this package.',
+               '# (Comment lines starting with "#" will be ignored.)',
+               '',
+               '=files=',
+               '# Comment out any files you do not wish to remove/make unreadable:',
+               ]
+seen = {}
+for v in versions:
+    editbuffer.append('')
+    editbuffer.append("# %s (%s)"%(package,v))
+    s = get_files(package, v)
+    for sourcefile in map(lambda x: x['hash'], s['result']['source']):
+        editbuffer.append(extract_info(sourcefile, s, seen))
+    for b in s['result']['binaries']:
+        editbuffer.append('# binary %s %s'%(b['name'], b['version']))
+        for f in b['files']:
+            editbuffer.append(extract_info(f['hash'], s, seen))
+
+tmp = tempfile.NamedTemporaryFile()
+for l in editbuffer:
+    tmp.write(l)
+    tmp.write("\n")
+tmp.flush()
+
+try:
+    retcode = subprocess.call(['sensible-editor', tmp.name])
+    if retcode < 0:
+        sys.stderr.write("Editor was terminated by signal %d.\n"%(-retcode))
+        sys.exit(1)
+    elif retcode != 0:
+        sys.stderr.write("Editor returned non-zero exit code %d.\n"%(retcode))
+        sys.exit(1)
+except OSError, e:
+    sys.stderr.write("Failed to exec editor (%s).\n"%(e))
+    sys.exit(1)
+
+tmp.seek(0)
+msg = []
+files = []
+in_files = False
+for l in tmp:
+    if l.startswith('#'): continue
+    l = l.rstrip()
+
+    if l == '=files=':
+        in_files = True
+        continue
+    if in_files:
+        if l == '':
+            continue
+        x = l.split(' ', 2)
+        x = x[0]
+        if len(x) != 40:
+            sys.stderr.write("Cannot parse line '%s'.\n"%(l))
+            sys.exit(1)
+        files.append(x)
+    else:
+        msg.append(l)
+
+if not in_files or len(files) == 0:
+    sys.stderr.write("No files mentioned?\n")
+    sys.exit(1)
+
+while len(msg) > 0 and msg[-1] == '':
+    msg.pop()
+
+if len(msg) == 0:
+    sys.stderr.write("No reason given.\n")
+    sys.exit(1)
+
+#print "removing"
+#print "msg"
+#for l in msg: print l
+#print "files"
+#for l in files: print l
+
+#newest = 0
+#if options.since:
+#    newest = int(options.since)
+#
+#db = DBHelper(config['db']['connectstring'])
+#args = {}
+#query = """SELECT hash,
+#                  EXTRACT (EPOCH FROM date_trunc('second', added)) AS added
+#           FROM farm_journal"""
+#if not options.since is None:
+#    query += " WHERE EXTRACT (EPOCH FROM date_trunc('second', added)) > %(since)s"
+#    args['since'] = options.since
+#c = db.execute(query, args)
+#
+#tar = tarfile.open(mode="w|", fileobj=sys.stdout)
+#while True:
+#    f = c.fetchone()
+#    if f is None: break
+#    hash = f['hash']
+#    newest = max(newest, int(f['added']))
+#
+#    tar.add(make_path(hash), arcname=hash)
+#
+#(fd,fname) = tempfile.mkstemp(prefix='farm-journal-make-tarball.tmp')
+#try:
+#    f=os.fdopen(fd, "w")
+#    f.write(yaml.dump({'latest-timestamp': newest}))
+#    f.close()
+#    tar.add(fname, arcname='meta')
+#finally:
+#    os.unlink(fname)
+#
+#tar.close()
+#c.close()
+
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
