@@ -245,7 +245,7 @@ class PackageController(BaseController):
             r = { '_comment': "foo",
                   'package': source,
                   'version': version,
-                  'result': { 'source': sourcefiles, 'binaries': binpkgs }
+                  'result': { 'source': map(lambda x: { 'hash': x }, sourcefiles), 'binaries': binpkgs }
                    }
             if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
                 r['fileinfo'] = self._get_fileinfo_for_mr(sourcefiles + binhashes)
