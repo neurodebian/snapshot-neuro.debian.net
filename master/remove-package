@@ -61,6 +61,7 @@ if len(args) != 1:
     sys.exit(1)
 
 config = yaml.load(open(options.conffile).read())
+db = DBHelper(config['db']['connectstring'])
 
 
 def get_versions(package):
@@ -91,128 +92,122 @@ def extract_info(h, json, seen):
         seen[h] = True
     return result
 
-package = args[0]
-versions = get_versions(package)
-pwinfo = pwd.getpwuid(os.getuid())
-editbuffer = [ '%s - unredistributable'%(package),
-               '',
-               '',
-               ' -- %s (%s) on host %s at %s'%(
-                    pwinfo[4].rstrip(','),
-                    pwinfo[0],
-                    open('/etc/hostname').read().rstrip(),
-                    time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
-                 ),
-               '# Please give a reason for removing this package.',
-               '# (Comment lines starting with "#" will be ignored.)',
-               '',
-               '=files=',
-               '# Comment out any files you do not wish to remove/make unreadable:',
-               ]
-seen = {}
-for v in versions:
-    editbuffer.append('')
-    editbuffer.append("# %s (%s)"%(package,v))
-    s = get_files(package, v)
-    for sourcefile in map(lambda x: x['hash'], s['result']['source']):
-        editbuffer.append(extract_info(sourcefile, s, seen))
-    for b in s['result']['binaries']:
-        editbuffer.append('# binary %s %s'%(b['name'], b['version']))
-        for f in b['files']:
-            editbuffer.append(extract_info(f['hash'], s, seen))
 
-tmp = tempfile.NamedTemporaryFile()
-for l in editbuffer:
-    tmp.write(l)
-    tmp.write("\n")
-tmp.flush()
 
-try:
-    retcode = subprocess.call(['sensible-editor', tmp.name])
-    if retcode < 0:
-        sys.stderr.write("Editor was terminated by signal %d.\n"%(-retcode))
-        sys.exit(1)
-    elif retcode != 0:
-        sys.stderr.write("Editor returned non-zero exit code %d.\n"%(retcode))
-        sys.exit(1)
-except OSError, e:
-    sys.stderr.write("Failed to exec editor (%s).\n"%(e))
-    sys.exit(1)
 
-tmp.seek(0)
-msg = []
-files = []
-in_files = False
-for l in tmp:
-    if l.startswith('#'): continue
-    l = l.rstrip()
+def prepare_editbuffer(package):
+    versions = get_versions(package)
+    pwinfo = pwd.getpwuid(os.getuid())
+    editbuffer = [ '%s - unredistributable'%(package),
+                   '',
+                   '',
+                   ' -- %s (%s) on host %s at %s'%(
+                        pwinfo[4].rstrip(','),
+                        pwinfo[0],
+                        open('/etc/hostname').read().rstrip(),
+                        time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+                     ),
+                   '# Please give a reason for removing this package.',
+                   '# (Comment lines starting with "#" will be ignored.)',
+                   '',
+                   '=files=',
+                   '# Comment out any files you do not wish to remove/make unreadable:',
+                   ]
+    seen = {}
+    for v in versions:
+        editbuffer.append('')
+        editbuffer.append("# %s (%s)"%(package,v))
+        s = get_files(package, v)
+        for sourcefile in map(lambda x: x['hash'], s['result']['source']):
+            editbuffer.append(extract_info(sourcefile, s, seen))
+        for b in s['result']['binaries']:
+            editbuffer.append('# binary %s %s'%(b['name'], b['version']))
+            for f in b['files']:
+                editbuffer.append(extract_info(f['hash'], s, seen))
 
-    if l == '=files=':
-        in_files = True
-        continue
-    if in_files:
-        if l == '':
-            continue
-        x = l.split(' ', 2)
-        x = x[0]
-        if len(x) != 40:
-            sys.stderr.write("Cannot parse line '%s'.\n"%(l))
+    return editbuffer
+
+def edit_buffer(buf):
+    tmp = tempfile.NamedTemporaryFile()
+    for l in buf:
+        tmp.write(l)
+        tmp.write("\n")
+    tmp.flush()
+
+    try:
+        retcode = subprocess.call(['sensible-editor', tmp.name])
+        if retcode < 0:
+            sys.stderr.write("Editor was terminated by signal %d.\n"%(-retcode))
             sys.exit(1)
-        files.append(x)
-    else:
-        msg.append(l)
+        elif retcode != 0:
+            sys.stderr.write("Editor returned non-zero exit code %d.\n"%(retcode))
+            sys.exit(1)
+    except OSError, e:
+        sys.stderr.write("Failed to exec editor (%s).\n"%(e))
+        sys.exit(1)
 
-if not in_files or len(files) == 0:
-    sys.stderr.write("No files mentioned?\n")
-    sys.exit(1)
+    tmp.seek(0)
+    return tmp
 
-while len(msg) > 0 and msg[-1] == '':
-    msg.pop()
+def parse_editbuffer(fd):
+    msg = []
+    files = []
+    in_files = False
+    for l in fd:
+        if l.startswith('#'): continue
+        l = l.rstrip()
 
-if len(msg) == 0:
-    sys.stderr.write("No reason given.\n")
-    sys.exit(1)
+        if l == '=files=':
+            in_files = True
+            continue
+        if in_files:
+            if l == '':
+                continue
+            x = l.split(' ', 2)
+            x = x[0]
+            if len(x) != 40:
+                sys.stderr.write("Cannot parse line '%s'.\n"%(l))
+                sys.exit(1)
+            files.append(x)
+        else:
+            msg.append(l)
 
-#print "removing"
-#print "msg"
-#for l in msg: print l
-#print "files"
-#for l in files: print l
+    if not in_files or len(files) == 0:
+        sys.stderr.write("No files mentioned?\n")
+        sys.exit(1)
 
-#newest = 0
-#if options.since:
-#    newest = int(options.since)
-#
-#db = DBHelper(config['db']['connectstring'])
-#args = {}
-#query = """SELECT hash,
-#                  EXTRACT (EPOCH FROM date_trunc('second', added)) AS added
-#           FROM farm_journal"""
-#if not options.since is None:
-#    query += " WHERE EXTRACT (EPOCH FROM date_trunc('second', added)) > %(since)s"
-#    args['since'] = options.since
-#c = db.execute(query, args)
-#
-#tar = tarfile.open(mode="w|", fileobj=sys.stdout)
-#while True:
-#    f = c.fetchone()
-#    if f is None: break
-#    hash = f['hash']
-#    newest = max(newest, int(f['added']))
-#
-#    tar.add(make_path(hash), arcname=hash)
-#
-#(fd,fname) = tempfile.mkstemp(prefix='farm-journal-make-tarball.tmp')
-#try:
-#    f=os.fdopen(fd, "w")
-#    f.write(yaml.dump({'latest-timestamp': newest}))
-#    f.close()
-#    tar.add(fname, arcname='meta')
-#finally:
-#    os.unlink(fname)
-#
-#tar.close()
-#c.close()
+    while len(msg) > 0 and msg[-1] == '':
+        msg.pop()
+
+    if len(msg) == 0:
+        sys.stderr.write("No reason given.\n")
+        sys.exit(1)
+
+    return (msg, files)
+
+def insert_into_db(db, msg, files):
+    c = db.execute('BEGIN')
+    c.close()
+
+    row = db.query_one('INSERT INTO removal_log (reason) VALUES (%(reason)s) RETURNING removal_log_id',
+                       {'reason': "\n".join(msg)+"\n"})
+    id = row['removal_log_id']
+    for h in files:
+        c = db.execute('INSERT INTO removal_affects (removal_log_id, hash) VALUES (%(removal_log_id)s, %(hash)s)',
+                       {'removal_log_id': id,
+                        'hash': h})
+        c.close()
+    c = db.execute('COMMIT')
+    c.close()
+
+    return id
+
+package = args[0]
+
+buf = prepare_editbuffer(package)
+fh = edit_buffer(buf)
+msg, files = parse_editbuffer(fh)
+id = insert_into_db(db, msg, files)
 
 
 # vim:set et:
