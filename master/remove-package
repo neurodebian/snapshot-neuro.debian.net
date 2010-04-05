@@ -39,11 +39,14 @@ sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
 from dbhelper import DBHelper
 
 parser = optparse.OptionParser()
-parser.set_usage("%prog [<options>] <sourcepackage>")
+parser.set_usage("%prog [<options>] <sourcepackage>\n" +
+          "Usage: %prog --apply=<REMOVAL_LOG_ID>")
 parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
   help="Config file location.")
 parser.add_option("-u", "--url", dest="baseurl", metavar="BASEURL",
   help="Base URL to snapshot machine readable interface.")
+parser.add_option("-a", "--apply", dest="apply_id", metavar="REMOVAL_LOG_ID",
+  help="Re-apply chmods for removal log entry.")
 
 (options, args) = parser.parse_args()
 
@@ -56,13 +59,17 @@ if options.conffile is None:
     sys.stderr.write("No --config option is given and environment variable SNAPSHOT_CONF is not set.\n")
     parser.print_help()
     sys.exit(1)
-if len(args) != 1:
+if not ((len(args) == 1) ^ (options.apply_id is not None)):
     parser.print_help()
     sys.exit(1)
 
 config = yaml.load(open(options.conffile).read())
 db = DBHelper(config['db']['connectstring'])
 
+def make_path(digest):
+    prefix1 = digest[0:2]
+    prefix2 = digest[2:4]
+    return os.path.join(config['snapshot']['farmpath'], prefix1, prefix2, digest)
 
 def get_versions(package):
     url = options.baseurl + 'mr/package/' + urllib2.quote(package) +'/'
@@ -91,9 +98,6 @@ def extract_info(h, json, seen):
         result = '%s %s'%(h, info)
         seen[h] = True
     return result
-
-
-
 
 def prepare_editbuffer(package):
     versions = get_versions(package)
@@ -202,13 +206,31 @@ def insert_into_db(db, msg, files):
 
     return id
 
-package = args[0]
+def fschange(db, id):
+    hashes = db.query_firsts('SELECT hash FROM removal_affects WHERE removal_log_id=%(removal_log_id)s', {'removal_log_id': id})
+    for h in hashes:
+        p = make_path(h)
+        try:
+            os.chmod(p, 0644)
+        except OSError, ex:
+            if ex.errno in [errno.NOENT]:
+                sys.stderr.write("Warning: File does not exist: %s\n"%(p))
+                continue
+            else:
+                raise
 
-buf = prepare_editbuffer(package)
-fh = edit_buffer(buf)
-msg, files = parse_editbuffer(fh)
-id = insert_into_db(db, msg, files)
+if options.apply_id is None:
+    package = args[0]
+    buf = prepare_editbuffer(package)
+    fh = edit_buffer(buf)
+    msg, files = parse_editbuffer(fh)
+    id = insert_into_db(db, msg, files)
+    print "Committed to database, applying changes to filesystem.  If this fails"
+    print "for some reason please fix what is necessary then rerun this script"
+    print "with just --apply %d"%(id)
+    options.apply_id = id
 
+fschange(db, options.apply_id)
 
 # vim:set et:
 # vim:set ts=4:
