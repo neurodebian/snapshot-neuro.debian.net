@@ -118,7 +118,7 @@ class ArchiveController(BaseController):
             return fa(request.environ, self.start_response)
         except OSError, error:
             if (error.errno == errno.ENOENT):
-                abort(404, "Ooops, we do not have a file with digest %s altho we should.  You might want to report this."%(digest))
+                abort(404, "Ooops, we do not have a file with digest %s even tho we should.  You might want to report this."%(digest))
             else:
                 raise
         except IOError, error:
