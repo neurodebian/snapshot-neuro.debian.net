@@ -25,6 +25,7 @@
 # added to the farm recently.  This script outputs a tarball of the files
 # referenced in the journal to stdout.
 
+import errno
 import optparse
 import os
 import pwd
@@ -213,7 +214,7 @@ def fschange(db, id):
         try:
             os.chmod(p, 0400)
         except OSError, ex:
-            if ex.errno in [errno.NOENT]:
+            if ex.errno in [errno.ENOENT]:
                 sys.stderr.write("Warning: File does not exist: %s\n"%(p))
                 continue
             else:
