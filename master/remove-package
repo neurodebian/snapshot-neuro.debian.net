@@ -41,13 +41,16 @@ from dbhelper import DBHelper
 
 parser = optparse.OptionParser()
 parser.set_usage("%prog [<options>] <sourcepackage>\n" +
-          "Usage: %prog --apply=<REMOVAL_LOG_ID>")
+          "Usage: %prog --apply=<REMOVAL_LOG_ID>\n" +
+          "Usage: %prog --undo=<REMOVAL_LOG_ID>")
 parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
   help="Config file location.")
 parser.add_option("-u", "--url", dest="baseurl", metavar="BASEURL",
   help="Base URL to snapshot machine readable interface.")
 parser.add_option("-a", "--apply", dest="apply_id", metavar="REMOVAL_LOG_ID",
   help="Re-apply chmods for removal log entry.")
+parser.add_option("-U", "--undo", dest="undo_id", metavar="REMOVAL_LOG_ID",
+  help="Undo chmods for removal log entry and remote entry.")
 
 (options, args) = parser.parse_args()
 
@@ -60,7 +63,14 @@ if options.conffile is None:
     sys.stderr.write("No --config option is given and environment variable SNAPSHOT_CONF is not set.\n")
     parser.print_help()
     sys.exit(1)
-if not ((len(args) == 1) ^ (options.apply_id is not None)):
+numactions = 0
+if len(args) == 1:
+    numactions += 1
+if not options.apply_id is None:
+    numactions += 1
+if not options.undo_id is None:
+    numactions += 1
+if not numactions == 1:
     parser.print_help()
     sys.exit(1)
 
@@ -209,18 +219,35 @@ def insert_into_db(db, msg, files):
 
     return id
 
-def fschange(db, id):
+def fschange(db, id, mode=0400):
     hashes = db.query_firsts('SELECT hash FROM removal_affects WHERE removal_log_id=%(removal_log_id)s', {'removal_log_id': id})
     for h in hashes:
         p = make_path(h)
         try:
-            os.chmod(p, 0400)
+            os.chmod(p, mode)
         except OSError, ex:
             if ex.errno in [errno.ENOENT]:
                 sys.stderr.write("Warning: File does not exist: %s\n"%(p))
                 continue
             else:
                 raise
+
+def remove_from_db(db, id):
+    c = db.execute('BEGIN')
+    c.close()
+    c = db.execute('DELETE FROM removal_affects WHERE removal_log_id=%(removal_log_id)s', {'removal_log_id': id})
+    c.close()
+    c = db.execute('DELETE FROM removal_log WHERE removal_log_id=%(removal_log_id)s', {'removal_log_id': id})
+    c.close()
+    c = db.execute('COMMIT')
+    c.close()
+
+
+
+if not options.undo_id is None:
+    fschange(db, options.undo_id, 0644)
+    remove_from_db(db, options.undo_id)
+    sys.exit(0)
 
 if options.apply_id is None:
     package = args[0]
