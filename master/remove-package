@@ -103,6 +103,8 @@ def extract_info(h, json, seen):
 def prepare_editbuffer(package):
     versions = get_versions(package)
     pwinfo = pwd.getpwuid(os.getuid())
+    if 'SUDO_USER' in os.environ:
+        pwinfo = pwd.getpwnam(os.environ['SUDO_USER'])
     editbuffer = [ '%s - unredistributable'%(package),
                    '',
                    '',
