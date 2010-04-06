@@ -119,7 +119,7 @@ class ArchiveController(BaseController):
         except os.error, error:
             if (error.errno == errno.ENOENT):
                 abort(404, "Ooops, we do not have a file with digest %s altho we should.  You might want to report this."%(stat['digest']))
-            elif (error.errno == errno.EACCESS):
+            elif (error.errno == errno.EACCES):
                 abort(403, "Ooops, cannot read file with digest %s.  Maybe this file is not redistributable and this was done on purpose.  If in doubt report this."%(stat['digest']))
             else:
                 raise
