@@ -1274,7 +1274,7 @@ class SnapshotDumpAll
 		@db.query("SELECT mirrorrun_id FROM mirrorrun ORDER BY mirrorrun_id") do |row|
 			target = @path+"/"+row['mirrorrun_id'].to_s
 			next if File.exists?(target)
-			tmptarget = target + "."+randstring()+"."+(Process.pid.to_s)
+			tmptarget = target + ".tmp."+randstring()+"."+(Process.pid.to_s)
 
 			$logger.debug("dumping mirrorrun ##{row['mirrorrun_id']}")
 
