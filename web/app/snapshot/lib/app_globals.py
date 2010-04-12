@@ -28,8 +28,14 @@ class Globals(object):
         self.pool = PooledDB(psycopg2, 5, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
-        for key in ('expires.package.mr.list', 'expires.package.mr.source', 'expires.package.mr.source_version'):
-            if not key in config['app_conf']: config['app_conf'][key] = 5
+        default_expires = {}
+        default_expires['expires.package.mr.list'] = 300
+        default_expires['expires.package.mr.source'] = 300
+        default_expires['expires.package.mr.source_version'] = 300
+        default_expires['expires.root'] = 1800
+
+        for key in default_expires:
+            if not key in config['app_conf']: config['app_conf'][key] = default_expires[key]
 
         try:
             self.thishost = open('/etc/hostname').read()

@@ -32,7 +32,9 @@ snapshot.db.user = guest
 snapshot.farmpath = /srv/snapshot.debian.org/farm
 
 expires.static = 900
-expires.archive.index = 600
+
+expires.root = 900
+
 expires.archive.dir = 600
 expires.archive.file = 864000
 
