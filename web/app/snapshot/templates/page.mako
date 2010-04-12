@@ -12,7 +12,7 @@
 	</head>
 	<body>
 		<div id="top">
-			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org"/></a>
+			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org" width="644" height="71"/></a>
 		</div>
 		% if not c.breadcrumbs is UNDEFINED and (len(c.breadcrumbs) != 0):
 			<div id="pageheader">
