@@ -7,7 +7,8 @@
 		% else:
 			<title>${c.title} - snapshot.debian.org</title>
 		% endif
-		<link rel="stylesheet" type="text/css" href="/static/style.css"/>
+		<link rel="stylesheet" type="text/css" href="/static/style.css" />
+		<link rel="icon" type="image/vnd.microsoft.icon" href="/static/favicon.ico" />
 	</head>
 	<body>
 		<div id="top">
