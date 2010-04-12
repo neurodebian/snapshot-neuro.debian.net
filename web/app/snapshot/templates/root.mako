@@ -53,6 +53,11 @@ Gaming</a> for providing hardware and hosting for this service.
 </p>
 
 <h1>News</h1>
+<h2>2010-04-12</h2>
+<p>
+Publicly <a href="http://www.debian.org/News/2010/20100412">announce the snapshot.debian.org service</a>.  Yay.
+</p>
+
 <h2>2010-03-15</h2>
 <p>
 The host stabile.debian.org is once again creating snapshots as snapshot-master,
