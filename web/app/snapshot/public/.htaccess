@@ -1,2 +1,2 @@
 ExpiresActive On
-ExpiresDefault "access plus 1 hour"
+ExpiresDefault "access plus 12 hour"
