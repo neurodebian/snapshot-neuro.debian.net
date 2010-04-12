@@ -77,7 +77,7 @@ and each .deb/.udeb file.
 
 
 Missing wanted features:
- - We might need to handle the case where packages are removed from
+ o We might need to handle the case where packages are removed from
    the archive because we aren't allowed to redistribute them.  Then we
    could set all files belonging to a package to
    locked/unreadable/whatever.
