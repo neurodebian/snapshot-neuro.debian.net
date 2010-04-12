@@ -1,2 +1,3 @@
 ExpiresActive On
 ExpiresDefault "access plus 12 hour"
+Header append Cache-Control public
