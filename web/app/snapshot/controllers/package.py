@@ -55,7 +55,7 @@ class PackageController(BaseController):
 
     def root(self):
         if 'src' in request.params:
-            return redirect_to(unicode_encode(request.params['src'] + "/"))
+            return redirect_to(urllib.quote(request.params['src'] + "/"))
         elif 'cat' in request.params:
             try:
                 #etag_cache( g.shm.packages_get_etag(self._db()) )

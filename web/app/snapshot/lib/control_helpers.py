@@ -40,12 +40,6 @@ def build_url_archive_ym_list(archive, year, month):
     url += "?year=%d&month=%d"%ym
     return url
 
-def unicode_encode(path):
-    if isinstance(path, unicode):
-        return path.encode('utf-8')
-    else:
-        return path
-
 def set_expires(max_age):
     response.expires = datetime.datetime.now() + datetime.timedelta(seconds = max_age);
     response.cache_control = 'public, max-age=%d'%max_age
