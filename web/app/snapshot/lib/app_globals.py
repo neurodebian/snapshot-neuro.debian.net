@@ -25,7 +25,7 @@ class Globals(object):
             newkey = key.replace("snapshot.db.", '', 1)
             db_config[newkey] = app_conf[key]
 
-        self.pool = psycopg2.pool.ThreadedConnectionPool(5, 20, **db_config)
+        self.pool = psycopg2.pool.ThreadedConnectionPool(5, 10, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
         default_expires = {}
