@@ -12,8 +12,8 @@ log = logging.getLogger(__name__)
 
 class RootController(BaseController):
     def index(self):
+        db = DBInstance(g.pool)
         try:
-            db = DBInstance(g.pool)
             c.names = link_quote_array(g.shm.archives_get_list(db))
             c.srcstarts = link_quote_array(g.shm.packages_get_name_starts(db))
             set_expires(int(config['app_conf']['expires.root']))

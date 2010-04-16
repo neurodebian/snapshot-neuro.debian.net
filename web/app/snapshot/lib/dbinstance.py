@@ -2,7 +2,8 @@ import psycopg2.extras
 
 class DBInstance:
     def __init__(self, pool):
-        self.conn = pool.connection()
+        self.pool = pool
+        self.conn = pool.getconn()
 
     def execute(self, *args, **kw):
         c = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -16,7 +17,8 @@ class DBInstance:
         return rows
 
     def close(self):
-        self.conn.close()
+        self.execute('ROLLBACK').close()
+        self.pool.putconn(self.conn)
 
     def query_one(self, *args, **kw):
         all = self.query(*args, **kw)

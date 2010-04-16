@@ -56,6 +56,7 @@ class ArchiveController(BaseController):
     def _db_close(self):
         if not self.db is None:
             self.db.close()
+            self.db = None
 
 
     def root(self):

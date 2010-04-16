@@ -1,7 +1,7 @@
 """The application's Globals object"""
 from pylons import config
 import psycopg2
-from DBUtils.PooledDB import PooledDB
+import psycopg2.pool
 from snapshot.model.snapshotmodel import SnapshotModel
 import yaml
 
@@ -25,7 +25,7 @@ class Globals(object):
             newkey = key.replace("snapshot.db.", '', 1)
             db_config[newkey] = app_conf[key]
 
-        self.pool = PooledDB(psycopg2, 5, **db_config)
+        self.pool = psycopg2.pool.ThreadedConnectionPool(5, 20, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
         default_expires = {}
