@@ -56,9 +56,10 @@ used by all.
 
 <p>
 The Debian Project wants to thank <a href="http://www.sanger.ac.uk/">Wellcome
-Trust Sanger Institute</a>, <a href="http://www.ece.ubc.ca/">UBC Electrical and
-Computer Engineering</a> and <a href="http://www.nordicbet.com/">Nordic
-Gaming</a> for providing hardware and hosting for this service.
+Trust Sanger Institute</a> and the <a href="http://www.ece.ubc.ca/">UBC
+Electrical and Computer Engineering</a> for providing hardware and hosting and
+<a href="http://www.nordicbet.com/">Nordic Gaming</a> for sponsoring additional
+hardware.
 </p>
 
 <h1>News</h1>
