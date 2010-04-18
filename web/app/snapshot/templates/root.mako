@@ -97,7 +97,7 @@ deb-src <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.deb
 <p>
 To learn which snapshots exist, i.e. which date strings are valid, simply
 browse the list as mentioned above.  Valid date formats are
-<code>yyyymmddThhmmssZ</code> or simply <code>yyyymmdd</code>.  If there
+<code><i>yyyymmdd</i>T<i>hhmmss</i>Z</code> or simply <code><i>yyyymmdd</i></code>.  If there
 is no import at the exact time you specified you will get the latest
 available timestamp which is before the time you specified.
 </p>
