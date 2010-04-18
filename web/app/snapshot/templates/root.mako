@@ -64,20 +64,20 @@ hardware.
 
 <h2>Usage</h2>
 <p>
-In order to browse snapshots of the archives kept in snapshot.debian.org simply
+In order to browse snapshots of the archives kept on snapshot.debian.org, simply
 follow the links on the top left.  They will lead you to a list of months for
-which data was imported, and the list entries in turn will point you all
+which data was imported, and the list entries in turn will point you to all
 timestamps of a given month's snapshots.
 </p>
 
-<p>For example
+<p>For example,
 <a href="/archive/debian/"><code>/archive/debian/</code></a>
 shows that we have imports for the main Debian archive,
 <a href="http://ftp.debian.org/debian/"><code>http://ftp.debian.org/debian/</code></a>,
-starting in 2005 up to today.
+from 2005 until the present.
 Picking October of 2009,
 <a href="/archive/debian/?year=2009;month=10"><code>/archive/debian/?year=2009;month=10</code></a>,
-provides us with a list of many different states of the debian archive, roughtly spaced 6 hours apart
+provides us with a list of many different states of the debian archive, roughly spaced 6 hours apart
 (the update frequency of ftp.debian.org at that time).
 Following any of these links, say
 <a href="/archive/debian/20091004T111800Z/"><code>/archive/debian/20091004T111800Z/</code></a>,
@@ -85,8 +85,8 @@ shows how <code>ftp.debian.org/debian</code> looked on the 4th of October 2009 a
 </p>
 
 <p style="margin-top:2em;">
-In case you want to add a specific date's archive to your apt sources.list simply
-compose an entry like these:
+If you want to add a specific date's archive to your apt <code>sources.list</code> simply
+add an entry like these:
 </p>
 <pre>
 deb     <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
@@ -98,8 +98,8 @@ deb-src <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.deb
 To learn which snapshots exist, i.e. which date strings are valid, simply
 browse the list as mentioned above.  Valid date formats are
 <code>yyyymmddThhmmssZ</code> or simply <code>yyyymmdd</code>.  If there
-is no import at the exact time you specified you will get latest
-availably timestamp which is before the time you specified.
+is no import at the exact time you specified you will get the latest
+available timestamp which is before the time you specified.
 </p>
 
 <p style="margin-top:2em;">
