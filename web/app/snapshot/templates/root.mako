@@ -46,10 +46,12 @@ past and current packages the Debian archive provides.
 </p>
 
 <p>
-The ability to install packages and view sourcecode from any given date
-in the past is very helpful for developers who try to fix regressions.
-Users frequently need an older version of the software in order to make
-a particular application run.
+The ability to install packages and view source code from any given date can be
+very helpful to developers and users. It provides a valuable resource for
+tracking down when regressions were introduced, or for providing a specific
+environment that a particular application may require to run. The snapshot
+archive is accessible like any normal apt repository, allowing it to be easily
+used by all.
 </p>
 
 <p>
