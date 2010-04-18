@@ -21,6 +21,7 @@ def make_map():
     # CUSTOM ROUTES HERE
 
     map.connect('/', controller='root', action='index')
+    map.connect('/oldnews', controller='root', action='oldnews')
 
     map.connect('/archive/', controller='archive', action='root')
     map.connect('/archive/{archive}/', controller='archive', action='archive_base')

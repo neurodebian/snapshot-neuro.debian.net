@@ -21,6 +21,24 @@ class RootController(BaseController):
         finally:
             db.close()
 
+
+    def _build_crumbs(self, page=None):
+        crumbs = []
+
+        url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+
+        if not page is None:
+            crumbs.append( { 'url': None, 'name': page, 'sep': '' });
+
+        return crumbs
+
+
+    def oldnews(self):
+        set_expires(int(config['app_conf']['expires.root']))
+        c.breadcrumbs = self._build_crumbs('older news')
+        return render('/misc-oldnews.mako')
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
