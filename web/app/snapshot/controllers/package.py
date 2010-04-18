@@ -55,7 +55,8 @@ class PackageController(BaseController):
 
     def root(self):
         if 'src' in request.params:
-            return redirect_to(urllib.quote(request.params['src'] + "/"))
+            url = url_quote(request.params['src'] + "/")
+            return redirect_to(url)
         elif 'cat' in request.params:
             try:
                 #etag_cache( g.shm.packages_get_etag(self._db()) )
@@ -77,6 +78,17 @@ class PackageController(BaseController):
 
     def source(self, source):
         try:
+            # Package names are ascii.
+            # Check that before passing it on to postgres since the DB
+            # will just whine about not being able to convert the string
+            # anyway.
+            # If the passed string is not ascii, then the package name
+            # simply does not exist.
+            try:
+                source.encode('ascii')
+            except UnicodeEncodeError:
+                abort(404, 'No such source package')
+
             #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))
 
