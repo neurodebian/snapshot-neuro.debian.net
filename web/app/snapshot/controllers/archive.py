@@ -86,31 +86,28 @@ class ArchiveController(BaseController):
             self._db_close()
 
     def _archive_ym(self, archive, year, month):
-        try:
-            if not re.match('\d{4}$', year): # match matches only at start of string
-                abort(404, 'Year "%s" is not valid.'%(year))
-            if not re.match('\d{1,2}$', month): # match matches only at start of string
-                abort(404, 'Month "%s" is not valid.'%(month))
+        if not re.match('\d{4}$', year): # match matches only at start of string
+            abort(404, 'Year "%s" is not valid.'%(year))
+        if not re.match('\d{1,2}$', month): # match matches only at start of string
+            abort(404, 'Month "%s" is not valid.'%(month))
 
-            runs = g.shm.mirrorruns_get_runs_from_archive_ym(self._db(), archive, year, month)
-            if runs is None:
-                abort(404, 'Archive "%s" does not exist'%(archive))
-            if len(runs) == 0:
-                abort(404, 'Found no mirrorruns for archive %s in %s-%s.'%(archive, year, month))
+        runs = g.shm.mirrorruns_get_runs_from_archive_ym(self._db(), archive, year, month)
+        if runs is None:
+            abort(404, 'Archive "%s" does not exist'%(archive))
+        if len(runs) == 0:
+            abort(404, 'Found no mirrorruns for archive %s in %s-%s.'%(archive, year, month))
 
-            c.archive = archive
-            c.year = year
-            c.month = "%02d"%(int(month))
-            c.breadcrumbs = self._build_crumbs(archive, year=int(year), month=int(month))
-            c.runs = map(lambda r:
-                            { 'run'   : r['run'],
-                              # make a machine readable version of a timestamp
-                              'run_mr': rfc3339_timestamp(r['run'])
-                            }, runs)
-            c.title = '%s:%s-%02d'%(archive, year, int(month))
-            return render('/archive-runs.mako')
-        finally:
-            self._db_close()
+        c.archive = archive
+        c.year = year
+        c.month = "%02d"%(int(month))
+        c.breadcrumbs = self._build_crumbs(archive, year=int(year), month=int(month))
+        c.runs = map(lambda r:
+                        { 'run'   : r['run'],
+                          # make a machine readable version of a timestamp
+                          'run_mr': rfc3339_timestamp(r['run'])
+                        }, runs)
+        c.title = '%s:%s-%02d'%(archive, year, int(month))
+        return render('/archive-runs.mako')
 
     def _regular_file(self, digest, visiblepath=None):
         try:
