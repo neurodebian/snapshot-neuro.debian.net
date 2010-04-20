@@ -244,7 +244,10 @@ class ArchiveController(BaseController):
 
     def file(self, hash):
         if re.match('[0-9a-f]{40}$', hash): # match matches only at start of string
-            return self._regular_file(hash)
+            try:
+                return self._regular_file(hash)
+            finally:
+                self._db_close()
         else:
             abort(404, 'Invalid hash format.')
 
