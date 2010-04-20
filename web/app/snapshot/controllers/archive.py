@@ -111,7 +111,7 @@ class ArchiveController(BaseController):
 
     def _regular_file(self, digest, visiblepath=None):
         try:
-            realpath = g.shm.get_filepath(self._db(), digest)
+            realpath = g.shm.get_filepath(digest)
             fa = SnapshotFileApp(realpath, digest, visiblepath)
             return fa(request.environ, self.start_response)
         except OSError, error:

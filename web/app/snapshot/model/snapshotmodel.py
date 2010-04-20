@@ -242,7 +242,7 @@ class SnapshotModel:
 
         return readdir
 
-    def get_filepath(self, db, digest):
+    def get_filepath(self, digest):
         prefix1 = digest[0:2]
         prefix2 = digest[2:4]
         return os.path.join(self.farmpath, prefix1, prefix2, digest)
