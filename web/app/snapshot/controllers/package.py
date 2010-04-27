@@ -27,11 +27,17 @@ class PackageController(BaseController):
         if not self.db is None:
             self.db.close()
 
-    def _build_crumbs(self, srcpkg=None, version=None, start=None):
+    def _make_crumbs_base(self):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org', 'sep': '|' });
+
+        return (url, crumbs)
+
+    def _build_crumbs(self, srcpkg=None, version=None, start=None):
+        (url, crumbs) = self._make_crumbs_base()
+        crumbs.append( { 'url': None, 'name': 'source package:', 'sep': '' });
 
         if not start:
             if srcpkg.startswith('lib') and len(srcpkg) >= 4:
@@ -114,7 +120,7 @@ class PackageController(BaseController):
             set_expires(int(config['app_conf']['expires.package.source_version']))
 
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
 
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
@@ -150,8 +156,51 @@ class PackageController(BaseController):
         finally:
             self._db_close()
 
+    def binary_root(self):
+        if 'bin' in request.params:
+            url = url_quote(request.params['bin'] + "/")
+            return redirect_to(url)
+        else:
+            return redirect_to("../")
 
+    def binary(self, binary):
+        try:
+            # Package names are ascii.
+            # Check that before passing it on to postgres since the DB
+            # will just whine about not being able to convert the string
+            # anyway.
+            # If the passed string is not ascii, then the package name
+            # simply does not exist.
+            try:
+                binary.encode('ascii')
+            except UnicodeEncodeError:
+                abort(404, 'No such binary package')
 
+            #etag_cache( g.shm.packages_get_etag(self._db()) )
+            set_expires(int(config['app_conf']['expires.package.source']))
+
+            binaryversions = g.shm.packages_get_binary_versions_by_name(self._db(), binary)
+
+            if len(binaryversions) == 0:
+                abort(404, 'No such binary package')
+
+            binaryversions = map(lambda b: dict(b), binaryversions)
+            for b in binaryversions:
+                b['link'] = url_quote('../../package/%s/%s/'%(b['source'], b['version']))
+                b['escaped_name'] = self._attribute_escape(b['name'])
+                b['escaped_version'] = self._attribute_escape(b['version'])
+
+            url, crumbs = self._make_crumbs_base()
+            crumbs.append( { 'url': None, 'name': 'binary package:', 'sep': '' });
+            crumbs.append( { 'url': None, 'name': binary });
+
+            c.binary = binary
+            c.binaryversions = binaryversions
+            c.breadcrumbs = crumbs
+            c.title = binary
+            return render('/package-binary.mako')
+        finally:
+            self._db_close()
 
 
     def _get_fileinfo_for_mr_one(self, hash):
@@ -207,7 +256,7 @@ class PackageController(BaseController):
     def mr_source_version_binpackages(self, source, version):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
-            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
             if len(binpkgs) == 0: abort(404, 'No such source package or no binary packages found')
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'] }, binpkgs)
@@ -242,7 +291,7 @@ class PackageController(BaseController):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            binpkgs = g.shm.packages_get_binpkgs(self._db(), source, version)
+            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
                 abort(404, 'No source or binary packages found')
@@ -264,6 +313,21 @@ class PackageController(BaseController):
             return r
         finally:
             self._db_close()
+
+    @jsonify
+    def mr_binary(self, binary):
+        try:
+            set_expires(int(config['app_conf']['expires.package.mr.source']))
+            binaryversions = g.shm.packages_get_binary_versions_by_name(self._db(), binary)
+            binaryversions = map(lambda b: dict(b), binaryversions)
+            if len(binaryversions) == 0: abort(404, 'No such binary package')
+            r = { '_comment': "foo",
+                  'binary': binary,
+                  'result': binaryversions }
+            return r
+        finally:
+            self._db_close()
+
 
     @jsonify
     def mr_fileinfo(self, hash):

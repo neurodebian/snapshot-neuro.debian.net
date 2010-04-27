@@ -264,13 +264,23 @@ class SnapshotModel:
 
         return map(lambda x: x['hash'], rows)
 
-    def packages_get_binpkgs(self, db, source, version):
+    def packages_get_binpkgs_from_source(self, db, source, version):
         rows = db.query("""SELECT name, version, binpkg_id
                            FROM binpkg
                              WHERE srcpkg_id = (SELECT srcpkg_id FROM srcpkg WHERE name=%(source)s AND version=%(version)s)
                            ORDER BY name, version""",
                 { 'source': source,
                   'version': version} )
+        return rows
+
+    def packages_get_binary_versions_by_name(self, db, binary):
+        rows = db.query("""SELECT binpkg.name AS name, binpkg.version AS binary_version, srcpkg.name AS source, srcpkg.version AS version
+                           FROM binpkg
+                               JOIN srcpkg
+                               ON binpkg.srcpkg_id=srcpkg.srcpkg_id
+                           WHERE binpkg.name=%(binary)s
+                           ORDER BY binpkg.version""",
+                { 'binary': binary} )
         return rows
 
     def packages_get_binary_files_from_id(self, db, binpkg_id):

@@ -16,7 +16,7 @@
 
 <h1>Packages</h1>
 
-Search in the index:<br />
+Search in the index of source packages:<br />
 <ul class="inlineList">
 %for letter in c.srcstarts:
 	<li><a href="package/?cat=${letter['quoted']}">${letter['raw']}</a></li>
@@ -24,7 +24,13 @@ Search in the index:<br />
 </ul>
 
 <form action="package/">
-<p>Or enter a source package name directly: <input name="src" /> <input type="submit" value="Submit" /></p>
+<p>Or enter a <strong>source</strong> package name directly: <input name="src" /> <input type="submit" value="Submit" /></p>
+</form>
+
+<h2>Binary packages</h2>
+
+<form action="binary/">
+<p>Search for a <strong>binary</strong> package name: <input name="bin" /> <input type="submit" value="Submit" /></p>
 </form>
 
 <h1>Miscellaneous</h1>

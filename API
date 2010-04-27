@@ -112,6 +112,34 @@ summary: list all files associated with this source package at that version
     }
 }
 
+URL: /mr/binary/<binary>/
+http status codes: 200 500 404 304
+summary: find binary package versions and corresponding source names and versions
+{   '_comment': "foo",
+    'binary': "keylookup",
+    'result': [ {
+                 'name': "keylookup",
+                 'binary_version': "2.0-2",
+                 'source': "keylookup",
+                 'version': "2.0-2"},
+                {
+                 'name': "keylookup",
+                 'binary_version': "2.2-2",
+                 'source': "keylookup",
+                 'version': "2.2-2"},
+                {
+                 'name': "keylookup",
+                 'binary_version': "3.0-1",
+                 'source': "signing-party",
+                 'version': "0.4.2-1"},
+                ...
+              ]
+}
+
+
+
+
+
 URL: /file/<hash>
 http status codes: 200 500 404 403 304
 [return the file]

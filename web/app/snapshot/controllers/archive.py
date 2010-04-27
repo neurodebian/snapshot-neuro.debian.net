@@ -130,7 +130,9 @@ class ArchiveController(BaseController):
         crumbs = []
 
         url = request.environ.get('SCRIPT_NAME') + "/"
-        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org' });
+        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org', 'sep': '|' });
+
+        crumbs.append( { 'url': None, 'name': 'archive:', 'sep': '' });
 
         url += 'archive/' + archive + "/"
         crumbs.append( { 'url': url, 'name': archive, 'sep': '' });

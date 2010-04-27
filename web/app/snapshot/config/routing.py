@@ -32,12 +32,17 @@ def make_map():
     map.connect('/package/{source}/', controller='package', action='source')
     map.connect('/package/{source}/{version}/', controller='package', action='source_version')
 
+    map.connect('/binary/', controller='package', action='binary_root')
+    map.connect('/binary/{binary}/', controller='package', action='binary')
+
     map.connect('/mr/package/', controller='package', action='mr_list')
     map.connect('/mr/package/{source}/', controller='package', action='mr_source')
     map.connect('/mr/package/{source}/{version}/srcfiles', controller='package', action='mr_source_version_srcfiles')
     map.connect('/mr/package/{source}/{version}/binpackages', controller='package', action='mr_source_version_binpackages')
     map.connect('/mr/package/{source}/{version}/binfiles/{binary}/{binary_version}', controller='package', action='mr_source_version_binfiles')
     map.connect('/mr/package/{source}/{version}/allfiles', controller='package', action='mr_source_version_allfiles')
+
+    map.connect('/mr/binary/{binary}/', controller='package', action='mr_binary')
 
     map.connect('/file/{hash}', controller='archive', action='file')
     map.connect('/mr/file/{hash}/info', controller='package', action='mr_fileinfo')
