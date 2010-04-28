@@ -322,22 +322,24 @@ class SnapshotModel:
                         { 'hash': hash } )
         return rows
 
-    @beaker_cache(expire=600, cache_response=False, type='memory', key=None)
-    def packages_get_name_starts(self, db):
-        rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM srcpkg
+    @beaker_cache(expire=600, cache_response=False, type='memory', key='get_binary')
+    def packages_get_name_starts(self, db, get_binary=False):
+        table = ('srcpkg', 'binpkg')[get_binary]
+        rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM """+table+"""
                            UNION ALL
-                           SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM srcpkg WHERE name LIKE 'lib_%%'
+                           SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM """+table+""" WHERE name LIKE 'lib_%%'
                            ORDER BY start""")
         return map(lambda x: x['start'], rows)
 
-    def packages_get_name_starts_with(self, db, start):
-        if not start in self.packages_get_name_starts(db):
+    def packages_get_name_starts_with(self, db, start, get_binary=False):
+        if not start in self.packages_get_name_starts(db, get_binary):
             return None
+        table = ('srcpkg', 'binpkg')[get_binary]
         if start == "l":
-            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",
+            rows = db.query("""SELECT DISTINCT name FROM """+table+""" WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",
                             {'start': start+"%" })
         else:
-            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s ORDER BY name""",
+            rows = db.query("""SELECT DISTINCT name FROM """+table+""" WHERE name LIKE %(start)s ORDER BY name""",
                             {'start': start+"%" })
         return map(lambda x: x['name'], rows)
 

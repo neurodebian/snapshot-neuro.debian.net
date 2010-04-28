@@ -27,30 +27,32 @@ class PackageController(BaseController):
         if not self.db is None:
             self.db.close()
 
-    def _make_crumbs_base(self):
+    def _build_crumbs(self, pkg=None, version=None, start=None, is_binary=False):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
         crumbs.append( { 'url': url, 'name': 'snapshot.debian.org', 'sep': '|' });
 
-        return (url, crumbs)
-
-    def _build_crumbs(self, srcpkg=None, version=None, start=None):
-        (url, crumbs) = self._make_crumbs_base()
-        crumbs.append( { 'url': None, 'name': 'source package:', 'sep': '' });
+        if is_binary:
+            crumbs.append( { 'url': None, 'name': 'binary package:', 'sep': '' });
+        else:
+            crumbs.append( { 'url': None, 'name': 'source package:', 'sep': '' });
 
         if not start:
-            if srcpkg.startswith('lib') and len(srcpkg) >= 4:
-                start = srcpkg[0:4]
+            if pkg.startswith('lib') and len(pkg) >= 4:
+                start = pkg[0:4]
             else:
-                start = srcpkg[0:1]
+                start = pkg[0:1]
 
-        url += 'package/'
+        if is_binary:
+            url += 'binary/'
+        else:
+            url += 'package/'
         crumbs.append( { 'url': url + '?cat=%s'%urllib.quote(start), 'name': start+'*' } )
 
-        if not srcpkg is None:
-            url += urllib.quote(srcpkg) + '/'
-            crumbs.append( { 'url': url, 'name': srcpkg });
+        if not pkg is None:
+            url += urllib.quote(pkg) + '/'
+            crumbs.append( { 'url': url, 'name': pkg });
 
             if version:
                 url += urllib.quote(version) + '/'
@@ -160,6 +162,22 @@ class PackageController(BaseController):
         if 'bin' in request.params:
             url = url_quote(request.params['bin'] + "/")
             return redirect_to(url)
+        elif 'cat' in request.params:
+            try:
+                #etag_cache( g.shm.packages_get_etag(self._db()) )
+                set_expires(int(config['app_conf']['expires.package.root_cat']))
+
+                start = request.params['cat']
+                pkgs = g.shm.packages_get_name_starts_with(self._db(), start, get_binary=True)
+                if pkgs is None:
+                    abort(404, 'No binary packages in this category.')
+                c.start = start
+                c.packages = link_quote_array(pkgs)
+                c.breadcrumbs = self._build_crumbs(start=start, is_binary=True)
+                c.title = '%s*'%(start)
+                return render('/package-binary-list-packages.mako')
+            finally:
+                self._db_close()
         else:
             return redirect_to("../")
 
@@ -190,13 +208,9 @@ class PackageController(BaseController):
                 b['escaped_name'] = self._attribute_escape(b['name'])
                 b['escaped_version'] = self._attribute_escape(b['version'])
 
-            url, crumbs = self._make_crumbs_base()
-            crumbs.append( { 'url': None, 'name': 'binary package:', 'sep': '' });
-            crumbs.append( { 'url': None, 'name': binary });
-
             c.binary = binary
             c.binaryversions = binaryversions
-            c.breadcrumbs = crumbs
+            c.breadcrumbs = self._build_crumbs(binary, is_binary=True)
             c.title = binary
             return render('/package-binary.mako')
         finally:
