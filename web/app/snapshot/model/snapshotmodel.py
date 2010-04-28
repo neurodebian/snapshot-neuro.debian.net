@@ -279,7 +279,7 @@ class SnapshotModel:
                                JOIN srcpkg
                                ON binpkg.srcpkg_id=srcpkg.srcpkg_id
                            WHERE binpkg.name=%(binary)s
-                           ORDER BY binpkg.version""",
+                           ORDER BY binpkg.version DESC""",
                 { 'binary': binary} )
         return rows
 
