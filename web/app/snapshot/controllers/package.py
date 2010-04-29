@@ -206,7 +206,7 @@ class PackageController(BaseController):
             for b in binaryversions:
                 b['link'] = url_quote('../../package/%s/%s/'%(b['source'], b['version']))
                 b['escaped_name'] = self._attribute_escape(b['name'])
-                b['escaped_version'] = self._attribute_escape(b['version'])
+                b['escaped_binary_version'] = self._attribute_escape(b['binary_version'])
 
             c.binary = binary
             c.binaryversions = binaryversions
