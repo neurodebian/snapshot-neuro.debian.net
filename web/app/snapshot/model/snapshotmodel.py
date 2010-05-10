@@ -347,6 +347,18 @@ class SnapshotModel:
         rows = db.query("""SELECT DISTINCT name FROM srcpkg""")
         return map(lambda x: x['name'], rows)
 
+    def removal_get_list(self, db):
+        rows = db.query("""SELECT removal_log_id, entry_added, reason FROM removal_log""")
+        return rows
+
+    def removal_get_one(self, db, id):
+        row = db.query_one("""SELECT removal_log_id, entry_added, reason FROM removal_log WHERE removal_log_id=%(removal_log_id)s""", {'removal_log_id': id})
+        return row
+
+    def removal_get_affected(self, db, id):
+        rows = db.query("""SELECT hash FROM removal_affects WHERE removal_log_id=%(removal_log_id)s""", {'removal_log_id': id})
+        return map(lambda x: x['hash'], rows)
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
