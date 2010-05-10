@@ -348,7 +348,7 @@ class SnapshotModel:
         return map(lambda x: x['name'], rows)
 
     def removal_get_list(self, db):
-        rows = db.query("""SELECT removal_log_id, entry_added, reason FROM removal_log""")
+        rows = db.query("""SELECT removal_log_id, entry_added, reason FROM removal_log ORDER BY entry_added DESC""")
         return rows
 
     def removal_get_one(self, db, id):
