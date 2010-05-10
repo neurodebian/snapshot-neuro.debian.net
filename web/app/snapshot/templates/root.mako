@@ -46,6 +46,7 @@ Search in the index of source packages:<br />
 	<li><a href="oldnews">older news</a></li>
 	<li><a href="http://lists.debian.org/debian-snapshot/">mailinglist</a></li>
 	<li><a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git;a=blob_plain;f=API">machine-usable interface</a></li>
+	<li><a href="http://snapshot-master.debian.org/removal/">removal logs</a></li>
 </ul>
 
 </td>
