@@ -6,7 +6,7 @@ Available versions:
 </p>
 <ul>
 	%for entry in c.binaryversions:
-	<li><a href="${entry['link']}#${entry['escaped_name']}_${entry['escaped_version']}">${entry['binary_version']} (source: ${entry['source']} ${entry['version']})</a></li>
+	<li><a href="${entry['link']}#${entry['escaped_name']}_${entry['escaped_binary_version']}">${entry['binary_version']} (source: ${entry['source']} ${entry['version']})</a></li>
 	%endfor
 </ul>
 

@@ -34,6 +34,9 @@ class Globals(object):
         default_expires['expires.package.mr.source_version'] = 300
         default_expires['expires.root'] = 1800
 
+        default_expires['expires.removal'] = 1800
+        default_expires['expires.removal.one'] = 3600
+
         for key in default_expires:
             if not key in config['app_conf']: config['app_conf'][key] = default_expires[key]
 

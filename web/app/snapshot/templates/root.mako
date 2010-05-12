@@ -16,6 +16,8 @@
 
 <h1>Packages</h1>
 
+<h2>source packages:</h2>
+
 Search in the index of source packages:<br />
 <ul class="inlineList">
 %for letter in c.srcstarts:
@@ -27,7 +29,13 @@ Search in the index of source packages:<br />
 <p>Or enter a <strong>source</strong> package name directly: <input name="src" /> <input type="submit" value="Submit" /></p>
 </form>
 
-<h2>Binary packages</h2>
+<h2>binary packages:</h2>
+
+<ul class="inlineList">
+%for letter in c.binstarts:
+	<li><a href="binary/?cat=${letter['quoted']}">${letter['raw']}</a></li>
+%endfor
+</ul>
 
 <form action="binary/">
 <p>Search for a <strong>binary</strong> package name: <input name="bin" /> <input type="submit" value="Submit" /></p>
@@ -38,6 +46,7 @@ Search in the index of source packages:<br />
 	<li><a href="oldnews">older news</a></li>
 	<li><a href="http://lists.debian.org/debian-snapshot/">mailinglist</a></li>
 	<li><a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git;a=blob_plain;f=API">machine-usable interface</a></li>
+	<li><a href="http://snapshot-master.debian.org/removal/">removal logs</a></li>
 </ul>
 
 </td>

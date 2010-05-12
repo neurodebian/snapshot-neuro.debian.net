@@ -322,28 +322,42 @@ class SnapshotModel:
                         { 'hash': hash } )
         return rows
 
-    @beaker_cache(expire=600, cache_response=False, type='memory', key=None)
-    def packages_get_name_starts(self, db):
-        rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM srcpkg
+    @beaker_cache(expire=600, cache_response=False, type='memory', key='get_binary')
+    def packages_get_name_starts(self, db, get_binary=False):
+        table = ('srcpkg', 'binpkg')[get_binary]
+        rows = db.query("""SELECT DISTINCT substring( name FROM 1 FOR 1 ) AS start FROM """+table+"""
                            UNION ALL
-                           SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM srcpkg WHERE name LIKE 'lib_%%'
+                           SELECT DISTINCT substring( name FROM 1 FOR 4 ) AS start FROM """+table+""" WHERE name LIKE 'lib_%%'
                            ORDER BY start""")
         return map(lambda x: x['start'], rows)
 
-    def packages_get_name_starts_with(self, db, start):
-        if not start in self.packages_get_name_starts(db):
+    def packages_get_name_starts_with(self, db, start, get_binary=False):
+        if not start in self.packages_get_name_starts(db, get_binary):
             return None
+        table = ('srcpkg', 'binpkg')[get_binary]
         if start == "l":
-            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",
+            rows = db.query("""SELECT DISTINCT name FROM """+table+""" WHERE name LIKE %(start)s AND NOT (name LIKE 'lib_%%') ORDER BY name""",
                             {'start': start+"%" })
         else:
-            rows = db.query("""SELECT DISTINCT name FROM srcpkg WHERE name LIKE %(start)s ORDER BY name""",
+            rows = db.query("""SELECT DISTINCT name FROM """+table+""" WHERE name LIKE %(start)s ORDER BY name""",
                             {'start': start+"%" })
         return map(lambda x: x['name'], rows)
 
     def packages_get_all(self, db):
         rows = db.query("""SELECT DISTINCT name FROM srcpkg""")
         return map(lambda x: x['name'], rows)
+
+    def removal_get_list(self, db):
+        rows = db.query("""SELECT removal_log_id, entry_added, reason FROM removal_log ORDER BY entry_added DESC""")
+        return rows
+
+    def removal_get_one(self, db, id):
+        row = db.query_one("""SELECT removal_log_id, entry_added, reason FROM removal_log WHERE removal_log_id=%(removal_log_id)s""", {'removal_log_id': id})
+        return row
+
+    def removal_get_affected(self, db, id):
+        rows = db.query("""SELECT hash FROM removal_affects WHERE removal_log_id=%(removal_log_id)s""", {'removal_log_id': id})
+        return map(lambda x: x['hash'], rows)
 
 # vim:set et:
 # vim:set ts=4:

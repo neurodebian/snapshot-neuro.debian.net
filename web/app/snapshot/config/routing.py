@@ -47,6 +47,9 @@ def make_map():
     map.connect('/file/{hash}', controller='archive', action='file')
     map.connect('/mr/file/{hash}/info', controller='package', action='mr_fileinfo')
 
+    map.connect('/removal/', controller='removal', action='root')
+    map.connect('/removal/{id}', controller='removal', action='one')
+
     #map.connect('/{controller}/{action}')
     #map.connect('/{controller}/{action}/{id}')
 
