@@ -164,15 +164,19 @@ def edit_buffer(buf):
         sys.exit(1)
 
     tmp.seek(0)
-    return tmp
+    buf = []
+    for l in tmp:
+        l = l.rstrip()
+        buf.append(l)
+    tmp.close()
+    return buf
 
-def parse_editbuffer(fd):
+def parse_editbuffer(buf):
     msg = []
     files = []
     in_files = False
-    for l in fd:
+    for l in buf:
         if l.startswith('#'): continue
-        l = l.rstrip()
 
         if l == '=files=':
             in_files = True
@@ -252,8 +256,15 @@ if not options.undo_id is None:
 if options.apply_id is None:
     package = args[0]
     buf = prepare_editbuffer(package)
-    fh = edit_buffer(buf)
-    msg, files = parse_editbuffer(fh)
+    newbuf = edit_buffer(buf)
+    if buf == newbuf:
+        sys.stdout.write("Edit buffer not changed.  Proceed anyway? [y/N] ")
+        sys.stdout.flush()
+        line = sys.stdin.readline().strip()
+        if not line == "y":
+            sys.exit(0)
+
+    msg, files = parse_editbuffer(newbuf)
     id = insert_into_db(db, msg, files)
     print "Committed to database, applying changes to filesystem.  If this fails"
     print "for some reason please fix what is necessary then rerun this script"
