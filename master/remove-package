@@ -55,7 +55,7 @@ parser.add_option("-U", "--undo", dest="undo_id", metavar="REMOVAL_LOG_ID",
 (options, args) = parser.parse_args()
 
 if options.baseurl is None:
-    options.baseurl = 'http://snapshot-dev.debian.org/'
+    options.baseurl = 'http://snapshot.debian.org/'
 if options.conffile is None and 'SNAPSHOT_CONF' in os.environ:
     options.conffile = os.environ['SNAPSHOT_CONF']
 
