@@ -53,9 +53,9 @@ summary: list all binary packages associated with this source package at that ve
     'package': "tor",
     'version': "0.2.1.22-1",
     'result':
-        [   { 'name": 'tor'      , 'version': '0.2.1.22-1' },
-            { 'name": 'tor-dbg'  , 'version': '0.2.1.22-1' },
-            { 'name": 'tor-geoip', 'version': '0.2.1.22-1' },
+        [   { 'name': 'tor'      , 'version': '0.2.1.22-1' },
+            { 'name': 'tor-dbg'  , 'version': '0.2.1.22-1' },
+            { 'name': 'tor-geoip', 'version': '0.2.1.22-1' },
             ...
         ]
 }
