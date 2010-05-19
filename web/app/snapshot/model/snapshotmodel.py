@@ -359,6 +359,17 @@ class SnapshotModel:
         rows = db.query("""SELECT hash FROM removal_affects WHERE removal_log_id=%(removal_log_id)s""", {'removal_log_id': id})
         return map(lambda x: x['hash'], rows)
 
+
+    def get_last_mirrorrun(self, db):
+        row = db.query_one("""
+                SELECT max(run)::TIMESTAMP WITH TIME ZONE AS run
+                  FROM mirrorrun
+                  """)
+        if row is None:
+            return None
+
+        return row['run']
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:
