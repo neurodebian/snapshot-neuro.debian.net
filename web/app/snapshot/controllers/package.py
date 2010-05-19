@@ -220,8 +220,10 @@ class PackageController(BaseController):
     def _get_fileinfo_for_mr_one(self, hash):
         fileinfo = map(lambda x: dict(x), g.shm.packages_get_file_info(self._db(), hash))
         for fi in fileinfo:
-            fi['run'] = rfc3339_timestamp(fi['run'])
+            fi['first_seen'] = rfc3339_timestamp(fi['run'])
+            del fi['run']
         return fileinfo
+
     def _get_fileinfo_for_mr(self, hashes):
         r = {}
         for hash in hashes:
