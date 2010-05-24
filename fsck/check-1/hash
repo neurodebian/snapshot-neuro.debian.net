@@ -44,28 +44,22 @@ class HashingThread(threading.Thread):
     def run(self):
         while True:
             item = workqueue.get()
-            if item is None:
-                workqueue.task_done()
-                break
-
-            (path, filename) = item
-
-            if verbose >= 6: print "%s: starting"%(filename)
             try:
+                if item is None: break
+                (path, filename) = item
+                if verbose >= 6: print "%s: starting"%(filename)
                 actual_hash = hasher.hash_file(os.path.join(path, filename))
+                if actual_hash != filename:
+                    errors.append((filename, 'Hash mismatch (%s)'%(actual_hash)))
+                    if verbose >= 2: print "%s: Hash mismatch (%s)"%(filename, actual_hash)
+                else:
+                    if verbose >= 4: print "%s: OK"%(filename)
+                    elif verbose >= 3: sys.stdout.write("."); sys.stdout.flush()
             except Exception, e:
                 errors.append((filename, 'Exception: %s'%(e)))
                 if verbose >= 2: print "%s: Exception (%s)"%(filename, e)
+            finally:
                 workqueue.task_done()
-                continue
-
-            if actual_hash != filename:
-                errors.append((filename, 'Hash mismatch (%s)'%(actual_hash)))
-                if verbose >= 2: print "%s: Hash mismatch (%s)"%(filename, actual_hash)
-            else:
-                if verbose >= 4: print "%s: OK"%(filename)
-                elif verbose >= 3: sys.stdout.write("."); sys.stdout.flush()
-            workqueue.task_done()
 
 for x in xrange ( numthreads ):
    HashingThread().start()
