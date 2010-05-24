@@ -56,6 +56,7 @@ class HashingThread(threading.Thread):
             except Exception, e:
                 errors.append((filename, 'Exception: %s'%(e)))
                 if verbose >= 2: print "%s: Exception (%s)"%(filename, e)
+                workqueue.task_done()
                 continue
 
             if actual_hash != filename:
