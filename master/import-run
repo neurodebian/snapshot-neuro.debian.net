@@ -32,7 +32,7 @@ case "$archive" in
 		rm -f "$force_slow_flag"
 		snapshot dumpall --config "$CONFIG"
 
-		ssh -i "$BASE"/.ssh/id-trigger -f sibelius sync-incremental < /dev/null > /dev/null 2>&1 &
+		ssh -i "$BASE"/.ssh/id-trigger -f stabile sync-incremental < /dev/null > /dev/null 2>&1 &
 
 		snapshot index --config "$CONFIG" --quick $verbose
 
