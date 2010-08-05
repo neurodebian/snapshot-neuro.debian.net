@@ -195,7 +195,6 @@ class ArchiveController(BaseController):
                 c.nav[key+'_link'] = os.path.join('/archive', archive, rfc3339_timestamp(c.nav[key]), stat['path'].strip('/'), '')
 
         c.breadcrumbs = self._build_crumbs(archive, run, stat['path'])
-        set_expires(int(config['app_conf']['expires.archive.dir']))
         c.title = '%s:%s (%s)'%(archive, stat['path'], run['run'])
         return render('/archive-dir.mako')
 
@@ -221,6 +220,7 @@ class ArchiveController(BaseController):
     def dir(self, archive, date, url):
         try:
             #etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            set_expires(int(config['app_conf']['expires.archive.dir']))
 
             if not self._dateok(date):
                 abort(404, 'Invalid date string - nothing to be found here.')
