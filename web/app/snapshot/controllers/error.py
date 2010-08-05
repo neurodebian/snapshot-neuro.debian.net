@@ -1,7 +1,7 @@
 import cgi
 
 from paste.urlparser import PkgResourcesParser
-from pylons import request, config, tmpl_context as c
+from pylons import request, response, config, tmpl_context as c
 from pylons.controllers.util import forward
 from pylons.middleware import error_document_template
 from webhelpers.html.builder import literal
@@ -35,6 +35,10 @@ class ErrorController(BaseController):
             c.code = cgi.escape(request.GET.get('code', str(resp.status_int)))
             c.title = 'Error %s'%(c.code)
             c.content = content
+            if resp and c.code == '404':
+                response.expires = resp.expires
+                response.cache_control = resp.cache_control
+                response.pragma = resp.pragma
             return render('/error.mako')
 
     def img(self, id):
