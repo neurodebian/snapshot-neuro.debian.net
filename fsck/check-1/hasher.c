@@ -12,6 +12,7 @@
 #include <Python.h>
 
 #define SHA1SIZE 20
+#define MAX_MMAP (64*1024*1024)
 
 
 static PyObject *HasherError;
@@ -43,6 +44,8 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 	PyObject *res = NULL;
 	PyThreadState *_save;
 	char res_s[2*SHA1SIZE + 1];
+	size_t this_len = 0;
+	off_t off = 0;
 	int r;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
@@ -62,17 +65,22 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 	if (SHA1_Init(&ctx) != 1)
 		py_err("SHA1_Init()", NULL);
 
-	map = mmap(NULL, st_buf.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (map == MAP_FAILED) py_err("mmap failed", filename);
+	while (off < st_buf.st_size) {
+		this_len = st_buf.st_size - off;
+		if (this_len > MAX_MMAP) this_len = MAX_MMAP;
+		map = mmap(NULL, this_len, PROT_READ, MAP_SHARED, fd, off);
+		if (map == MAP_FAILED) py_err("mmap failed", filename);
 
-	//posix_madvise(map, st_buf.st_size, POSIX_MADV_WILLNEED);
-	posix_madvise(map, st_buf.st_size, POSIX_MADV_SEQUENTIAL);
+		//posix_madvise(map, this_len, POSIX_MADV_WILLNEED);
+		posix_madvise(map, this_len, POSIX_MADV_SEQUENTIAL);
 
-	if (SHA1_Update(&ctx, map, st_buf.st_size) != 1)
-		py_err("SHA1_Update", NULL);
+		if (SHA1_Update(&ctx, map, this_len) != 1)
+			py_err("SHA1_Update", NULL);
 
-	posix_madvise(map, st_buf.st_size, POSIX_MADV_DONTNEED);
-	if (munmap(map, st_buf.st_size) < 0) py_err("munmap failed", filename);
+		posix_madvise(map, this_len, POSIX_MADV_DONTNEED);
+		if (munmap(map, this_len) < 0) py_err("munmap failed", filename);
+		off += this_len;
+	}
 	posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 	if (close(fd) < 0)
 		py_err("Cannot close bar", filename);
