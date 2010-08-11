@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,7 +12,7 @@
 #include <Python.h>
 
 #define SHA1SIZE 20
-#define BLOCKSIZE (64*1024)
+#define MAX_MMAP (64*1024*1024)
 
 
 static PyObject *HasherError;
@@ -35,13 +36,16 @@ static PyObject *HasherError;
 static PyObject *hash_file(PyObject *self, PyObject *args)
 {
 	const char *filename;
-	int fd, num_read;
-	unsigned char ibuf[BLOCKSIZE];
+	int fd;
+	struct stat st_buf;
+	unsigned char *map;
 	unsigned char obuf[SHA1SIZE];
 	SHA_CTX ctx;
 	PyObject *res = NULL;
 	PyThreadState *_save;
 	char res_s[2*SHA1SIZE + 1];
+	size_t this_len = 0;
+	off_t off = 0;
 	int r;
 
 	if (!PyArg_ParseTuple(args, "s", &filename))
@@ -52,6 +56,7 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 
 	fd = open(filename, O_RDONLY | O_LARGEFILE);
 	if (fd < 0) py_err("Cannot open file", filename);
+	if (fstat(fd, &st_buf) < 0) py_err("Cannot fstat file", filename);
 
 	posix_fadvise(fd, 0, 0, POSIX_FADV_NOREUSE);
 	//posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
@@ -59,21 +64,28 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 
 	if (SHA1_Init(&ctx) != 1)
 		py_err("SHA1_Init()", NULL);
-	while ((num_read = read(fd, ibuf, BLOCKSIZE))) {
-		if (num_read < 0) {
-			if (errno == EINTR)
-				continue;
-			else
-				py_err("During read", filename);
-		}
-		if (SHA1_Update(&ctx, ibuf, num_read) != 1)
+
+	while (off < st_buf.st_size) {
+		this_len = st_buf.st_size - off;
+		if (this_len > MAX_MMAP) this_len = MAX_MMAP;
+		map = mmap(NULL, this_len, PROT_READ, MAP_SHARED, fd, off);
+		if (map == MAP_FAILED) py_err("mmap failed", filename);
+
+		//posix_madvise(map, this_len, POSIX_MADV_WILLNEED);
+		posix_madvise(map, this_len, POSIX_MADV_SEQUENTIAL);
+
+		if (SHA1_Update(&ctx, map, this_len) != 1)
 			py_err("SHA1_Update", NULL);
+
+		posix_madvise(map, this_len, POSIX_MADV_DONTNEED);
+		if (munmap(map, this_len) < 0) py_err("munmap failed", filename);
+		off += this_len;
 	}
-	if (SHA1_Final(obuf, &ctx) != 1)
-		py_err("SHA1_Final", NULL);
 	posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);
 	if (close(fd) < 0)
-		py_err("Cannot open bar", filename);
+		py_err("Cannot close bar", filename);
+	if (SHA1_Final(obuf, &ctx) != 1)
+		py_err("SHA1_Final", NULL);
 
 	r = snprintf(res_s, sizeof(res_s),
 	             "%02x%02x%02x%02x%02x"
@@ -85,7 +97,7 @@ static PyObject *hash_file(PyObject *self, PyObject *args)
 	    obuf[10], obuf[11], obuf[12], obuf[13], obuf[14],
 	    obuf[15], obuf[16], obuf[17], obuf[18], obuf[19]);
 	if (r >= sizeof(res_s)) {
-		printf("%d vs %d\n", r, sizeof(res_s));
+		printf("%d vs %ld\n", r, sizeof(res_s));
 		py_err("snprintf failure", filename);
 	}
 
