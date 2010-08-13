@@ -60,6 +60,7 @@ class ArchiveController(BaseController):
 
 
     def root(self):
+        set_expires(int(config['app_conf']['expires.archive.index']))
         return redirect_to("../")
 
     def archive_base(self, archive):

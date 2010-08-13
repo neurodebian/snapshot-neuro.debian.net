@@ -63,6 +63,7 @@ class PackageController(BaseController):
 
     def root(self):
         if 'src' in request.params:
+            set_expires(int(config['app_conf']['expires.package.root_cat']))
             url = url_quote(request.params['src'] + "/")
             return redirect_to(url)
         elif 'cat' in request.params:
@@ -82,6 +83,7 @@ class PackageController(BaseController):
             finally:
                 self._db_close()
         else:
+            set_expires(int(config['app_conf']['expires.package.root_cat']))
             return redirect_to("../")
 
     def source(self, source):
@@ -160,6 +162,7 @@ class PackageController(BaseController):
 
     def binary_root(self):
         if 'bin' in request.params:
+            set_expires(int(config['app_conf']['expires.package.root_cat']))
             url = url_quote(request.params['bin'] + "/")
             return redirect_to(url)
         elif 'cat' in request.params:
@@ -179,6 +182,7 @@ class PackageController(BaseController):
             finally:
                 self._db_close()
         else:
+            set_expires(int(config['app_conf']['expires.package.root_cat']))
             return redirect_to("../")
 
     def binary(self, binary):
