@@ -123,6 +123,23 @@ If you want anything related to a speficic package simply enter the
 </p>
 
 <h1>News</h1>
+<h2>2010-08-16</h2>
+<p>
+Set up a caching proxy in front of the two snapshot webservers.  This will help
+in cases where an entire organisation uses various apt sources.list entries on
+a lot of their machines.
+</p>
+<p>
+Usually such entities would use proxy caches like apt-cacher and that would be
+fine if they worked correctly.  Unfortunately apt-cacher completely ignores the
+Cache-Control headers that snapshot sends and hits this service for all
+requests made to anything under <code>dist/</code>.  A single <code>apt-get
+update</code> can cause up to a few dozen of such requests and when multiplied
+by scores of machines - all running the update at the same time - this caused
+the snapshot backend to run into limits.  Now such requests won't hit the backend
+any more.
+</p>
+
 <h2>2010-04-12</h2>
 <p>
 Publicly <a href="http://www.debian.org/News/2010/20100412">announce the snapshot.debian.org service</a>.  Yay.
