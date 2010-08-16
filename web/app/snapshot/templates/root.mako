@@ -130,8 +130,9 @@ in cases where an entire organisation uses various apt sources.list entries on
 a lot of their machines.
 </p>
 <p>
-Usually such entities would use proxy caches like apt-cacher and that would be
-fine if they worked correctly.  Unfortunately apt-cacher completely ignores the
+Usually such entities would use proxy caches like squid and then there is no
+problem, assuming the cache works correctly.  Unfortunately apt-cacher, apparently
+a common choice which is supposed to be smarter for debian archives, completely ignores the
 Cache-Control headers that snapshot sends and hits this service for all
 requests made to anything under <code>dist/</code>.  A single <code>apt-get
 update</code> can cause up to a few dozen of such requests and when multiplied
