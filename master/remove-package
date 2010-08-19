@@ -184,7 +184,7 @@ def parse_editbuffer(buf):
         if in_files:
             if l == '':
                 continue
-            x = l.split(' ', 2)
+            x = l.split(' ', 1)
             x = x[0]
             if len(x) != 40:
                 sys.stderr.write("Cannot parse line '%s'.\n"%(l))
