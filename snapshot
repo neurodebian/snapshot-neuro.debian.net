@@ -1112,8 +1112,12 @@ class PackageIndexer
 		if e['Checksums-Sha1']
 			e['Checksums-Sha1'].each do |line|
 				hash, size, itemname, rest = line.split(/ /)
-				insert_src_file_from_digest(srcpkg, hash)
-				$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source by digest: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				if $storage.exists?(hash)
+					insert_src_file_from_digest(srcpkg, hash)
+					$logger.debug("[indexrun ##{@mirrorrun_id}] Inserting for source by digest: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				else
+					$logger.warn("[indexrun ##{@mirrorrun_id}] Failed to insert for source by digest, but no file with that digest exists: #{e['Source']} #{e['Source-Version']}: #{itemname} (#{hash})")
+				end
 			end
 		else
 			e['Files'].each do |line|
