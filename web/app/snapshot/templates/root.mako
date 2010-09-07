@@ -123,7 +123,7 @@ If you want anything related to a speficic package simply enter the
 </p>
 
 <h1>News</h1>
-<h2>2010-09-97</h2>
+<h2>2010-09-07</h2>
 <p>
 Renamed the backports.org archive to debian-backports as it has now
 <a href="http://lists.debian.org/20100905211658.GH7615@lisa.snow-crash.org">moved
