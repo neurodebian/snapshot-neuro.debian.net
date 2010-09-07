@@ -123,6 +123,15 @@ If you want anything related to a speficic package simply enter the
 </p>
 
 <h1>News</h1>
+<h2>2010-09-97</h2>
+<p>
+Renamed the backports.org archive to debian-backports as it has now
+<a href="http://lists.debian.org/20100905211658.GH7615@lisa.snow-crash.org">moved
+to debian.org infrastructure</a>.  A rewrite rule has been put in place
+so old URLs should continue to work (at least for HTTP clients that know
+how to follow HTTP redirects).
+</p>
+
 <h2>2010-08-16</h2>
 <p>
 Set up a caching proxy in front of the two snapshot webservers.  This will help
