@@ -1,0 +1,19 @@
+# as psql super
+createuser -DRS snapshot
+dropdb snapshotdb # to drop the one played with before
+createdb -O snapshot snapshotdb
+psql -f db-init.sql snapshotdb
+# e done as snapshot
+psql -f db-create.sql snapshotdb
+
+# Create our archive
+./snapshot -c snapshot.conf -v -a neurodebian add-archive
+
+
+### issues:
+
+probably due to wrong passwd:
+(snapshots-session)snapshot@pymvpa:~/snapshot$ ./snapshot -c snapshot.conf list-archives
+./snapshot:34:in `barf': undefined method `error' for nil:NilClass (NoMethodError)
+	from ./snapshot:1388:in `loadConfig'
+	from ./snapshot:1435
