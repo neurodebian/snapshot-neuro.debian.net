@@ -636,7 +636,7 @@ class SnapshotImporter
 		end
 
 		row = @db.query_row("SELECT count(*) AS count FROM nodes_window")
-		raise "Did not process correct amount of elements in nodes_window table." if row['count'] != handled
+		raise "Did not process correct amount of elements in nodes_window table." if row['count'].to_i != handled
 	end
 
 
@@ -668,7 +668,8 @@ class SnapshotImporter
 		                        ORDER BY run DESC
 		                        LIMIT 1) AS prev
 		                    ", archive_id, mirrorrun_id, archive_id, mirrorrun_id, archive_id, mirrorrun_id);
-		barf("Cannot have two runs for the same archive at the exact same time.") if row['count'] > 1
+		puts row['count'].class
+		barf("Cannot have two runs for the same archive at the exact same time.") if row['count'].to_i > 1
 
 		return row['prev'], row['next']
 	end
@@ -838,6 +839,7 @@ class PackageIndexer
 		end
 
 		r = @db.query_row(query, *args)
+		r['cnt'] = r['cnt'].to_i
 		return if r['cnt'] == 1
 		throw "Unexpected count of #{r['cnt']}" unless r['cnt'] == 0
 
