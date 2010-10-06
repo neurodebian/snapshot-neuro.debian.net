@@ -1,3 +1,6 @@
+Introduction
+============
+
 This is an implementation for a possible snapshot.debian.org service.
 It's not yet finished, it's more a prototype/proof of concept to show
 and learn what we want and can provide.  So far it seems to actually work.
@@ -6,6 +9,9 @@ The goal of snapshot.d.o is to collect a history of how our archives
 (the main debian.org archive, security, volatile etc) looked at any
 point in time.  It should allow users to say get the vim package that
 was in testing on the 13th of January 2009.
+
+Storage
+-------
 
 The way snapshot currently stores data is actually quite simple:
  - The actual files' content is stored in the "farm".  Here each file
@@ -51,15 +57,21 @@ The way snapshot currently stores data is actually quite simple:
    for a given archive.
 
 
-Currently - apart from directly querying the SQL - there's a python
+Access
+------
+
+Currently - apart from directly querying the SQL - there's a Python
 implementation of a snapshotfs fuse file system.  It's not really
 built to scale well, but for now it's one way to access the data.
 
-Hopefully somebody can be found to build a nice web frontent to this
+Hopefully somebody can be found to build a nice web frontend to this
 stuff.
 
 
-The base of the  snapshot implementation is pretty agnositc as to what
+Indexing
+--------
+
+The base of the  snapshot implementation is pretty agnostic as to what
 kind of data we take snapshots of.  It could just as well be your home
 directory or the bugs database.
 
@@ -71,12 +83,14 @@ Source packages have files associated with it (by file hash), and
 so do binary packages.  In the relation for bin packages we also
 keep track of what kind of arch this binary package is for.
 
-This indexer works either by parsing the /indices/package-file.map.bz2
+This _indexer_ works either by parsing the /indices/package-file.map.bz2
 file in an ftp tree, or if that doesn't exist, by looking at each .dsc
 and each .deb/.udeb file.
 
 
-Missing wanted features:
+TODO
+====
+
  o We might need to handle the case where packages are removed from
    the archive because we aren't allowed to redistribute them.  Then we
    could set all files belonging to a package to
@@ -130,6 +144,13 @@ Missing wanted features:
 
  [ o .. done; - to do; . partially done ]
 
+
+Installation
+============
+
+Dependencies
+------------
+
 Depends: ruby, libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8, python-yaml, python-psycopg2, fuse-utils python-fuse, uuid-runtime
 DB-Depends: postgresql-plperl-8.4 postgresql-8.4-debversion
 FUSE-Depends: python-fuse
@@ -137,9 +158,28 @@ Web-Depends: python-pylons (that is {python-pylons,python-routes,python-nose,pyt
 Web-Recommends: libapache2-mod-wsgi apache2
 Apache config: required modules: expires headers
 
+Basic setup
+-----------
+
+# as psql super::
+
+  createuser -DRS snapshot
+  dropdb snapshot                 # Drop the one played with before
+  createdb -O snapshot snapshot   # Create the DB
+  psql -f db/db-init.sql snapshot # Initialize DB (Access rights and languages)
+
+# as snapshot user::
+  ARCHIVE_NAME=<ARCHIVE> ARCHIVE_PATH=<PATH TO ARCHIVE>
+  cd db
+  psql -f db-create.sql snapshot
+  ./upgrade ../snapshot.conf      # Introduce necessary DB devel- "upgrades"
+  cd ..
+  ./snapshot -c snapshot.conf -v -a $ARCHIVE_NAME add-archive # Initialize the archive
+  ./snapshot -s -c snapshot.conf -p $ARCHIVE_PATH -v -a $ARCHIVE_NAME import
 
 
-Bugs:
+Bugs
+====
 	node_with_ts is horribly slow:
 		 SELECT hash
 			   FROM file JOIN node_with_ts ON file.node_id = node_with_ts.node_id
