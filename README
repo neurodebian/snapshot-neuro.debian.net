@@ -64,9 +64,7 @@ Currently - apart from directly querying the SQL - there's a Python
 implementation of a snapshotfs fuse file system.  It's not really
 built to scale well, but for now it's one way to access the data.
 
-Hopefully somebody can be found to build a nice web frontend to this
-stuff.
-
+There's also a pylons web application; find it in ./web/app.
 
 Indexing
 --------
