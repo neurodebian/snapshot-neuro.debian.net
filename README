@@ -69,7 +69,7 @@ There's also a pylons web application; find it in ./web/app.
 Indexing
 --------
 
-The base of the  snapshot implementation is pretty agnostic as to what
+The base of the snapshot implementation is pretty agnostic as to what
 kind of data we take snapshots of.  It could just as well be your home
 directory or the bugs database.
 
