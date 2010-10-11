@@ -6,6 +6,7 @@ set -e
 set -x
 
 TARGET="$HOME/web-app"
+PYVER=`pyversions  -d -v`
 
 [ -e "$HOME/code/web/app" ]
 [ -w "$HOME/code/web/app/Snapshot.egg-info" ]
@@ -15,7 +16,7 @@ find "$HOME"/code/web/app/Snapshot.egg-info -mindepth 1 -print0 | xargs -0 --no-
 (cd "$HOME"/code/web/app  && python setup.py install --single-version-externally-managed --record /dev/null --prefix="$TARGET")
 
 [ -d "$HOME/web" ] || mkdir "$HOME/web"
-[ -e "$HOME/web/public" ] || ln -s ../web-app/lib/python2.5/site-packages/snapshot/public "$HOME/web/public"
+[ -e "$HOME/web/public" ] || ln -s ../web-app/lib/python$PYVER/site-packages/snapshot/public "$HOME/web/public"
 [ -d "$HOME/web-cache" ] || mkdir -m 01777 "$HOME/web-cache"
 [ -d "$HOME/bin" ] || mkdir "$HOME/bin"
 [ -e "$HOME/bin/snapshot.wsgi" ] || ln -s ../code/web/snapshot.wsgi "$HOME/bin/"
