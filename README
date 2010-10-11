@@ -176,6 +176,29 @@ Basic setup
   ./snapshot -s -c snapshot.conf -p $ARCHIVE_PATH -v -a $ARCHIVE_NAME import
 
 
+Source Code
+===========
+
+snapshot
+  The snapshotting script
+db/
+  SQL and Python scripts to initialize and upgrade the DB backend
+etc/
+  Configuration files for Apache + cronjob configuration files
+  for the master and mirror repositories
+fsck/
+  Tools to verify the integrity of the system
+fuse/
+  FUSE module
+lib/
+  Base components used by various scripts
+master/
+  Tools to be used with the master repository (e.g. import-run)
+mirror/
+  Tools to support operation of the mirrors
+web/
+  Pylons Web frontend
+
 Bugs
 ====
 	node_with_ts is horribly slow:
