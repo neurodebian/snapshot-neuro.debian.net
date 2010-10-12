@@ -42,7 +42,7 @@ when the disks went away two weeks ago.  Given that those import runs'
 metadata never got committed in PostgreSQL either we could simply remove
 those files.<br />
 Another four files of the two latest mirrorruns of the debian archive that did
-make it to our database actually turned out to be corrupt.  In all likelyhood
+make it to our database actually turned out to be corrupt.  In all likelihood
 also as a result of XFS not liking it when suddenly its block device disappears
 partially.  The files in questions were Packages.{gz,bz2} of the sid installer
 for amd64 and s390.  The corrupted files have been removed.  We are
@@ -80,8 +80,8 @@ provided by only one of the servers of what was previously a DNS round robin
 rotation.
 </p><p>
 We had planned to eventually set up a secondary snapshot master that would do
-the import runs into an alternate database for just such occassions.  This
-occurance prompted us to somewhat expediate that project.
+the import runs into an alternate database for just such occasions.  This
+occurrence prompted us to somewhat expedite that project.
 </p><p>
 So while currently snapshot will not get any updates we should be able to
 inject most mirrorruns into snapshot-master when it gets back.  We'll have lost

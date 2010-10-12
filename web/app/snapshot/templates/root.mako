@@ -118,7 +118,7 @@ available timestamp which is before the time you specified.
 </p>
 
 <p style="margin-top:2em;">
-If you want anything related to a speficic package simply enter the
+If you want anything related to a specific package simply enter the
 <em>source package name</em> in the form, or find it in the package index.
 </p>
 
