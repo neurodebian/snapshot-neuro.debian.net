@@ -31,7 +31,7 @@ class PackageController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': 'snapshot.debian.org', 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': config['app_conf']['snapshot.domain'], 'sep': '|' });
 
         if is_binary:
             crumbs.append( { 'url': None, 'name': 'binary package:', 'sep': '' });
