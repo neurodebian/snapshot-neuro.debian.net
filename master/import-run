@@ -3,7 +3,7 @@
 set -e
 set -u
 
-BASE="/srv/snapshot.debian.org"
+BASE="/srv/snapshot-neuro.debian.net"
 PATH="/usr/bin:/bin:$BASE/bin"
 export TZ=UTC
 umask 022
@@ -38,6 +38,13 @@ case "$archive" in
 
 		ls -l "$BASE"/fuse/.ctrl-reload-database > /dev/null 2>&1 || true
 
+		;;
+	"neurodebian")
+		# custom actions for neurodebian -- done in place for now
+		quick=""
+		snapshot import --config "$CONFIG" --archive "$archive" --path /home/www/neuro.debian.net/www/debian $quick $verbose
+		snapshot dumpall --config "$CONFIG"
+		snapshot index --config "$CONFIG" --quick $verbose
 		;;
 	*)
 		echo "No/Unknown archive given: archive" >&2
