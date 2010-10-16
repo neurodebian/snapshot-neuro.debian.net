@@ -23,8 +23,8 @@ def load_environment(global_conf, app_conf):
     # Initialize config with the basic options
     config.init_app(global_conf, app_conf, package='snapshot', paths=paths)
 
-    config['routes.map'] = make_map()
     config['pylons.app_globals'] = app_globals.Globals()
+    config['routes.map'] = make_map()
     config['pylons.h'] = snapshot.lib.helpers
 
     # Create the Mako TemplateLookup, with the default auto-escaping
