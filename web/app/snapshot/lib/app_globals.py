@@ -28,17 +28,20 @@ class Globals(object):
         self.pool = psycopg2.pool.ThreadedConnectionPool(5, 10, **db_config)
         self.shm = SnapshotModel(app_conf['snapshot.farmpath'], self.pool)
 
-        default_expires = {}
-        default_expires['expires.package.mr.list'] = 300
-        default_expires['expires.package.mr.source'] = 300
-        default_expires['expires.package.mr.source_version'] = 300
-        default_expires['expires.root'] = 1800
+        defaults = {}
+        defaults['expires.package.mr.list'] = 300
+        defaults['expires.package.mr.source'] = 300
+        defaults['expires.package.mr.source_version'] = 300
+        defaults['expires.root'] = 1800
 
-        default_expires['expires.removal'] = 1800
-        default_expires['expires.removal.one'] = 3600
+        defaults['expires.removal'] = 1800
+        defaults['expires.removal.one'] = 3600
 
-        for key in default_expires:
-            if not key in config['app_conf']: config['app_conf'][key] = default_expires[key]
+        defaults['snapshot.domain'] = 'snapshot.debian.org'
+        defaults['snapshot.masterdomain'] = 'snapshot-master.debian.org'
+
+        for key in defaults:
+            if not key in config['app_conf']: config['app_conf'][key] = defaults[key]
 
         try:
             self.thishost = open('/etc/hostname').read()
