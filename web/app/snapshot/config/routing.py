@@ -50,7 +50,7 @@ def make_map():
     map.connect('/removal/', controller='removal', action='root')
     map.connect('/removal/{id}', controller='removal', action='one')
 
-    map.connect('/project/trace/snapshot-master.debian.org', controller='misc', action='trace')
+    map.connect('/project/trace/%s' % config['app_conf']['snapshot.masterdomain'], controller='misc', action='trace')
 
     #map.connect('/{controller}/{action}')
     #map.connect('/{controller}/{action}/{id}')
