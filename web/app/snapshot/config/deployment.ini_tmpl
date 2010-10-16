@@ -38,6 +38,7 @@ expires.root = 900
 
 expires.archive.dir = 600
 expires.archive.file = 864000
+expires.archive.index = 20
 
 expires.package.root_cat = 600
 expires.package.source = 600
