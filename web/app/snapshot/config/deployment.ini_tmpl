@@ -24,12 +24,14 @@ beaker.session.key = snapshot
 beaker.session.secret = ${app_instance_secret}
 app_instance_uuid = ${app_instance_uuid}
 
+snapshot.domain = snapshot.debian.org
+snapshot.masterdomain = snapshot-master.debian.org
 snapshot.db.host = localhost
 snapshot.db.port = 5433
 snapshot.db.database = snapshot
 snapshot.db.user = guest
 
-snapshot.farmpath = /srv/snapshot.debian.org/farm
+snapshot.farmpath = /srv/%(snapshot.domain)s/farm
 
 expires.static = 900
 
@@ -37,6 +39,7 @@ expires.root = 900
 
 expires.archive.dir = 600
 expires.archive.file = 864000
+expires.archive.index = 20
 
 expires.package.root_cat = 600
 expires.package.source = 600

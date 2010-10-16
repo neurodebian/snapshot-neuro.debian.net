@@ -3,16 +3,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		% if c.title == "":
-			<title>snapshot.debian.org</title>
+			<title>${config['app_conf']['snapshot.domain']}</title>
 		% else:
-			<title>${c.title} - snapshot.debian.org</title>
+			<title>${c.title} - ${config['app_conf']['snapshot.domain']}</title>
 		% endif
 		<link rel="stylesheet" type="text/css" href="/static/style.css" />
 		<link rel="icon" type="image/vnd.microsoft.icon" href="/static/favicon.ico" />
 	</head>
 	<body>
 		<div id="top">
-			<a id="logo" href="http://snapshot.debian.org/"><img src="/static/images/top.png" alt="snapshot.debian.org" width="644" height="71"/></a>
+			<a id="logo" href="http://${config['app_conf']['snapshot.domain']}"><img src="/static/images/top.png" alt="${config['app_conf']['snapshot.domain']}" width="644" height="71"/></a>
 		</div>
 		% if not c.breadcrumbs is UNDEFINED and (len(c.breadcrumbs) != 0):
 			<div id="pageheader">
