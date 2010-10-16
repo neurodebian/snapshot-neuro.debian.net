@@ -80,7 +80,9 @@ a#logo{
 
 div#pageheader{
     border-bottom:1px solid black;
+    background-color: #afafaf;
     font:medium serif;
+    padding: 0 0 0 10px;
 }
 
 /** navigationspfad  **/
@@ -138,4 +140,8 @@ table.rootmaintable td:first-child {
 
 table.readdir {
     margin-top:1em;
+}
+
+div.document {
+    background-color: white;
 }
