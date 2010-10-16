@@ -8,12 +8,31 @@
 			<title>${c.title} - ${config['app_conf']['snapshot.domain']}</title>
 		% endif
 		<link rel="stylesheet" type="text/css" href="/static/style.css" />
-		<link rel="icon" type="image/vnd.microsoft.icon" href="/static/favicon.ico" />
+		<!-- and NeuroDebian style should superseed -->
+		<link rel="stylesheet" href="http://neuro.debian.net/_static/neurodebian.css" type="text/css" />
+		<link rel="stylesheet" href="http://neuro.debian.net/_static/pygments.css" type="text/css" />
+		<link rel="shortcut icon" type="image/vnd.microsoft.icon" href="http://neuro.debian.net/_static/favicon.ico"/>
+		<meta name="keywords" content="debian, repository, neuroscience, snapshot">
 	</head>
 	<body>
-		<div id="top">
-			<a id="logo" href="http://${config['app_conf']['snapshot.domain']}"><img src="/static/images/top.png" alt="${config['app_conf']['snapshot.domain']}" width="644" height="71"/></a>
-		</div>
+
+   <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="faq.html" title="Frequently Asked Questions"
+             accesskey="N">next</a></li>
+  <li><a href="http://www.debian.org" target="_blank">Debian</a> |&nbsp;</li>
+
+  <li><a href="">Neuroscience Repository</a> |&nbsp;</li>
+  <li><a href="pkgs.html">Software</a> |&nbsp;</li>
+  <li><a href="datasets.html">Datasets</a> |&nbsp;</li>
+  <li><a href="http://${config['app_conf']['snapshot.domain']}">Snapshots</a> |&nbsp;</li>
+  <li><a href="faq.html">FAQ</a> |&nbsp;</li>
+
+      </ul>
+    </div>
+
 		% if not c.breadcrumbs is UNDEFINED and (len(c.breadcrumbs) != 0):
 			<div id="pageheader">
 			<ul id="breadcrumbs" style="font-size:small;">
@@ -39,10 +58,14 @@
 <p>${c.msg}</p>
 % endif
 
+<div class="document">
 ${self.body()}
+<div class="clearer"></div>
+</div>
 
-		<div id="bottom">
-			Made by Peter Palfrader
+		<div class="footer">
+		  &copy; Copyright 2009-2010, NeuroDebian Team.<br />
+			Snapshot engine and web frontend made by Peter Palfrader,
 			&mdash;
 			Web/Graphics design Bernhard Weitzhofer
 			&mdash;
