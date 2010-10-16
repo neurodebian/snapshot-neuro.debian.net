@@ -19,7 +19,7 @@ class RootController(BaseController):
             c.srcstarts = link_quote_array(g.shm.packages_get_name_starts(db))
             c.binstarts = link_quote_array(g.shm.packages_get_name_starts(db, get_binary=True))
             set_expires(int(config['app_conf']['expires.root']))
-            return render('/root.mako')
+            return render('/root-nd.mako')
         finally:
             if not db is None: db.close()
 
@@ -39,7 +39,7 @@ class RootController(BaseController):
     def oldnews(self):
         set_expires(int(config['app_conf']['expires.root']))
         c.breadcrumbs = self._build_crumbs('older news')
-        return render('/misc-oldnews.mako')
+        return render('/misc-oldnews-nd.mako')
 
 # vim:set et:
 # vim:set ts=4:
