@@ -131,7 +131,7 @@ class ArchiveController(BaseController):
         crumbs = []
 
         url = request.environ.get('SCRIPT_NAME') + "/"
-        crumbs.append( { 'url': url, 'name': config['app_conf']['snapshot.domain'], 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': g.domain, 'sep': '|' });
 
         crumbs.append( { 'url': None, 'name': 'archive:', 'sep': '' });
 

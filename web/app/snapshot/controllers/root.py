@@ -28,7 +28,7 @@ class RootController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': config['app_conf']['snapshot.domain'] });
+        crumbs.append( { 'url': url, 'name': g.domain });
 
         if not page is None:
             crumbs.append( { 'url': None, 'name': page, 'sep': '' });

@@ -3,9 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		% if c.title == "":
-			<title>${config['app_conf']['snapshot.domain']}</title>
+			<title>${g.domain}</title>
 		% else:
-			<title>${c.title} - ${config['app_conf']['snapshot.domain']}</title>
+			<title>${c.title} - ${g.domain}</title>
 		% endif
 		<link rel="stylesheet" type="text/css" href="/static/style.css" />
 		<!-- and NeuroDebian style should superseed -->
