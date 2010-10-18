@@ -1,4 +1,6 @@
 """Pylons middleware initialization"""
+import warnings
+
 from beaker.middleware import CacheMiddleware, SessionMiddleware
 from paste.cascade import Cascade
 from paste.registry import RegistryManager
@@ -57,6 +59,10 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
             app = StatusCodeRedirect(app)
         else:
             app = StatusCodeRedirect(app, [400, 401, 403, 404, 500])
+
+    # Optionally suppress all Python warnings
+    if not asbool(config['warnings']):
+        warnings.simplefilter("ignore")
 
     # Establish the Registry for this application
     app = RegistryManager(app)

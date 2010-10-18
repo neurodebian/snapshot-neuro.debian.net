@@ -5,6 +5,7 @@
 #
 [DEFAULT]
 debug = false
+warnings = false
 email_to = @@EMAIL_TO@@
 smtp_server = localhost
 error_email_from = @@EMAIL_FROM@@
