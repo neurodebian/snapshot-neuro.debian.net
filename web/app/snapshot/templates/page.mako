@@ -22,13 +22,12 @@
         <li class="right" style="margin-right: 10px">
           <a href="faq.html" title="Frequently Asked Questions"
              accesskey="N">next</a></li>
-  <li><a href="http://www.debian.org" target="_blank">Debian</a> |&nbsp;</li>
-
-  <li><a href="">Neuroscience Repository</a> |&nbsp;</li>
-  <li><a href="pkgs.html">Software</a> |&nbsp;</li>
-  <li><a href="datasets.html">Datasets</a> |&nbsp;</li>
+  <li><a href="http://www.debian.org" target="_blank">Debian</a> ||</li>
+  <li><a href="http://neuro.debian.net/">Neuroscience Repository</a> :&nbsp;</li>
+  <li><a href="http://neuro.debian.net/pkgs.html">Software</a> |&nbsp;</li>
+  <li><a href="http://neuro.debian.net/datasets.html">Datasets</a> |&nbsp;</li>
   <li><a href="http://${config['app_conf']['snapshot.domain']}">Snapshots</a> |&nbsp;</li>
-  <li><a href="faq.html">FAQ</a> |&nbsp;</li>
+  <li><a href="http://neuro.debian.net/faq.html">FAQ</a></li>
 
       </ul>
     </div>
@@ -67,13 +66,15 @@ ${self.body()}
 		  &copy; Copyright 2009-2010, NeuroDebian Team.<br />
 			Snapshot engine and web frontend made by Peter Palfrader,
 			&mdash;
-			Web/Graphics design Bernhard Weitzhofer
+			Web/Graphics design Bernhard Weitzhofer.
+		  <!--
 			&mdash;
 			<code>git://git.debian.org/mirror/snapshot.debian.org.git</code>
 			(<a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git">gitweb on alioth</a>)
 			&mdash;
 			<a href="http://www.debian.org/Bugs/Reporting">Report bugs</a> and issues against the
 			  <a href="http://bugs.debian.org/snapshot.debian.org">snapshot.debian.org package</a> on bugs.debian.org.
+			-->
 			<br />
 			<%
 				import datetime
