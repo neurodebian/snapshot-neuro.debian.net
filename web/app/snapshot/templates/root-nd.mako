@@ -1,5 +1,8 @@
 <%inherit file="/page.mako" />
 
+<%
+   g.snapshotdebian = "snapshot.debian.org"
+%>
 
 <div class="documentwrapper">
 <div class="bodywrapper">
@@ -21,44 +24,58 @@ used by all.
 </p>
 
 <p>
-The Debian Project wants to thank <a href="http://www.sanger.ac.uk/">Wellcome
-Trust Sanger Institute</a> and the <a href="http://www.ece.ubc.ca/">UBC
-Electrical and Computer Engineering</a> for providing hardware and hosting and
-<a href="http://www.nordicbet.com/">Nordic Gaming</a> for sponsoring additional
-hardware.
+The NeuroDebian Project wants to thank Peter Palfrader for developing
+snapshotting engine, Bernhard Weitzhofer for the original webdesign
+for the web front-end,
+and <a href="http://www.dartmouth.edu/~psych/">Department of
+Psychological and Brain Sciences, Dartmouth College</a> for providing
+hardware and network bandwidth.
 </p>
 
 <h2>Usage</h2>
 <p>
-In order to browse snapshots of the archives kept on snapshot.debian.org, simply
-follow the links on the top left.  They will lead you to a list of months for
-which data was imported, and the list entries in turn will point you to all
-timestamps of a given month's snapshots.
+<a href="/">${g.domain}</a> contains solely snapshots of
+the <a href="http://neuro.debian.net">NeuroDebian</a> repository,
+which you could browser by following the link on the top left.  It
+will lead you to a list of months for which data was imported, and the
+list entries in turn will point you to all timestamps of a given
+month's snapshots.  Snapshots of the main Debian archive (including
+backports, volatile, etc.) are available from the
+official <a href="http://${g.snapshotdebian}">${g.snapshotdebian}</a>
+and should be used in conjunction with <a href="/">${g.domain}</a>.
 </p>
 
 <p>For example,
-<a href="/archive/debian/"><code>/archive/debian/</code></a>
-shows that we have imports for the main Debian archive,
-<a href="http://ftp.debian.org/debian/"><code>http://ftp.debian.org/debian/</code></a>,
-from 2005 until the present.
-Picking October of 2009,
-<a href="/archive/debian/?year=2009;month=10"><code>/archive/debian/?year=2009;month=10</code></a>,
-provides us with a list of many different states of the debian archive, roughly spaced 6 hours apart
-(the update frequency of ftp.debian.org at that time).
+<a href="/archive/neurodebian/"><code>/archive/neurodebian/</code></a>
+shows that we have imports for the NeuroDebian archive,
+<a href="http://neuro.debian.net/debian/"><code>http://neuro.debian.net/debian/</code></a>,
+from October 2010 until the present.
+Picking October of 2010,
+<a href="/archive/neurodebian/?year=2010;month=10"><code>/archive/neurodebian/?year=2010;month=10</code></a>,
+provides us with a list of many different states of the NeuroDebian archive, spaced 12 hours apart
+(the snapshotting frequency of neuro.debian.net at that time).
 Following any of these links, say
-<a href="/archive/debian/20091004T111800Z/"><code>/archive/debian/20091004T111800Z/</code></a>,
-shows how <code>ftp.debian.org/debian</code> looked on the 4th of October 2009 at around 11:18 UTC.
+<a href="/archive/neurodebian/20101014T200503Z/"><code>/archive/neurodebian/20101014T200503Z/</code></a>,
+shows
+how <a href="http://neuro.debian.net/debian"><code>neuro.debian.net/debian</code></a>
+looked on the 14th of October 2010 at around 20:05 UTC.
 </p>
 
 <p style="margin-top:2em;">
-If you want to add a specific date's archive to your apt <code>sources.list</code> simply
-add an entry like these:
+If you want to add a specific date's archive to your
+apt <code>sources.list</code> simply add an entry like these to cover
+snapshots of NeuroDebian and main debian archives.
 </p>
 <pre>
-deb     <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
-deb-src <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
-deb     <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
-deb-src <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+# NeuroDebian
+deb     <a href="/archive/debian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
+deb-src <a href="/archive/debian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
+# Main Debian repository
+deb     <a href="http://${g.snapshotdebian}/archive/debian/20101014T200503Z/">http://${g.snapshotdebian}/archive/debian/20101014T200503Z/</a> lenny main
+deb-src <a href="http://${g.snapshotdebian}/archive/debian/20101014T200503Z/">http://${g.snapshotdebian}/archive/debian/20101014T200503Z/</a> lenny main
+# Security updates
+deb     <a href="http://${g.snapshotdebian}/archive/debian-security/20091004T121501Z/">http://${g.snapshotdebian}/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+deb-src <a href="http://${g.snapshotdebian}/archive/debian-security/20091004T121501Z/">http://${g.snapshotdebian}/archive/debian-security/20091004T121501Z/</a> lenny/updates main
 </pre>
 <p>
 To learn which snapshots exist, i.e. which date strings are valid, simply
@@ -74,40 +91,10 @@ If you want anything related to a specific package simply enter the
 </p>
 
 <h1>News</h1>
-<h2>2010-09-07</h2>
+<h2>2010-10-18</h2>
 <p>
-Renamed the backports.org archive to debian-backports as it has now
-<a href="http://lists.debian.org/20100905211658.GH7615@lisa.snow-crash.org">moved
-to debian.org infrastructure</a>.  A rewrite rule has been put in place
-so old URLs should continue to work (at least for HTTP clients that know
-how to follow HTTP redirects).
+Initial, not-yet-official, availability of <a href="/">${g.domain}</a>.
 </p>
-
-<h2>2010-08-16</h2>
-<p>
-Set up a caching proxy in front of the two snapshot webservers.  This will help
-in cases where an entire organisation uses various apt sources.list entries on
-a lot of their machines.
-</p>
-<p>
-Usually such entities would use proxy caches like squid and then there is no
-problem, assuming the cache works correctly.  Unfortunately apt-cacher, apparently
-a common choice which is supposed to be smarter for debian archives, completely ignores the
-Cache-Control headers that snapshot sends and hits this service for all
-requests made to anything under <code>dist/</code>.  A single <code>apt-get
-update</code> can cause up to a few dozen of such requests and when multiplied
-by scores of machines - all running the update at the same time - this caused
-the snapshot backend to run into limits.  Now such requests won't hit the backend
-any more.
-</p>
-
-<h2>2010-04-12</h2>
-<p>
-Publicly <a href="http://www.debian.org/News/2010/20100412">announce the snapshot.debian.org service</a>.  Yay.
-</p>
-
-<hr style="height:1px;" />
-<p>For older entries see <a href="oldnews">the older news page</a>.</p>
 
 </div>
 </div>
@@ -115,6 +102,10 @@ Publicly <a href="http://www.debian.org/News/2010/20100412">announce the snapsho
 
 <div class="sphinxsidebar">
 <div class="sphinxsidebarwrapper">
+
+           <p class="logo"><a href="">
+              <img class="logo" src="http://neuro.debian.net/_static/fmri_w200.png" alt="Logo"/> 
+            </a></p> 
 
 <h3>Archives</h3>
 
@@ -155,10 +146,10 @@ Search in the index of source packages:<br />
 
 <h3>Miscellaneous</h3>
 <ul>
-	<li><a href="oldnews">older news</a></li>
-	<li><a href="http://lists.debian.org/debian-snapshot/">mailinglist</a></li>
+	<!-- <li><a href="oldnews">older news</a></li> -->
+	<li><a href="http://snapshot.debian.org/">snapshot.debian.org</a>
 	<li><a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git;a=blob_plain;f=API">machine-usable interface</a></li>
-	<li><a href="http://${config['app_conf']['snapshot.masterdomain']}/removal">removal logs</a></li>
+	<!-- <li><a href="http://${config['app_conf']['snapshot.masterdomain']}/removal">removal logs</a></li> -->
 </ul>
 
 </div>
