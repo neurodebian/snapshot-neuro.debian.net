@@ -62,6 +62,8 @@ class Globals(object):
         defaults['snapshot.domain'] = 'snapshot.debian.org'
         defaults['snapshot.masterdomain'] = 'snapshot-master.debian.org'
 
+        defaults['warnings'] = False
+
         for key in defaults:
             if not key in config['app_conf']: config['app_conf'][key] = defaults[key]
 
