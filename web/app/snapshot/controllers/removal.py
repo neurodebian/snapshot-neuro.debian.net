@@ -29,7 +29,7 @@ class RemovalController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': config['app_conf']['snapshot.domain'], 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': g.domain, 'sep': '|' });
 
         url += 'removal/'
         crumbs.append( { 'url': url, 'name': 'removal' });

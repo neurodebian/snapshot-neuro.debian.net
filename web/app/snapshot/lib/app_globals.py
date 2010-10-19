@@ -48,6 +48,10 @@ class Globals(object):
         except:
             self.thishost = 'unknown'
 
+        # Some global constants bound for easy access
+        self.domain = config['app_conf']['snapshot.domain']
+        self.masterdomain = config['app_conf']['snapshot.masterdomain']
+
 # vim:set et:
 # vim:set ts=4:
 # vim:set shiftwidth=4:

@@ -3,8 +3,12 @@
 #
 # The %(here)s variable will be replaced with the parent directory of this file
 #
+# Commented out configuration items carry application defaults.
+# Uncomment and modify to customize.
+#
 [DEFAULT]
 debug = false
+warnings = false
 email_to = @@EMAIL_TO@@
 smtp_server = localhost
 error_email_from = @@EMAIL_FROM@@
@@ -35,7 +39,7 @@ snapshot.farmpath = /srv/%(snapshot.domain)s/farm
 
 expires.static = 900
 
-expires.root = 900
+#expires.root = 1800
 
 expires.archive.dir = 600
 expires.archive.file = 864000
@@ -45,9 +49,12 @@ expires.package.root_cat = 600
 expires.package.source = 600
 expires.package.source_version = 600
 
-expires.package.mr.list = 3600
-expires.package.mr.source = 600
-expires.package.mr.source_version = 600
+#expires.package.mr.list = 300
+#expires.package.mr.source = 300
+#expires.package.mr.source_version = 300
+
+#expires.removal = 1800
+#expires.removal.one = 3600
 
 # If you'd like to fine-tune the individual locations of the cache data dirs
 # for the Cache data, or the Session saves, un-comment the desired settings
