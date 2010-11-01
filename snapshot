@@ -668,7 +668,6 @@ class SnapshotImporter
 		                        ORDER BY run DESC
 		                        LIMIT 1) AS prev
 		                    ", archive_id, mirrorrun_id, archive_id, mirrorrun_id, archive_id, mirrorrun_id);
-		puts row['count'].class
 		barf("Cannot have two runs for the same archive at the exact same time.") if row['count'].to_i > 1
 
 		return row['prev'], row['next']
