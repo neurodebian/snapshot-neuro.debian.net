@@ -47,6 +47,7 @@ if len(args) == 0:
 
 if not os.path.isdir(options.backing_git):
     print >> sys.stderr, "Error: %s does not exist or is not a directory."%(backing)
+    sys.exit(1)
 
 basedir = os.getcwd()
 for dumpfilename in args:
