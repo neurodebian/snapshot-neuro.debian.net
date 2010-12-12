@@ -1,0 +1,107 @@
+#!/usr/bin/python
+
+# Extract dumps from a git
+
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import sys
+import os
+import optparse
+import subprocess
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog [<options>] list\n" +
+          "Usage: %prog [<options>] get <revision>")
+parser.add_option("-b", "--backing", dest="backing_git", metavar="GITDIR",
+  default = 'backing-git',
+  help="Location of backing git working copy.")
+(options, args) = parser.parse_args()
+
+if len(args) == 0:
+    parser.print_help()
+    sys.exit(1)
+
+if not os.path.isdir(options.backing_git):
+    print >> sys.stderr, "Error: %s does not exist or is not a directory."%(backing)
+    sys.exit(1)
+
+def list():
+    p = subprocess.Popen(['git', 'log', '--reverse'], stdout=subprocess.PIPE)
+    line = p.stdout.readline()
+    while True:
+        line = line.rstrip('\n')
+        key, rev = line.split(' ', 1)
+        if key != "commit":
+            print >> sys.stderr, "Error: Cannot parse git log output.  Expected commit line but got"
+            print >> sys.stderr, "| %s"%(line)
+            sys.exit(1)
+        if len(rev) != 40:
+            print >> sys.stderr, "Error: Unexpected rev format in '%s'."%(rev)
+            sys.exit(1)
+
+        while True:
+            line = p.stdout.readline().rstrip('\n')
+            if line == "": break
+
+        metadata = {}
+        while True:
+            line = p.stdout.readline().rstrip('\n')
+            if line == "": break
+            line = line.lstrip()
+            s = line.split(':', 1)
+            if len(s) == 2:
+                key = s[0]
+                value = s[1].lstrip()
+                metadata[key] = value
+
+        for k in ['UUID', 'Archive']:
+            if not k in metadata:
+                print >> sys.stderr, "Error: Did not find %s in commit msg of %s."%(k, rev)
+                print >> sys.stderr, "Metadata is:", metadata
+                sys.exit(1)
+
+        print "%s %s:%s"%(metadata['UUID'], rev, metadata['Archive'])
+        line = p.stdout.readline()
+        if line == "": break # encountered eof
+
+def get(object):
+    subprocess.check_call(['git', 'show', object])
+
+os.chdir(options.backing_git)
+if args[0] == "list":
+    if len(args) != 1:
+        parser.print_help()
+        sys.exit(1)
+    list()
+elif args[0] == "get":
+    if len(args) != 2:
+        parser.print_help()
+        sys.exit(1)
+    getarg = args[1]
+    get(getarg)
+else:
+    print >> sys.stderr, "Error: Invalid mode %s."%(args[0])
+
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:
