@@ -41,7 +41,7 @@ if len(args) == 0:
     sys.exit(1)
 
 if not os.path.isdir(options.backing_git):
-    print >> sys.stderr, "Error: %s does not exist or is not a directory."%(backing)
+    print >> sys.stderr, "Error: %s does not exist or is not a directory."%(options.backing_git)
     sys.exit(1)
 
 def list():
