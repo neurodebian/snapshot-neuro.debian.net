@@ -78,8 +78,8 @@ farm_journal_fetch() {
 do_rsync() {
 	local allowed_command_prefixes
 	allowed_rsyncs=(
-		'^--server --sender -v?logDtprze\.iL \. dumps/$'
-		'^--server --sender -v?logDtprze\.iL \. farm/[0-9a-f][0-9a-f]/$'
+		'^--server --sender -v?logDtprze\.iLs?f? \. dumps/$'
+		'^--server --sender -v?logDtprze\.iLs?f? \. farm/[0-9a-f][0-9a-f]/$'
 	)
 	for cmd_idx in ${!allowed_rsyncs[*]}; do
 		allowed="${allowed_rsyncs[$cmd_idx]}"
