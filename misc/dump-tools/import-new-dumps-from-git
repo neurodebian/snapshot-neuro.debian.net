@@ -86,6 +86,7 @@ for objectspec in pending_import:
     if options.verbose: print "Doing %s."%(objectspec)
     t = tempfile.NamedTemporaryFile(suffix='.tmp', prefix='git-dump-import-')
     p = subprocess.Popen(extractcall+['get', objectspec], stdout=t)
+    p.communicate()
     t.flush()
 
     c = [options.snapshot, '-c', options.conffile, '-p', t.name, '--quick', 'import-dump']
