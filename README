@@ -151,6 +151,7 @@ Dependencies
 
 Depends: ruby libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8 python-yaml python-psycopg2 fuse-utils python-fuse uuid-runtime
 DB-Depends: postgresql-plperl-8.4 postgresql-8.4-debversion
+fsck-Depends: python-dev gcc
 FUSE-Depends: python-fuse
 Web-Depends: python-pylons (that is {python-pylons,python-routes,python-nose,python-paste,python-pastedeploy,python-pastescript,python-webob,python-weberror,python-beaker,python-mako,python-formencode,python-webhelpers,python-decorator,python-simplejson}/lenny-backports )
 Web-Recommends: libapache2-mod-wsgi apache2
