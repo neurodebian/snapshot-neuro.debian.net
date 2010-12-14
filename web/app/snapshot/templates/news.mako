@@ -2,15 +2,21 @@
 <h2>2010-12-14</h2>
 <p>
 Around 2010-11-20 the server which hosted snapshot-master stumbled into
-hardware issues. This did not affect the external storage but only the frontend
-server. It though also meant that the automatic import of newer data didn't
-happen since then. Some of the package pools that are archived through the
-snapshot service did still collect their updates, but for some (debian-ports
-most notably, debian-volatile also looks like affected) no information is
-available since.
+hardware issues. This did not affect the external storage but only the front-end
+server.  Since the master was down no new data was imported into the snapshot
+system and the remaining mirror kept presenting its data as of the 20th.
 </p>
 <p>
-Today the hardware got fixed and the collected data since got incorporated. If you are missing packages since the last month this might be the reason for it. Sorry for the inconvenience.
+Fortunately the people at the <a href="http://www.sanger.ac.uk/">Wellcome Trust
+Sanger Institute</a>, which hosts snapshot-master, have been able to give us
+a replacement machine quite quickly.
+</p>
+<p>
+While the master was down, snapshot information was collected by a non-public
+backup system.  This data has been integrated into snapshot.debian.org.
+Unfortunately, one of the package pools, <code>debian-ports</code>, was not
+archived on that secondary system, and for this archive we have no data
+in the affected time period.
 </p>
 
 <h2>2010-09-07</h2>
