@@ -1,4 +1,18 @@
 <h1>News</h1>
+<h2>2010-12-14</h2>
+<p>
+Around 2010-11-20 the server which hosted snapshot-master stumbled into
+hardware issues. This did not affect the external storage but only the frontend
+server. It though also meant that the automatic import of newer data didn't
+happen since then. Some of the package pools that are archived through the
+snapshot service did still collect their updates, but for some (debian-ports
+most notably, debian-volatile also looks like affected) no information is
+available since.
+</p>
+<p>
+Today the hardware got fixed and the collected data since got incorporated. If you are missing packages since the last month this might be the reason for it. Sorry for the inconvenience.
+</p>
+
 <h2>2010-09-07</h2>
 <p>
 Renamed the backports.org archive to debian-backports as it has now
