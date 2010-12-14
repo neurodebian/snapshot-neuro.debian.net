@@ -9,7 +9,7 @@ system and the remaining mirror kept presenting its data as of the 20th.
 <p>
 Fortunately the people at the <a href="http://www.sanger.ac.uk/">Wellcome Trust
 Sanger Institute</a>, which hosts snapshot-master, have been able to give us
-a replacement machine quite quickly.
+a replacement machine quite quickly.  Thanks!
 </p>
 <p>
 While the master was down, snapshot information was collected by a non-public
