@@ -65,7 +65,7 @@ def get_lock(fn):
     lock = lockfile.FileLock(fn)
     try:
         lock.acquire(timeout=60)    # wait up to 60 seconds
-    except LockTimeout:
+    except lockfile.LockTimeout:
         sys.stderr.write("Backing store is locked.\n")
         sys.exit(1)
 
