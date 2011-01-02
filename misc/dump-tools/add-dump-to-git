@@ -39,7 +39,13 @@ parser.add_option("-b", "--backing", dest="backing_git", metavar="GITDIR",
   help="Location of backing git working copy.")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
   help="Be verbose.")
+parser.add_option("-G", "--no-gc", dest="nogc", action="store_true",
+  default=False,
+  help="Do not run git gc afterwards.")
 (options, args) = parser.parse_args()
+
+if options.verbose: optional_quiet = []
+else:               optional_quiet = ['--quiet']
 
 if len(args) == 0:
     parser.print_help()
@@ -91,7 +97,7 @@ for dumpfilename in args:
         subprocess.check_call(['git', 'add', metadata['Archive']])
         if options.verbose: print "# committing"; sys.stdout.flush()
         subprocess.check_call(['git', 'commit', '--author', author,
-            '-m', commitmsg, '--date', metadata['Date']])
+            '-m', commitmsg, '--date', metadata['Date']] + optional_quiet)
     except:
         print >> sys.stderr, "Git operations failed during processing of %s."%(dumpfilename)
         sys.exit(1)
@@ -99,9 +105,10 @@ for dumpfilename in args:
         os.chdir(basedir)
 
 
-os.chdir(options.backing_git)
-if options.verbose: print "# git gc"; sys.stdout.flush()
-subprocess.check_call(['git', 'gc'])
+if not options.nogc:
+    os.chdir(options.backing_git)
+    if options.verbose: print "# git gc"; sys.stdout.flush()
+    subprocess.check_call(['git', 'gc'] + optional_quiet)
 
 
 
