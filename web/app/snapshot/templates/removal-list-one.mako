@@ -32,10 +32,6 @@
 	%endfor
 </dl>
 
-
-<hr style="height:1px;" />
-<p style="font-size: small">(This information is only correct on snapshot-master)</p>
-
 ## vim:syn=html
 ## vim:set ts=4:
 ## vim:set shiftwidth=4:
