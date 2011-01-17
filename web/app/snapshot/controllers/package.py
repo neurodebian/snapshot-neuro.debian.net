@@ -91,7 +91,7 @@ class PackageController(BaseController):
         # If the passed string is not ascii, then the package name
         # simply does not exist.
         try:
-            source.encode('ascii')
+            string.encode('ascii')
         except UnicodeEncodeError:
             abort(404, 'No such package')
 
