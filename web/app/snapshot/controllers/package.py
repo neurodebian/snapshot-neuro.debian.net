@@ -173,7 +173,7 @@ class PackageController(BaseController):
                     fi['dirlink'] = build_url_archive(fi['archive_name'], fi['run'], fi['path'])
                     fi['link'] = build_url_archive(fi['archive_name'], fi['run'], os.path.join(fi['path'], fi['name']), isadir=False )
 
-            sourcefiles.sort(key=lambda a: (fileinfo[a][0]['name'], a)) # reproducible file order
+            sourcefiles.sort(key=lambda a: (fileinfo[a][0]['name'], a) if len(fileinfo[a]) > 0 else (None,a)) # reproducible file order
 
             c.src = source
             c.version = version
