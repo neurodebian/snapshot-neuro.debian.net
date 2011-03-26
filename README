@@ -149,7 +149,7 @@ Installation
 Dependencies
 ------------
 
-Depends: ruby libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8 python-yaml python-psycopg2 fuse-utils python-fuse uuid-runtime
+Depends: ruby libdbd-pg-ruby1.8 libbz2-ruby1.8 libbz2-ruby1.8 python-yaml python-psycopg2 python-lockfile fuse-utils python-fuse uuid-runtime
 DB-Depends: postgresql-plperl-8.4 postgresql-8.4-debversion
 fsck-Depends: python-dev gcc
 FUSE-Depends: python-fuse
