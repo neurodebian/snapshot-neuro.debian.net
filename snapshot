@@ -1167,10 +1167,10 @@ class PackageIndexer
 	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
 	def index_mirrorrun_from_parsing()
 		if not @quick
-			query = "SELECT path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)'"
+			query = "SELECT path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND size != 0"
 			args = [@mirrorrun_id]
 		else
-			query = "SELECT first, path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND first=?"
+			query = "SELECT first, path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND first=? AND size != 0"
 			args = [@mirrorrun_id, @mirrorrun_id]
 		end
 		@db.query(query, *args) do |row|
