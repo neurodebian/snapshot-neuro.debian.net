@@ -103,7 +103,7 @@ def extract_info(h, json, seen):
     info = None
     try:
         info = json['fileinfo'][h][0]['name']
-    except KeyError:
+    except (IndexError, KeyError):
         info = '(unknown)'
 
     result = None
