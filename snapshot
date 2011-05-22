@@ -1099,10 +1099,15 @@ class PackageIndexer
 				e[lastkey] << line[1..-1]
 			else
 				key, value = line.split(/: */, 2)
-				e[key] = value if value != ""
+				if e[key]
+					$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} has duplicate key #{key}")
+				elsif value != ""
+					e[key] = value
+				end
 				lastkey = key
 			end
 			break if line == "" # skip pgp footer
+			break if line == "-----BEGIN PGP SIGNATURE-----"
 		end
 
 		unless hash_has_all_keys(e, %w(Source Version Files))
