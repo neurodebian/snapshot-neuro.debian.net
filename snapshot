@@ -1094,6 +1094,9 @@ class PackageIndexer
 		lastkey = nil
 		e = {}
 		lines.each do |line|
+			break if line == "" # skip pgp footer
+			break if line == "-----BEGIN PGP SIGNATURE-----"
+
 			if line[0..0] == ' ' and lastkey
 				e[lastkey] = [] unless e[lastkey]
 				e[lastkey] << line[1..-1]
@@ -1106,8 +1109,6 @@ class PackageIndexer
 				end
 				lastkey = key
 			end
-			break if line == "" # skip pgp footer
-			break if line == "-----BEGIN PGP SIGNATURE-----"
 		end
 
 		unless hash_has_all_keys(e, %w(Source Version Files))
