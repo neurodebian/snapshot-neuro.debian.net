@@ -68,8 +68,8 @@ snapshots of NeuroDebian and main debian archives.
 </p>
 <pre>
 # NeuroDebian
-deb     <a href="/archive/debian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
-deb-src <a href="/archive/debian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
+deb     <a href="/archive/neurodebian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
+deb-src <a href="/archive/neurodebian/20101014T200503Z/">http://${g.domain}/archive/neurodebian/20101014T200503Z/</a> lenny main
 # Main Debian repository
 deb     <a href="http://${g.snapshotdebian}/archive/debian/20101014T200503Z/">http://${g.snapshotdebian}/archive/debian/20101014T200503Z/</a> lenny main
 deb-src <a href="http://${g.snapshotdebian}/archive/debian/20101014T200503Z/">http://${g.snapshotdebian}/archive/debian/20101014T200503Z/</a> lenny main
@@ -91,6 +91,11 @@ If you want anything related to a specific package simply enter the
 </p>
 
 <h1>News</h1>
+<h2>2011-10-03</h2>
+<p>
+Re-instantiated snapshotting service which was inactive since <a href="/archive/neurodebian/20110805T200503Z/">2011-08-05</a>.
+</p>
+
 <h2>2010-10-18</h2>
 <p>
 Initial, not-yet-official, availability of <a href="/">${g.domain}</a>.
