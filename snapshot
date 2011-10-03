@@ -31,6 +31,11 @@ require 'ftools'
 require 'time'
 
 def barf(str)
+	if $logger.nil?
+		STDERR.puts(str)
+		STDERR.puts("(Also, while trying to print this we realized there $logger is not defined!)")
+		exit 1
+	end
 	$logger.error(str)
 	exit 1
 end
@@ -886,6 +891,8 @@ class PackageIndexer
 	def index_mirrorrun_from_index()
 		index = open_file('/indices/package-file.map.bz2')
 		return unless index
+		@sourcepkgs = {}
+		@binarypkgs = {}
 
 		previously_seen = nil
 		if (@quick)
@@ -900,9 +907,14 @@ class PackageIndexer
 				prev_index = open_file('/indices/package-file.map.bz2', prev_run_id)
 				unless prev_index.nil?
 					previously_seen = {}
-					prev_index = BZ2::Reader.new(prev_index)
-					prev_index.each_line(sep_string='') do |block|
-						previously_seen[Digest::SHA1.digest(block)] = 1
+					begin
+						prev_index = BZ2::Reader.new(prev_index)
+						prev_index.each_line(sep_string='') do |block|
+							previously_seen[Digest::SHA1.digest(block)] = 1
+						end
+					rescue BZ2::EOZError => e
+						$logger.warn("[indexrun ##{@mirrorrun_id}] previous (##{prev_run_id}) package-file.map is corrupt (BZ2::EOZError): #{e.message}")
+						return
 					end
 				else
 					$logger.warn("[indexrun ##{@mirrorrun_id}] quick mode selected but no previous (##{prev_run_id}) package-file.map")
@@ -910,46 +922,54 @@ class PackageIndexer
 			end
 		end
 
-		lineno = 0
-		index = BZ2::Reader.new(index)
-		index.each_line(sep_string='') do |block|
-			next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
+		@db.dbdo('SAVEPOINT startofindexing')
+		begin
+			lineno = 0
+			index = BZ2::Reader.new(index)
+			index.each_line(sep_string='') do |block|
+				next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
 
-			e = {}
-			block.split("\n").each do |line|
-				key,value = line.split(/: */, 2)
-				e[key] = value
+				e = {}
+				block.split("\n").each do |line|
+					key,value = line.split(/: */, 2)
+					e[key] = value
+					lineno += 1
+				end
 				lineno += 1
-			end
-			lineno += 1
 
-			unless hash_has_all_keys(e, %w(Path))
-				$logger.warn("[indexrun ##{@mirrorrun_id}] Block has no path element before line #{lineno}")
-				next
-			end
-
-			e['Path'][0..0] = '' if e['Path'][0..0] = '.'
-
-			unless hash_has_all_keys(e, %w(Source Source-Version))
-				$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete source information before line #{lineno}")
-				next
-			end
-
-			srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
-			if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
-				inserted = insert_src_file_from_path(srcpkg, e['Path'])
-				$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
-			else
-				unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
-					$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete binary information before line #{lineno}")
+				unless hash_has_all_keys(e, %w(Path))
+					$logger.warn("[indexrun ##{@mirrorrun_id}] Block has no path element before line #{lineno}")
 					next
 				end
 
-				binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
-				inserted = insert_bin_file_from_path(binpkg, e['Path'], e['Architecture'])
-				$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
+				e['Path'][0..0] = '' if e['Path'][0..0] = '.'
+
+				unless hash_has_all_keys(e, %w(Source Source-Version))
+					$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete source information before line #{lineno}")
+					next
+				end
+
+				srcpkg = add_srcpkg(e['Source'], e['Source-Version'])
+				if not hash_has_any_key(e, %w(Binary-Version Binary Architecture))
+					inserted = insert_src_file_from_path(srcpkg, e['Path'])
+					$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for source #{e['Source']} #{e['Source-Version']}")
+				else
+					unless hash_has_all_keys(e, %w(Binary-Version Binary Architecture))
+						$logger.warn("[indexrun ##{@mirrorrun_id}] Block has incomplete binary information before line #{lineno}")
+						next
+					end
+
+					binpkg = add_binpkg(e['Binary'], e['Binary-Version'], srcpkg)
+					inserted = insert_bin_file_from_path(binpkg, e['Path'], e['Architecture'])
+					$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
+				end
 			end
+		rescue BZ2::EOZError => e
+			@db.dbdo('ROLLBACK TO startofindexing')
+			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (BZ2::EOZError): #{e.message}")
+			return
 		end
+		@db.dbdo('RELEASE SAVEPOINT startofindexing')
 		source = "index"
 		source += '(Q)' if @quick
 		return source
@@ -1089,15 +1109,21 @@ class PackageIndexer
 		lastkey = nil
 		e = {}
 		lines.each do |line|
+			break if line == "" # skip pgp footer
+			break if line == "-----BEGIN PGP SIGNATURE-----"
+
 			if line[0..0] == ' ' and lastkey
 				e[lastkey] = [] unless e[lastkey]
 				e[lastkey] << line[1..-1]
 			else
 				key, value = line.split(/: */, 2)
-				e[key] = value if value != ""
+				if e[key]
+					$logger.warn("[indexrun ##{@mirrorrun_id}] dsc file #{path}/#{name} has duplicate key #{key}")
+				elsif value != ""
+					e[key] = value
+				end
 				lastkey = key
 			end
-			break if line == "" # skip pgp footer
 		end
 
 		unless hash_has_all_keys(e, %w(Source Version Files))
@@ -1161,11 +1187,13 @@ class PackageIndexer
 
 	# If there is no /indices/package-file.map.bz2 we have to fall back to recursing over the tree
 	def index_mirrorrun_from_parsing()
+		@sourcepkgs = {}
+		@binarypkgs = {}
 		if not @quick
-			query = "SELECT path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)'"
+			query = "SELECT path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND size != 0"
 			args = [@mirrorrun_id]
 		else
-			query = "SELECT first, path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND first=?"
+			query = "SELECT first, path, name, hash FROM dirtree(?) WHERE filetype='-' AND name SIMILAR TO '%.(deb|udeb|dsc)' AND first=? AND size != 0"
 			args = [@mirrorrun_id, @mirrorrun_id]
 		end
 		@db.query(query, *args) do |row|
@@ -1207,8 +1235,6 @@ class PackageIndexer
 					barf("Mirrorrun ##{@only_this_mirrorrun} does not exist.")
 				end
 				$logger.info("Indexing mirrorrun ##{@only_this_mirrorrun} of #{row['archive']} from #{row['run']} as requested")
-				@sourcepkgs = {}
-				@binarypkgs = {}
 				source = index_mirrorrun(@only_this_mirrorrun)
 				@db.dbdo('DELETE FROM indexed_mirrorrun WHERE mirrorrun_id=?', @only_this_mirrorrun)
 				@db.insert('indexed_mirrorrun', {'mirrorrun_id' => @only_this_mirrorrun, 'source' => source })
@@ -1219,8 +1245,6 @@ class PackageIndexer
 					   FROM mirrorrun WHERE NOT mirrorrun_id IN (SELECT mirrorrun_id FROM indexed_mirrorrun) ORDER BY run") do |row|
 				@db.begin
 				$logger.info("Indexing mirrorrun ##{row['mirrorrun_id']} of #{row['archive']} from #{row['run']}")
-				@sourcepkgs = {}
-				@binarypkgs = {}
 				source = index_mirrorrun(row['mirrorrun_id'])
 				@db.insert('indexed_mirrorrun', {'mirrorrun_id' => row['mirrorrun_id'], 'source' => source })
 				@db.commit

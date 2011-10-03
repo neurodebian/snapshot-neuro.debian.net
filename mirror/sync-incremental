@@ -25,11 +25,10 @@ trap "rm -f '$LOCKFILE'" EXIT
 while [ -e "$SYNC_REQUIRED" ] ; do
 	rm -f "$SYNC_REQUIRED"
 
-	rsync -az --exclude '*.tmp.*' snapshot-master.debian.org:dumps/ "$HOME"/master-dumps/ $v
+	#rsync -az --exclude '*.tmp.*' snapshot-master.debian.org:dumps/ "$HOME"/master-dumps/ $v
+	#$BASE/mirror/import-new-dumps -c "$CONF" -s ~/code/snapshot $v
 
-	$BASE/mirror/import-new-dumps -c "$CONF" -s ~/code/snapshot $v &
-	$BASE/mirror/farm-journal-fetch-tarball -c "$CONF" $v &
-	wait
+	$BASE/mirror/farm-journal-fetch-tarball -c "$CONF" $v
 
-	$BASE/snapshot --config "$CONF" --verbose --quick index
+	#$BASE/snapshot --config "$CONF" --verbose --quick index
 done

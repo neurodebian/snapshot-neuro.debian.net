@@ -83,6 +83,19 @@ class PackageController(BaseController):
         crumbs[-1]['url'] = None
         return crumbs
 
+    def _ensure_ascii(self, string):
+        # Package names are ascii.
+        # Check that before passing it on to postgres since the DB
+        # will just whine about not being able to convert the string
+        # anyway.
+        # If the passed string is not ascii, then the package name
+        # simply does not exist.
+        try:
+            string.encode('ascii')
+        except UnicodeEncodeError:
+            abort(404, 'No such package')
+
+
     def root(self):
         if 'src' in request.params:
             set_expires(int(config['app_conf']['expires.package.root_cat']))
@@ -109,18 +122,8 @@ class PackageController(BaseController):
             return redirect_to("../")
 
     def source(self, source):
+        self._ensure_ascii(source)
         try:
-            # Package names are ascii.
-            # Check that before passing it on to postgres since the DB
-            # will just whine about not being able to convert the string
-            # anyway.
-            # If the passed string is not ascii, then the package name
-            # simply does not exist.
-            try:
-                source.encode('ascii')
-            except UnicodeEncodeError:
-                abort(404, 'No such source package')
-
             #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))
 
@@ -141,6 +144,7 @@ class PackageController(BaseController):
         return re.sub('[^a-zA-Z0-9_.-]', lambda m: ':%x:'%(ord(m.group())), a)
 
     def source_version(self, source, version):
+        self._ensure_ascii(source)
         try:
             #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source_version']))
@@ -169,7 +173,7 @@ class PackageController(BaseController):
                     fi['dirlink'] = build_url_archive(fi['archive_name'], fi['run'], fi['path'])
                     fi['link'] = build_url_archive(fi['archive_name'], fi['run'], os.path.join(fi['path'], fi['name']), isadir=False )
 
-            sourcefiles.sort(key=lambda a: (fileinfo[a][0]['name'], a)) # reproducible file order
+            sourcefiles.sort(key=lambda a: (fileinfo[a][0]['name'], a) if len(fileinfo[a]) > 0 else (None,a)) # reproducible file order
 
             c.src = source
             c.version = version
@@ -208,17 +212,8 @@ class PackageController(BaseController):
             return redirect_to("../")
 
     def binary(self, binary):
+        self._ensure_ascii(binary)
         try:
-            # Package names are ascii.
-            # Check that before passing it on to postgres since the DB
-            # will just whine about not being able to convert the string
-            # anyway.
-            # If the passed string is not ascii, then the package name
-            # simply does not exist.
-            try:
-                binary.encode('ascii')
-            except UnicodeEncodeError:
-                abort(404, 'No such binary package')
 
             #etag_cache( g.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))

@@ -1,0 +1,117 @@
+#!/usr/bin/python
+
+# Add a single dump file to a git tree.
+
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+import sys
+import os
+import optparse
+import re
+import shutil
+import subprocess
+
+author = 'snapshot add-dump-to-git script <snapshot@debian.org>'
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog [<options>] <dumpfile> [<dumpfile> ...]")
+parser.add_option("-b", "--backing", dest="backing_git", metavar="GITDIR",
+  default = 'backing-git',
+  help="Location of backing git working copy.")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+  help="Be verbose.")
+parser.add_option("-G", "--no-gc", dest="nogc", action="store_true",
+  default=False,
+  help="Do not run git gc afterwards.")
+(options, args) = parser.parse_args()
+
+if options.verbose: optional_quiet = []
+else:               optional_quiet = ['--quiet']
+
+if len(args) == 0:
+    parser.print_help()
+    sys.exit(1)
+
+if not os.path.isdir(options.backing_git):
+    print >> sys.stderr, "Error: %s does not exist or is not a directory."%(backing)
+    sys.exit(1)
+
+basedir = os.getcwd()
+for dumpfilename in args:
+    f = open(dumpfilename)
+    metadata = {}
+    commitmsgbody = []
+    for line in f:
+        line = line.rstrip()
+        if line == "Contents:": break
+        key, value = line.split(': ', 1)
+        metadata[key] = value
+
+        commitmsgbody.append(line)
+    f.close()
+    if not 'Dump-Format' in metadata or \
+        metadata['Dump-Format'] != "snapshot.debian.org 0.1":
+        print >> sys.stderr, "Warning: Unknown dump format in %s."%(dumpfilename)
+        continue
+    required_headers = ['Archive', 'Date']
+    all_present = True
+    for r in required_headers:
+        if not r in metadata:
+            print >> sys.stderr, "Warning: no %s header in %s."%(r, dumpfilename)
+            all_present = False
+    if not all_present: continue
+    if re.search("[^a-z0-9-]", metadata['Archive']):
+        print >> sys.stderr, \
+            "Warning: invalid archive name '%s' in %s."%(metadata['Archive'], dumpfilename)
+        continue
+
+    target = os.path.join(options.backing_git, metadata['Archive'])
+    shutil.copyfile(dumpfilename, target)
+
+    commitmsg = "Add dump %s (%s)\n\n"%(os.path.basename(dumpfilename), metadata['Archive'])
+    if options.verbose: print commitmsg.rstrip(); sys.stdout.flush()
+    commitmsg += '\n'.join(commitmsgbody)
+
+    os.chdir(options.backing_git)
+    try:
+        if options.verbose: print "# git add '%s'"%(metadata['Archive']); sys.stdout.flush()
+        subprocess.check_call(['git', 'add', metadata['Archive']])
+        if options.verbose: print "# committing"; sys.stdout.flush()
+        subprocess.check_call(['git', 'commit', '--author', author,
+            '-m', commitmsg, '--date', metadata['Date']] + optional_quiet)
+    except:
+        print >> sys.stderr, "Git operations failed during processing of %s."%(dumpfilename)
+        sys.exit(1)
+    finally:
+        os.chdir(basedir)
+
+
+if not options.nogc:
+    os.chdir(options.backing_git)
+    if options.verbose: print "# git gc"; sys.stdout.flush()
+    subprocess.check_call(['git', 'gc'] + optional_quiet)
+
+
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:

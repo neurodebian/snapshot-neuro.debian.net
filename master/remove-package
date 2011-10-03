@@ -91,7 +91,11 @@ def get_versions(package):
 
 def get_files(package, version):
     url = options.baseurl + 'mr/package/' + urllib2.quote(package) +'/' + urllib2.quote(version) +'/allfiles?fileinfo=1'
-    f = urllib2.urlopen(url)
+    try:
+        f = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        sys.stderr.write("Could not fetch %s: %s\n"%(url, e))
+        sys.exit(1)
     s = simplejson.load(f)
     return s
 
@@ -99,7 +103,7 @@ def extract_info(h, json, seen):
     info = None
     try:
         info = json['fileinfo'][h][0]['name']
-    except KeyError:
+    except (IndexError, KeyError):
         info = '(unknown)'
 
     result = None

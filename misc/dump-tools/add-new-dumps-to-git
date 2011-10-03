@@ -1,0 +1,185 @@
+#!/usr/bin/python
+
+# Copyright (c) 2010 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+# Imports all mirrorruns found in a git repository for dumps into the database.
+# Just imports metadata, does not get any actualy content (i.e. does not
+# populate the farm).
+
+import sys
+import errno
+import yaml
+import optparse
+import os
+import tempfile
+import shutil
+import subprocess
+import lockfile
+thisscriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+sys.path.append(os.path.join(thisscriptdir, '../../lib'))
+from dbhelper import DBHelper
+
+lock_age = 3600*24*3
+block_size = 4096
+
+def read_fd_to_file(i, path):
+    o = open(path, "w")
+    while True:
+        buf = i.read(block_size)
+        if not buf: break
+        o.write(buf)
+    o.close()
+    i.close()
+
+def get_lock(fn):
+    try:
+        stat = os.stat(fn)
+        if stat[ST_MTIME] < time.time() - lock_age:
+            sys.stderr.write("Removing stale lock %s"%(fn))
+            os.unlink(fn)
+    except OSError, error:
+        if error.errno == errno.ENOENT:
+            pass
+        else:
+            raise
+
+    lock = lockfile.FileLock(fn)
+    try:
+        lock.acquire(timeout=60)    # wait up to 60 seconds
+    except lockfile.LockTimeout:
+        sys.stderr.write("Backing store is locked.\n")
+        sys.exit(1)
+
+    return lock
+
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog --config=<conffile>")
+parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
+  help="Config file location.")
+parser.add_option("-v", "--verbose", action="store_true",
+  help="Be verbose.")
+parser.add_option("-s", "--snapshot", action="store", metavar="PATH",
+  help="Path to the snapshot script.")
+parser.add_option("-a", "--adder", action="store", metavar="PATH",
+  help="Path to the add-dump-to-git script.")
+parser.add_option("-e", "--extracter", action="store", metavar="PATH",
+  help="Path to the extract-dumps script.")
+parser.add_option("-b", "--backing", dest="backing_git", metavar="GITDIR",
+  default = 'backing-git',
+  help="Location of backing git working copy.")
+
+(options, args) = parser.parse_args()
+if options.conffile is None:
+    parser.print_help()
+    sys.exit(1)
+
+if options.snapshot is None:
+    options.snapshot = os.path.join(thisscriptdir, '../../snapshot')
+if options.extracter is None:
+    options.extracter = os.path.join(thisscriptdir, 'extract-dumps')
+if options.adder is None:
+    options.adder = os.path.join(thisscriptdir, 'add-dump-to-git')
+
+config = yaml.load(open(options.conffile).read())
+db = DBHelper(config['db']['connectstring'])
+
+if not os.path.exists(options.snapshot) or not os.access(options.snapshot, os.X_OK):
+    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.snapshot))
+    sys.exit(1)
+if not os.path.exists(options.extracter) or not os.access(options.extracter, os.X_OK):
+    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.extracter))
+    sys.exit(1)
+if not os.path.exists(options.adder) or not os.access(options.adder, os.X_OK):
+    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.adder))
+    sys.exit(1)
+
+options.extracter = os.path.abspath(options.extracter)
+extractcall = [options.extracter]
+extractcall += ['--backing', options.backing_git]
+
+options.adder = os.path.abspath(options.adder)
+addcall = [options.adder]
+addcall += ['--backing', options.backing_git]
+if options.verbose: addcall += ['--verbose']
+
+if options.verbose: optional_quiet = []
+else:               optional_quiet = ['--quiet']
+
+tmpdir = None
+lock = None
+counter = 1
+try:
+    tmpdir = tempfile.mkdtemp(prefix='snapshot.add-new-dumps-to-git.')
+    lockfilename = os.path.join(options.backing_git, '.lock-add-new-dumps-to-git')
+    lock = get_lock(lockfilename)
+
+    have_uuids = set()
+    p = subprocess.Popen(extractcall+['list'], stdout=subprocess.PIPE)
+    for line in p.stdout:
+        line = line.rstrip()
+        uuid, objectspec = line.split(None, 1)
+        have_uuids.add(uuid)
+
+    rows = db.query('SELECT mirrorrun_id, mirrorrun_uuid FROM mirrorrun ORDER BY run')
+    for row in rows:
+        if row['mirrorrun_uuid'] in have_uuids:
+            continue
+
+        if options.verbose: print "Doing %d (%s)."%(row['mirrorrun_id'], row['mirrorrun_uuid'])
+
+        fn = os.path.join(tmpdir, "%d"%(row['mirrorrun_id']))
+
+        # dump mirrorun to fn
+        c = [options.snapshot, '-c', options.conffile, '--mirrorrun', '%d'%(row['mirrorrun_id'])]
+        if options.verbose: c.append('--verbose')
+        c.append('dump')
+        if options.verbose: print " [%s]"%(" ".join(c))
+        p = subprocess.Popen(c, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        p.stdin.close()
+        read_fd_to_file(p.stdout, fn)
+        p.wait()
+
+        # import into git
+        args = []
+        counter += 1
+        if counter % 50 != 0:
+            args.append('--no-gc')
+        args.append(fn)
+        subprocess.check_call(addcall+args)
+
+        os.unlink(fn)
+
+    db.close()
+
+    os.chdir(options.backing_git)
+    if options.verbose: print "# git gc"; sys.stdout.flush()
+    subprocess.check_call(['git', 'gc'] + optional_quiet)
+finally:
+    if not tmpdir is None:
+        shutil.rmtree(tmpdir)
+    if not lock is None:
+        lock.release()
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:

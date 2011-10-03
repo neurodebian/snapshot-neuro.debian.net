@@ -3,7 +3,7 @@
 <h1>Removal log #${c.removal['removal_log_id']}</h1>
 
 <p style="font-size: small">${c.removal['entry_added']}</p>
-<pre>${c.removal['reason']}</pre>
+<pre>${h.debian_bugs_markup(c.removal['reason'])}</pre>
 
 <h1>Affected files</h1>
 
@@ -31,10 +31,6 @@
 		% endif
 	%endfor
 </dl>
-
-
-<hr style="height:1px;" />
-<p style="font-size: small">(This information is only correct on snapshot-master)</p>
 
 ## vim:syn=html
 ## vim:set ts=4:
