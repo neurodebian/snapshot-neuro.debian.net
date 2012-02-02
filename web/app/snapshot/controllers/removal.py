@@ -85,6 +85,8 @@ class RemovalController(BaseController):
             set_expires(int(config['app_conf']['expires.removal.one']))
 
             removal = g.shm.removal_get_one(self._db(), id)
+            if not removal:
+                abort(404, 'No such log')
             files = g.shm.removal_get_affected(self._db(), id)
 
             fileinfo = {}
