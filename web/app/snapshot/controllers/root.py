@@ -23,7 +23,7 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c, app_globals, config
-from pylons.controllers.util import abort, redirect_to
+from pylons.controllers.util import abort
 
 from snapshot.lib.base import BaseController, render
 

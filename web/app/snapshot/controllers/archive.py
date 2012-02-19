@@ -23,7 +23,7 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c, app_globals, config
-from pylons.controllers.util import abort, redirect_to, etag_cache
+from pylons.controllers.util import abort, redirect, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -83,7 +83,7 @@ class ArchiveController(BaseController):
 
     def root(self):
         set_expires(int(config['app_conf']['expires.archive.index']))
-        return redirect_to("../")
+        return redirect("../")
 
     def archive_base(self, archive):
         try:

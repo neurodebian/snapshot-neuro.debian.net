@@ -23,7 +23,7 @@
 import logging
 
 from pylons import request, response, session, tmpl_context as c, app_globals, config
-from pylons.controllers.util import abort, redirect_to, etag_cache
+from pylons.controllers.util import abort, redirect, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -100,7 +100,7 @@ class PackageController(BaseController):
         if 'src' in request.params:
             set_expires(int(config['app_conf']['expires.package.root_cat']))
             url = url_quote(request.params['src'] + "/")
-            return redirect_to(url)
+            return redirect(url)
         elif 'cat' in request.params:
             try:
                 #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
@@ -119,7 +119,7 @@ class PackageController(BaseController):
                 self._db_close()
         else:
             set_expires(int(config['app_conf']['expires.package.root_cat']))
-            return redirect_to("../")
+            return redirect("../")
 
     def source(self, source):
         self._ensure_ascii(source)
@@ -190,7 +190,7 @@ class PackageController(BaseController):
         if 'bin' in request.params:
             set_expires(int(config['app_conf']['expires.package.root_cat']))
             url = url_quote(request.params['bin'] + "/")
-            return redirect_to(url)
+            return redirect(url)
         elif 'cat' in request.params:
             try:
                 #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
@@ -209,7 +209,7 @@ class PackageController(BaseController):
                 self._db_close()
         else:
             set_expires(int(config['app_conf']['expires.package.root_cat']))
-            return redirect_to("../")
+            return redirect("../")
 
     def binary(self, binary):
         self._ensure_ascii(binary)
