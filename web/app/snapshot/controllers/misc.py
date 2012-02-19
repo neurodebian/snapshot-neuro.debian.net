@@ -36,10 +36,10 @@ class MiscController(BaseController):
     def trace(self):
         db = None
         try:
-            db = DBInstance(g.pool)
+            db = DBInstance(app_globals.pool)
             set_expires(int(config['app_conf']['expires.root']))
 
-            last = g.shm.get_last_mirrorrun(db)
+            last = app_globals.shm.get_last_mirrorrun(db)
 
             content = []
             content.append("%s\n"%(last.ctime()))

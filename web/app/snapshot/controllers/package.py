@@ -22,7 +22,7 @@
 
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g, config
+from pylons import request, response, session, tmpl_context as c, app_globals, config
 from pylons.controllers.util import abort, redirect_to, etag_cache
 
 from snapshot.lib.base import BaseController, render
@@ -42,7 +42,7 @@ class PackageController(BaseController):
 
     def _db(self):
         if self.db is None:
-            self.db = DBInstance(g.pool)
+            self.db = DBInstance(app_globals.pool)
         return self.db
 
     def _db_close(self):
@@ -53,7 +53,7 @@ class PackageController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': g.domain, 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': app_globals.domain, 'sep': '|' });
 
         if is_binary:
             crumbs.append( { 'url': None, 'name': 'binary package:', 'sep': '' });
@@ -103,11 +103,11 @@ class PackageController(BaseController):
             return redirect_to(url)
         elif 'cat' in request.params:
             try:
-                #etag_cache( g.shm.packages_get_etag(self._db()) )
+                #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
                 set_expires(int(config['app_conf']['expires.package.root_cat']))
 
                 start = request.params['cat']
-                pkgs = g.shm.packages_get_name_starts_with(self._db(), start)
+                pkgs = app_globals.shm.packages_get_name_starts_with(self._db(), start)
                 if pkgs is None:
                     abort(404, 'No source packages in this category.')
                 c.start = start
@@ -124,10 +124,10 @@ class PackageController(BaseController):
     def source(self, source):
         self._ensure_ascii(source)
         try:
-            #etag_cache( g.shm.packages_get_etag(self._db()) )
+            #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))
 
-            sourceversions = g.shm.packages_get_source_versions(self._db(), source)
+            sourceversions = app_globals.shm.packages_get_source_versions(self._db(), source)
 
             if len(sourceversions) == 0:
                 abort(404, 'No such source package')
@@ -146,11 +146,11 @@ class PackageController(BaseController):
     def source_version(self, source, version):
         self._ensure_ascii(source)
         try:
-            #etag_cache( g.shm.packages_get_etag(self._db()) )
+            #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source_version']))
 
-            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
+            sourcefiles = app_globals.shm.packages_get_source_files(self._db(), source, version)
+            binpkgs = app_globals.shm.packages_get_binpkgs_from_source(self._db(), source, version)
 
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
@@ -161,12 +161,12 @@ class PackageController(BaseController):
             for binpkg in binpkgs:
                 binpkg['escaped_name'] = self._attribute_escape(binpkg['name'])
                 binpkg['escaped_version'] = self._attribute_escape(binpkg['version'])
-                binpkg['files'] = map(lambda x: x['hash'], g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
+                binpkg['files'] = map(lambda x: x['hash'], app_globals.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 binhashes += binpkg['files']
 
             fileinfo = {}
             for hash in sourcefiles + binhashes:
-                fileinfo[hash] = g.shm.packages_get_file_info(self._db(), hash)
+                fileinfo[hash] = app_globals.shm.packages_get_file_info(self._db(), hash)
             for hash in fileinfo:
                 fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash])
                 for fi in fileinfo[hash]:
@@ -193,11 +193,11 @@ class PackageController(BaseController):
             return redirect_to(url)
         elif 'cat' in request.params:
             try:
-                #etag_cache( g.shm.packages_get_etag(self._db()) )
+                #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
                 set_expires(int(config['app_conf']['expires.package.root_cat']))
 
                 start = request.params['cat']
-                pkgs = g.shm.packages_get_name_starts_with(self._db(), start, get_binary=True)
+                pkgs = app_globals.shm.packages_get_name_starts_with(self._db(), start, get_binary=True)
                 if pkgs is None:
                     abort(404, 'No binary packages in this category.')
                 c.start = start
@@ -215,10 +215,10 @@ class PackageController(BaseController):
         self._ensure_ascii(binary)
         try:
 
-            #etag_cache( g.shm.packages_get_etag(self._db()) )
+            #etag_cache( app_globals.shm.packages_get_etag(self._db()) )
             set_expires(int(config['app_conf']['expires.package.source']))
 
-            binaryversions = g.shm.packages_get_binary_versions_by_name(self._db(), binary)
+            binaryversions = app_globals.shm.packages_get_binary_versions_by_name(self._db(), binary)
 
             if len(binaryversions) == 0:
                 abort(404, 'No such binary package')
@@ -239,7 +239,7 @@ class PackageController(BaseController):
 
 
     def _get_fileinfo_for_mr_one(self, hash):
-        fileinfo = map(lambda x: dict(x), g.shm.packages_get_file_info(self._db(), hash))
+        fileinfo = map(lambda x: dict(x), app_globals.shm.packages_get_file_info(self._db(), hash))
         for fi in fileinfo:
             fi['first_seen'] = rfc3339_timestamp(fi['run'])
             del fi['run']
@@ -255,7 +255,7 @@ class PackageController(BaseController):
     def mr_list(self):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.list']))
-            pkgs = g.shm.packages_get_all(self._db())
+            pkgs = app_globals.shm.packages_get_all(self._db())
             return { '_comment': "foo",
                      'result': map(lambda x: { 'package': x }, pkgs) }
         finally:
@@ -265,7 +265,7 @@ class PackageController(BaseController):
     def mr_source(self, source):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source']))
-            sourceversions = g.shm.packages_get_source_versions(self._db(), source)
+            sourceversions = app_globals.shm.packages_get_source_versions(self._db(), source)
             if len(sourceversions) == 0: abort(404, 'No such source package')
             return { '_comment': "foo",
                      'package': source,
@@ -277,7 +277,7 @@ class PackageController(BaseController):
     def mr_source_version_srcfiles(self, source, version):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
-            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
+            sourcefiles = app_globals.shm.packages_get_source_files(self._db(), source, version)
             if len(sourcefiles) == 0: abort(404, 'No such source package or no sources found')
             r = { '_comment': "foo",
                      'package': source,
@@ -293,7 +293,7 @@ class PackageController(BaseController):
     def mr_source_version_binpackages(self, source, version):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
-            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
+            binpkgs = app_globals.shm.packages_get_binpkgs_from_source(self._db(), source, version)
             if len(binpkgs) == 0: abort(404, 'No such source package or no binary packages found')
             binpkgs = map(lambda b: { 'name':      b['name'],
                                       'version':   b['version'] }, binpkgs)
@@ -308,7 +308,7 @@ class PackageController(BaseController):
     def mr_source_version_binfiles(self, source, version, binary, binary_version):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
-            binfiles = g.shm.packages_get_binary_files_from_packagenames(self._db(), source, version, binary, binary_version)
+            binfiles = app_globals.shm.packages_get_binary_files_from_packagenames(self._db(), source, version, binary, binary_version)
             if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
             binfiles = map(lambda b: dict(b), binfiles)
             r = { '_comment': "foo",
@@ -327,8 +327,8 @@ class PackageController(BaseController):
     def mr_source_version_allfiles(self, source, version):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
-            sourcefiles = g.shm.packages_get_source_files(self._db(), source, version)
-            binpkgs = g.shm.packages_get_binpkgs_from_source(self._db(), source, version)
+            sourcefiles = app_globals.shm.packages_get_source_files(self._db(), source, version)
+            binpkgs = app_globals.shm.packages_get_binpkgs_from_source(self._db(), source, version)
             # we may have binaries without sources.
             if len(sourcefiles) == 0 and len(binpkgs) == 0:
                 abort(404, 'No source or binary packages found')
@@ -336,7 +336,7 @@ class PackageController(BaseController):
 
             binhashes = []
             for binpkg in binpkgs:
-                binpkg['files'] = map(lambda x: dict(x), g.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
+                binpkg['files'] = map(lambda x: dict(x), app_globals.shm.packages_get_binary_files_from_id(self._db(), binpkg['binpkg_id']))
                 del binpkg['binpkg_id']
                 binhashes += map(lambda x: x['hash'], binpkg['files'])
 
@@ -355,7 +355,7 @@ class PackageController(BaseController):
     def mr_binary(self, binary):
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source']))
-            binaryversions = g.shm.packages_get_binary_versions_by_name(self._db(), binary)
+            binaryversions = app_globals.shm.packages_get_binary_versions_by_name(self._db(), binary)
             binaryversions = map(lambda b: dict(b), binaryversions)
             if len(binaryversions) == 0: abort(404, 'No such binary package')
             r = { '_comment': "foo",

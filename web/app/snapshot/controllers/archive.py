@@ -22,7 +22,7 @@
 
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g, config
+from pylons import request, response, session, tmpl_context as c, app_globals, config
 from pylons.controllers.util import abort, redirect_to, etag_cache
 
 from snapshot.lib.base import BaseController, render
@@ -72,7 +72,7 @@ class ArchiveController(BaseController):
 
     def _db(self):
         if self.db is None:
-            self.db = DBInstance(g.pool)
+            self.db = DBInstance(app_globals.pool)
         return self.db
 
     def _db_close(self):
@@ -87,7 +87,7 @@ class ArchiveController(BaseController):
 
     def archive_base(self, archive):
         try:
-            #etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            #etag_cache( app_globals.shm.mirrorruns_get_etag(self._db(), archive) )
             set_expires(int(config['app_conf']['expires.archive.index']))
 
             if 'year' in request.params and 'month' in request.params:
@@ -95,7 +95,7 @@ class ArchiveController(BaseController):
                 m = request.params['month']
                 return self._archive_ym(archive, y, m)
 
-            yearmonths = g.shm.mirrorruns_get_yearmonths_from_archive(self._db(), archive)
+            yearmonths = app_globals.shm.mirrorruns_get_yearmonths_from_archive(self._db(), archive)
 
             if yearmonths is None:
                 abort(404, 'Archive "%s" does not exist'%(archive))
@@ -114,7 +114,7 @@ class ArchiveController(BaseController):
         if not re.match('\d{1,2}$', month): # match matches only at start of string
             abort(404, 'Month "%s" is not valid.'%(month))
 
-        runs = g.shm.mirrorruns_get_runs_from_archive_ym(self._db(), archive, year, month)
+        runs = app_globals.shm.mirrorruns_get_runs_from_archive_ym(self._db(), archive, year, month)
         if runs is None:
             abort(404, 'Archive "%s" does not exist'%(archive))
         if len(runs) == 0:
@@ -134,7 +134,7 @@ class ArchiveController(BaseController):
 
     def _regular_file(self, digest, visiblepath=None):
         try:
-            realpath = g.shm.get_filepath(digest)
+            realpath = app_globals.shm.get_filepath(digest)
             fa = SnapshotFileApp(realpath, digest, visiblepath)
             return fa(request.environ, self.start_response)
         except OSError, error:
@@ -153,7 +153,7 @@ class ArchiveController(BaseController):
         crumbs = []
 
         url = request.environ.get('SCRIPT_NAME') + "/"
-        crumbs.append( { 'url': url, 'name': g.domain, 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': app_globals.domain, 'sep': '|' });
 
         crumbs.append( { 'url': None, 'name': 'archive:', 'sep': '' });
 
@@ -190,7 +190,7 @@ class ArchiveController(BaseController):
             url = construct_url(request.environ)
             raise HTTPMovedPermanently(url)
 
-        list = g.shm.mirrorruns_readdir(self._db(), run['mirrorrun_id'], stat['path'])
+        list = app_globals.shm.mirrorruns_readdir(self._db(), run['mirrorrun_id'], stat['path'])
         list = map(lambda b: dict(b), list)
         for e in list:
             e['quoted_name'] = urllib.quote(e['name'])
@@ -199,9 +199,9 @@ class ArchiveController(BaseController):
         if stat['path'] != '/':
             list = [ { 'filetype': 'd', 'name': '..', 'quoted_name': '..', 'first_run': None, 'last_run': None } ] + list
 
-        node_info = g.shm.mirrorruns_get_first_last_from_node(self._db(), stat['node_id'])
-        neighbors = g.shm.mirrorruns_get_neighbors(self._db(), run['mirrorrun_id'])
-        neighbors_change = g.shm.mirrorruns_get_neighbors_change(self._db(), run['archive_id'], run['run'], stat['directory_id']) 
+        node_info = app_globals.shm.mirrorruns_get_first_last_from_node(self._db(), stat['node_id'])
+        neighbors = app_globals.shm.mirrorruns_get_neighbors(self._db(), run['mirrorrun_id'])
+        neighbors_change = app_globals.shm.mirrorruns_get_neighbors_change(self._db(), run['archive_id'], run['run'], stat['directory_id']) 
 
         c.run = run
         c.readdir = list
@@ -242,17 +242,17 @@ class ArchiveController(BaseController):
 
     def dir(self, archive, date, url):
         try:
-            #etag_cache( g.shm.mirrorruns_get_etag(self._db(), archive) )
+            #etag_cache( app_globals.shm.mirrorruns_get_etag(self._db(), archive) )
             set_expires(int(config['app_conf']['expires.archive.dir']))
 
             if not self._dateok(date):
                 abort(404, 'Invalid date string - nothing to be found here.')
 
-            run = g.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
+            run = app_globals.shm.mirrorruns_get_mirrorrun_at(self._db(), archive, date)
             if run is None:
                 abort(404, 'No mirrorrun found at this date.')
 
-            stat = g.shm.mirrorruns_stat(self._db(), run['mirrorrun_id'], '/'+url)
+            stat = app_globals.shm.mirrorruns_stat(self._db(), run['mirrorrun_id'], '/'+url)
             if stat is None:
                 abort(404, 'No such file or directory.')
 
