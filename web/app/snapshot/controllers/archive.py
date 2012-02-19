@@ -37,7 +37,7 @@ import error
 import errno
 from paste.request import construct_url
 from paste.fileapp import FileApp
-from paste.httpexceptions import HTTPMovedPermanently
+from webob.exc import HTTPMovedPermanently
 
 import wsgiref.handlers
 import time
