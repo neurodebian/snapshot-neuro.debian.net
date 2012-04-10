@@ -454,7 +454,7 @@ class FSNodeRegular < FSNodeRegularBase
 			end
 		end
 		if get_digest
-			digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
+			digest = Digest::SHA1.file(@truepath).hexdigest
 		end
 
 		super(path, parent, statinfo.size, digest)
@@ -462,7 +462,7 @@ class FSNodeRegular < FSNodeRegularBase
 
 	def get_digest
 		return @digest if @digest
-		@digest = Digest::SHA1.hexdigest( File.open(@truepath).read )
+		@digest = Digest::SHA1.file(@truepath).hexdigest
 		@digest
 	end
 
