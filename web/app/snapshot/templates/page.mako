@@ -3,9 +3,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		% if c.title == "":
-			<title>${g.domain}</title>
+			<title>${app_globals.domain}</title>
 		% else:
-			<title>${c.title} - ${g.domain}</title>
+			<title>${c.title} - ${app_globals.domain}</title>
 		% endif
 		<link rel="stylesheet" type="text/css" href="/static/style.css" />
 		<!-- and NeuroDebian style should superseed -->
@@ -32,6 +32,13 @@
       </ul>
     </div>
 
+   <!-- NeuroDebian (keep for easy merges)
+
+		<div id="top">
+			<a id="logo" href="http://${app_globals.domain}"><img src="/static/images/top.png" alt="${app_globals.domain}" width="644" height="71"/></a>
+		</div>
+
+   -->
 		% if not c.breadcrumbs is UNDEFINED and (len(c.breadcrumbs) != 0):
 			<div id="pageheader">
 			<ul id="breadcrumbs" style="font-size:small;">
@@ -80,7 +87,7 @@ ${self.body()}
 				import datetime
 				now = datetime.datetime.now()
 			%>
-			Built at ${now} on ${g.thishost}
+			Built at ${now} on ${app_globals.thishost}
 			<br />
 			<a href="http://validator.w3.org/check?uri=referer">validate</a>
 		</div>

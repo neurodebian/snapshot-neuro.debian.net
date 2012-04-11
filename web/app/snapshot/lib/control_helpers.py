@@ -24,7 +24,6 @@ import logging
 from snapshot.lib.dbinstance import DBInstance
 from pylons import request, response
 from paste.request import construct_url
-from paste.httpexceptions import HTTPMovedPermanently
 import datetime
 from webob.exc import HTTPNotModified
 import urllib

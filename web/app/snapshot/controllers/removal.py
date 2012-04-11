@@ -22,8 +22,8 @@
 
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g, config
-from pylons.controllers.util import abort, redirect_to, etag_cache
+from pylons import request, response, session, tmpl_context as c, app_globals, config
+from pylons.controllers.util import abort, etag_cache
 
 from snapshot.lib.base import BaseController, render
 
@@ -40,7 +40,7 @@ class RemovalController(BaseController):
 
     def _db(self):
         if self.db is None:
-            self.db = DBInstance(g.pool)
+            self.db = DBInstance(app_globals.pool)
         return self.db
 
     def _db_close(self):
@@ -51,7 +51,7 @@ class RemovalController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': g.domain, 'sep': '|' });
+        crumbs.append( { 'url': url, 'name': app_globals.domain, 'sep': '|' });
 
         url += 'removal/'
         crumbs.append( { 'url': url, 'name': 'removal' });
@@ -67,7 +67,7 @@ class RemovalController(BaseController):
     def root(self):
         try:
             set_expires(int(config['app_conf']['expires.removal']))
-            removals = g.shm.removal_get_list(self._db())
+            removals = app_globals.shm.removal_get_list(self._db())
 
             c.removals = removals
             c.breadcrumbs = self._build_crumbs()
@@ -80,16 +80,18 @@ class RemovalController(BaseController):
             try:
                 id = int(id)
             except ValueError:
-                abort(404, 'No such log')
+                abort(404, 'No such log.')
 
             set_expires(int(config['app_conf']['expires.removal.one']))
 
-            removal = g.shm.removal_get_one(self._db(), id)
-            files = g.shm.removal_get_affected(self._db(), id)
+            removal = app_globals.shm.removal_get_one(self._db(), id)
+            if not removal:
+                abort(404, 'No such log.')
+            files = app_globals.shm.removal_get_affected(self._db(), id)
 
             fileinfo = {}
             for hash in files:
-                fileinfo[hash] = g.shm.packages_get_file_info(self._db(), hash)
+                fileinfo[hash] = app_globals.shm.packages_get_file_info(self._db(), hash)
             for hash in fileinfo:
                 fileinfo[hash] = map(lambda fi: dict(fi), fileinfo[hash])
                 for fi in fileinfo[hash]:

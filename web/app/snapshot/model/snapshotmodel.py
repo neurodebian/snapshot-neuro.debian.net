@@ -234,9 +234,12 @@ class SnapshotModel:
         if path == "":
             path = '/'
 
-        stat = db.query_one("""SELECT filetype, path, directory_id, node_id, digest, size FROM stat(%(path)s, %(mirrorrun_id)s)""",
-                { 'mirrorrun_id': mirrorrun_id,
-                  'path': path } )
+        try:
+            stat = db.query_one("""SELECT filetype, path, directory_id, node_id, digest, size FROM stat(%(path)s, %(mirrorrun_id)s)""",
+                    { 'mirrorrun_id': mirrorrun_id,
+                      'path': path } )
+        except UnicodeEncodeError:
+            return None
 
         if stat['filetype'] is None:
             return None

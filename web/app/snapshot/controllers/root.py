@@ -22,8 +22,8 @@
 
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g, config
-from pylons.controllers.util import abort, redirect_to
+from pylons import request, response, session, tmpl_context as c, app_globals, config
+from pylons.controllers.util import abort
 
 from snapshot.lib.base import BaseController, render
 
@@ -36,10 +36,10 @@ class RootController(BaseController):
     def index(self):
         db = None
         try:
-            db = DBInstance(g.pool)
-            c.names = link_quote_array(g.shm.archives_get_list(db))
-            c.srcstarts = link_quote_array(g.shm.packages_get_name_starts(db))
-            c.binstarts = link_quote_array(g.shm.packages_get_name_starts(db, get_binary=True))
+            db = DBInstance(app_globals.pool)
+            c.names = link_quote_array(app_globals.shm.archives_get_list(db))
+            c.srcstarts = link_quote_array(app_globals.shm.packages_get_name_starts(db))
+            c.binstarts = link_quote_array(app_globals.shm.packages_get_name_starts(db, get_binary=True))
             set_expires(int(config['app_conf']['expires.root']))
             return render('/root-nd.mako')
         finally:
@@ -50,7 +50,7 @@ class RootController(BaseController):
         crumbs = []
 
         url = urllib.quote(request.environ.get('SCRIPT_NAME')) + "/"
-        crumbs.append( { 'url': url, 'name': g.domain });
+        crumbs.append( { 'url': url, 'name': app_globals.domain });
 
         if not page is None:
             crumbs.append( { 'url': None, 'name': page, 'sep': '' });

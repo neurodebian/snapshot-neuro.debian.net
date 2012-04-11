@@ -61,6 +61,12 @@ browse the list as mentioned above.  Valid date formats are
 is no import at the exact time you specified you will get the latest
 available timestamp which is before the time you specified.
 </p>
+<p>
+It may be necessary to ignore the Valid-Until header within Release files, in order
+to prevent apt from disregarding snapshot entries ("Release file expired").  Use
+<code>aptitude -o Acquire::Check-Valid-Until=false update</code> or
+<code>apt-get -o Acquire::Check-Valid-Until=false update</code> for this purpose.
+</p>
 
 <p style="margin-top:2em;">
 If you want anything related to a specific package simply enter the

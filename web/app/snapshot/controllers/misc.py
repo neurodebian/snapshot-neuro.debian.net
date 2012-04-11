@@ -22,8 +22,8 @@
 
 import logging
 
-from pylons import request, response, session, tmpl_context as c, g, config
-from pylons.controllers.util import abort, redirect_to
+from pylons import request, response, session, tmpl_context as c, app_globals, config
+from pylons.controllers.util import abort
 
 from snapshot.lib.base import BaseController, render
 
@@ -36,10 +36,10 @@ class MiscController(BaseController):
     def trace(self):
         db = None
         try:
-            db = DBInstance(g.pool)
+            db = DBInstance(app_globals.pool)
             set_expires(int(config['app_conf']['expires.root']))
 
-            last = g.shm.get_last_mirrorrun(db)
+            last = app_globals.shm.get_last_mirrorrun(db)
 
             content = []
             content.append("%s\n"%(last.ctime()))
