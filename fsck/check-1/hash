@@ -70,6 +70,9 @@ try:
         for byte2 in xrange(256):
             if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2)
             p = os.path.join(farmpath, '%02x'%byte1, '%02x'%byte2)
+            if not os.path.exists(p):
+                # not-that-large archives as Debian might be missing some
+                continue 
             for filename in os.listdir(p):
                 if re.match('[0-9a-f]{40}$', filename) is None:
                     errors.append((filename, 'Invalid name'))
