@@ -32,7 +32,7 @@ import hasher
 
 
 
-farmpath = '/srv/snapshot.debian.org/farm'
+farmpath = '/srv/snapshot-neuro.debian.net/farm'
 numthreads = 16
 verbose = 2
 
