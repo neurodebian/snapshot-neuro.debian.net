@@ -57,7 +57,7 @@ class HashingThread(threading.Thread):
                     elif verbose >= 3: sys.stdout.write("."); sys.stdout.flush()
             except Exception, e:
                 errors.append((filename, 'Exception: %s'%(e)))
-                if verbose >= 2: print "%s: Exception (%s)"%(filename, e)
+                if verbose >= 2: print "%s: Exception (%s)"%(filename, e); sys.stdout.flush()
             finally:
                 workqueue.task_done()
 
@@ -66,14 +66,14 @@ for x in xrange ( numthreads ):
 
 try:
     for byte1 in xrange(256):
-        if verbose >= 1: print "queueing %02x:"%(byte1)
+        if verbose >= 1: print "queueing %02x:"%(byte1); sys.stdout.flush()
         for byte2 in xrange(256):
-            if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2)
+            if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2); sys.stdout.flush()
             p = os.path.join(farmpath, '%02x'%byte1, '%02x'%byte2)
             for filename in os.listdir(p):
                 if re.match('[0-9a-f]{40}$', filename) is None:
                     errors.append((filename, 'Invalid name'))
-                    if verbose >= 2: print "Invalid name %s"%(filename)
+                    if verbose >= 2: print "Invalid name %s"%(filename); sys.stdout.flush()
                     continue
                 if verbose >= 6: print "queueing %s"%(filename)
                 workqueue.put((p, filename))
