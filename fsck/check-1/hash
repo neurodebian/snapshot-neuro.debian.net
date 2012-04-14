@@ -33,7 +33,7 @@ import hasher
 
 
 farmpath = '/srv/snapshot.debian.org/farm'
-numthreads = 16
+numthreads = 6
 verbose = 2
 
 queuesize = numthreads*2
