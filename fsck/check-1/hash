@@ -28,7 +28,11 @@ import sys
 import threading
 import random
 import Queue
-sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/lib/python2.6/site-packages')
+try:
+    from distutils import sysconfig
+    sys.path.append(sysconfig.get_python_lib(prefix=os.path.abspath(os.path.dirname(sys.argv[0]))))
+except ImportError:
+    sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/lib/python2.6/site-packages')
 import hasher
 
 
