@@ -79,15 +79,16 @@ try:
         b = range(256)
         random.shuffle(b)
         for byte1 in b:
-            if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2); sys.stdout.flush()
             p = os.path.join(farmpath, '%02x'%byte1, '%02x'%byte2)
-            for filename in os.listdir(p):
-                if re.match('[0-9a-f]{40}$', filename) is None:
-                    errors.append((filename, 'Invalid name'))
-                    if verbose >= 2: print "Invalid name %s"%(filename); sys.stdout.flush()
-                    continue
-                inqueue.append((p,filename))
-            if len(inqueue) > 2000: enqueue(inqueue)
+            if os.path.exists(p):
+                if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2); sys.stdout.flush()
+                for filename in os.listdir(p):
+                    if re.match('[0-9a-f]{40}$', filename) is None:
+                        errors.append((filename, 'Invalid name'))
+                        if verbose >= 2: print "Invalid name %s"%(filename); sys.stdout.flush()
+                        continue
+                    inqueue.append((p,filename))
+                if len(inqueue) > 2000: enqueue(inqueue)
     enqueue(inqueue)
 finally:
     for x in xrange ( numthreads ):
