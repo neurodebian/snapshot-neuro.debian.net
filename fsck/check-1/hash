@@ -85,6 +85,9 @@ workqueue.join()
 for e in errors:
     print "%s: %s"%(e[0], e[1])
 
+if len(errors) > 0:
+    sys.exit(1)
+
 # vim:set ts=4:
 # vim:set et:
 # vim:set shiftwidth=4:
