@@ -40,7 +40,7 @@ from paste.fileapp import FileApp
 from webob.exc import HTTPMovedPermanently
 
 import wsgiref.handlers
-import time
+import time, datetime
 import urllib
 
 log = logging.getLogger(__name__)
@@ -223,16 +223,16 @@ class ArchiveController(BaseController):
 
 
     def _dateok(self, date):
-        if re.match('\d{8}$', date):
+        r = re.match('(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z)?$', date)
+        if r is not None:
+            y = int(r.group(1))
+            m = int(r.group(2))
+            d = int(r.group(3))
+            H = int(r.group(4)) if r.group(4) is not None else 0
+            M = int(r.group(5)) if r.group(5) is not None else 0
+            S = int(r.group(6)) if r.group(6) is not None else 0
             try:
-                time.strptime(date, "%Y%m%d")
-                return True
-            except ValueError:
-                pass
-
-        if re.match('\d{8}T\d{6}Z', date):
-            try:
-                time.strptime(date, "%Y%m%dT%H%M%SZ")
+                datetime.datetime(y,m,d,H,M,S)
                 return True
             except ValueError:
                 pass
