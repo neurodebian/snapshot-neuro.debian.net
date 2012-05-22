@@ -54,8 +54,8 @@ class SnapshotFileApp(FileApp):
             (type, encoding) = mimetypes.guess_type(filename)
             if not type is None:
                 h['Content-Type'] = type
-            if not encoding is None:
-                h['Content-Encoding'] = encoding
+            #if not encoding is None:
+            #    h['Content-Encoding'] = encoding
         expires = datetime.datetime.now() + datetime.timedelta(seconds = int(config['app_conf']['expires.archive.file']))
         h['Expires'] = wsgiref.handlers.format_date_time( time.mktime( expires.timetuple() ))
         h['Cache-Control'] = 'public, max-age=%d'%int(config['app_conf']['expires.archive.file'])
