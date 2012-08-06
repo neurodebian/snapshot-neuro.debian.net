@@ -15,11 +15,11 @@ used by all.
 </p>
 
 <p>
-The Debian Project wants to thank <a href="http://www.sanger.ac.uk/">Wellcome
+The Debian Project would like to thank <a href="http://www.sanger.ac.uk/">Wellcome
 Trust Sanger Institute</a> and the <a href="http://www.ece.ubc.ca/">UBC
-Electrical and Computer Engineering</a> for providing hardware and hosting and
-<a href="http://www.nordicbet.com/">Nordic Gaming</a> for sponsoring additional
-hardware.
+Electrical and Computer Engineering</a> for providing hardware and hosting. We
+would also like to thank <a href="http://www.nordicbet.com/">Nordic Gaming</a>
+for providing hardware in the past.
 </p>
 
 <h2>Usage</h2>
