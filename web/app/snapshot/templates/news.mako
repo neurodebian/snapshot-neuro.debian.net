@@ -1,4 +1,9 @@
 <h1>News</h1>
+<h2>2012-09-23</h2>
+<p>
+Just a quick datapoint: Currently snapshot has about 11 million files in a bit
+over 16 Terabytes of data.
+</p>
 <h2>2010-12-14</h2>
 <p>
 Around 2010-11-20 the server which hosted snapshot-master stumbled into
