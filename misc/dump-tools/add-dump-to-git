@@ -41,7 +41,7 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
   help="Be verbose.")
 parser.add_option("-G", "--no-gc", dest="nogc", action="store_true",
   default=False,
-  help="Do not run git gc afterwards.")
+  help="Do not run git gc --auto afterwards.")
 (options, args) = parser.parse_args()
 
 if options.verbose: optional_quiet = []
@@ -107,8 +107,8 @@ for dumpfilename in args:
 
 if not options.nogc:
     os.chdir(options.backing_git)
-    if options.verbose: print "# git gc"; sys.stdout.flush()
-    subprocess.check_call(['git', 'gc'] + optional_quiet)
+    if options.verbose: print "# git gc --auto"; sys.stdout.flush()
+    subprocess.check_call(['git', 'gc', '--auto'] + optional_quiet)
 
 
 
