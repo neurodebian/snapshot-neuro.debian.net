@@ -33,12 +33,12 @@ import os
 import tempfile
 import shutil
 import subprocess
-import lockfile
+import fcntl
+import time
 thisscriptdir = os.path.abspath(os.path.dirname(sys.argv[0]))
 sys.path.append(os.path.join(thisscriptdir, '../../lib'))
 from dbhelper import DBHelper
 
-lock_age = 3600*24*3
 block_size = 4096
 
 def read_fd_to_file(i, path):
@@ -50,26 +50,23 @@ def read_fd_to_file(i, path):
     o.close()
     i.close()
 
-def get_lock(fn):
-    try:
-        stat = os.stat(fn)
-        if stat[ST_MTIME] < time.time() - lock_age:
-            sys.stderr.write("Removing stale lock %s"%(fn))
-            os.unlink(fn)
-    except OSError, error:
-        if error.errno == errno.ENOENT:
+def get_lock(fn, wait=5*60):
+    f = open(fn, "w")
+    sl = 0.1
+    ends = time.time() + wait
+
+    while True:
+        success = False
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return f
+        except IOError:
             pass
-        else:
-            raise
-
-    lock = lockfile.FileLock(fn)
-    try:
-        lock.acquire(timeout=60)    # wait up to 60 seconds
-    except lockfile.LockTimeout:
-        sys.stderr.write("Backing store is locked.\n")
-        sys.exit(1)
-
-    return lock
+        if time.time() >= ends:
+            return None
+        sl = min(sl*2, 10, ends - time.time())
+        time.sleep(sl)
+    return f
 
 
 parser = optparse.OptionParser()
@@ -131,7 +128,10 @@ counter = 1
 try:
     tmpdir = tempfile.mkdtemp(prefix='snapshot.add-new-dumps-to-git.')
     lockfilename = os.path.join(options.backing_git, '.lock-add-new-dumps-to-git')
-    lock = get_lock(lockfilename)
+    lockfile = get_lock(lockfilename)
+    if lockfile is None:
+        sys.stderr.write("Could not acquire lock.\n")
+        sys.exit(1)
 
     have_uuids = set()
     p = subprocess.Popen(extractcall+['list'], stdout=subprocess.PIPE)
@@ -174,12 +174,10 @@ try:
     os.chdir(options.backing_git)
     if options.verbose: print "# git gc --auto"; sys.stdout.flush()
     subprocess.check_call(['git', 'gc', '--auto'] + optional_quiet)
-
+    lockfile.close()
 finally:
     if not tmpdir is None:
         shutil.rmtree(tmpdir)
-    if not lock is None:
-        lock.release()
 
 # vim:set et:
 # vim:set ts=4:
