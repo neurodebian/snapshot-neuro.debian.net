@@ -172,8 +172,9 @@ try:
     db.close()
 
     os.chdir(options.backing_git)
-    if options.verbose: print "# git gc"; sys.stdout.flush()
-    subprocess.check_call(['git', 'gc'] + optional_quiet)
+    if options.verbose: print "# git gc --auto"; sys.stdout.flush()
+    subprocess.check_call(['git', 'gc', '--auto'] + optional_quiet)
+
 finally:
     if not tmpdir is None:
         shutil.rmtree(tmpdir)
