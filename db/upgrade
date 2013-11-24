@@ -68,7 +68,7 @@ def upgrade(db):
 
     except psycopg2.ProgrammingError, msg:
         db.execute('ROLLBACK')
-        raise "Unable to apply update: %s" % (str(msg))
+        raise Exception("Unable to apply update", str(msg))
 
 
 def usage(err = False):
