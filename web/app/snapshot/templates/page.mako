@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		% if context.get('c.title', UNDEFINED) is UNDEFINED:
+		% if not hasattr(c, 'title'):
 			<title>${app_globals.domain}</title>
 		% else:
 			<title>${c.title} - ${app_globals.domain}</title>
@@ -14,7 +14,7 @@
 		<div id="top">
 			<a id="logo" href="http://${app_globals.domain}"><img src="/static/images/top.png" alt="${app_globals.domain}" width="644" height="71"/></a>
 		</div>
-		% if context.get('c.breadcrumbs', UNDEFINED) is not UNDEFINED and (len(c.breadcrumbs) != 0):
+		% if hasattr(c, 'breadcrumbs') and len(c.breadcrumbs) > 0:
 			<div id="pageheader">
 			<ul id="breadcrumbs" style="font-size:small;">
 				% for crumb in c.breadcrumbs:
@@ -33,9 +33,9 @@
 				% endfor
 			</ul>
 			</div>
-		% endif
+		 % endif
 
-% if context.get('c.msg', UNDEFINED) is not UNDEFINED and c.msg != "":
+% if hasattr(c, 'msg') and c.msg != "":
 <p>${c.msg}</p>
 % endif
 
