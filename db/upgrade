@@ -82,7 +82,7 @@ def usage(err = False):
     sys.exit(exit)
 
 def readConfig(conffile):
-    return yaml.load(open(conffile).read())
+    return yaml.safe_load(open(conffile).read())
 
 def main():
     if len(sys.argv) <= 1:

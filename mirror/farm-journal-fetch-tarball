@@ -53,7 +53,7 @@ if options.conffile is None:
     parser.print_help()
     sys.exit(1)
 
-config = yaml.load(open(options.conffile).read())
+config = yaml.safe_load(open(options.conffile).read())
 
 def get_statefile_path():
     return os.path.join(config['snapshot']['farmpath'], '.farm-journal-fetch.state')
@@ -100,7 +100,7 @@ def move_file_with_fallback(src, dst):
 statefile = get_statefile_path()
 since = 0
 if os.path.exists(statefile):
-    meta = yaml.load(open(statefile).read())
+    meta = yaml.safe_load(open(statefile).read())
     if 'latest-timestamp' in meta:
         since = int(meta['latest-timestamp'])
 
@@ -125,7 +125,7 @@ try:
 
     if os.path.exists('meta'):
         try:
-            meta = yaml.load(open('meta').read())
+            meta = yaml.safe_load(open('meta').read())
             if 'latest-timestamp' in meta:
                 f = open(statefile, "w")
                 f.write(yaml.dump(meta))

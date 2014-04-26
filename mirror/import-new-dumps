@@ -57,7 +57,7 @@ if options.conffile is None:
     parser.print_help()
     sys.exit(1)
 
-config = yaml.load(open(options.conffile).read())
+config = yaml.safe_load(open(options.conffile).read())
 db = DBHelper(config['db']['connectstring'])
 os.chdir(config['dump']['incoming-dumppath'])
 

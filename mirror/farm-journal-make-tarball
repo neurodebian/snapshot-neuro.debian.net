@@ -46,7 +46,7 @@ if options.conffile is None:
     parser.print_help()
     sys.exit(1)
 
-config = yaml.load(open(options.conffile).read())
+config = yaml.safe_load(open(options.conffile).read())
 
 def make_path(digest):
   prefix1 = digest[0:2]

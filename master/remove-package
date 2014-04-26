@@ -74,7 +74,7 @@ if not numactions == 1:
     parser.print_help()
     sys.exit(1)
 
-config = yaml.load(open(options.conffile).read())
+config = yaml.safe_load(open(options.conffile).read())
 db = DBHelper(config['db']['connectstring'])
 
 def make_path(digest):
