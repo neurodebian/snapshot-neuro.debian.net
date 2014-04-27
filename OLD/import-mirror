@@ -86,7 +86,7 @@ class NodeManager
     insert_tree(path)
   end
 
-  # Add a new mirror run entry into the mirrorun table,
+  # Add a new mirror run entry into the mirrorrun table,
   # verifying that this run is strictly later than any previously imported runs.
   # sets @previous_run and @mirror_run to the appropriate values.
   def new_mirror_run(archive, date)

@@ -149,7 +149,7 @@ try:
 
         fn = os.path.join(tmpdir, "%d"%(row['mirrorrun_id']))
 
-        # dump mirrorun to fn
+        # dump mirrorrun to fn
         c = [options.snapshot, '-c', options.conffile, '--mirrorrun', '%d'%(row['mirrorrun_id'])]
         if options.verbose: c.append('--verbose')
         c.append('dump')

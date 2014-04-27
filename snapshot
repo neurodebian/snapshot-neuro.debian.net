@@ -298,7 +298,7 @@ class FSNode
 	end
 
 	def update_boxed(db, table, whereclause, whereparams, isrootdir)
-		# if we have a mirrorun in the past and one in the future
+		# if we have a mirrorrun in the past and one in the future
 		# then this element might already be covered by a node that starts
 		# in the past and ends in the future.
 		query = "DELETE FROM nodes_window USING #{table}
