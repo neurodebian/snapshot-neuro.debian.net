@@ -17,7 +17,7 @@ used by all.
 <p>
 The Debian Project would like to thank the
 <a href="http://www.sanger.ac.uk/">Wellcome Trust Sanger Institute</a> and
-<a href="http://www.leaseweb.com>LeaseWeb Netherlands B.V.</a> for providing
+<a href="http://www.leaseweb.com">LeaseWeb Netherlands B.V.</a> for providing
 hardware and hosting.
 
 We would also like to thank the
