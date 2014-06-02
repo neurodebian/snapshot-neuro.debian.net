@@ -15,14 +15,15 @@ used by all.
 </p>
 
 <p>
-The Debian Project would like to thank <a
-href="http://www.sanger.ac.uk/">Wellcome Trust Sanger Institute</a> and <a
-href="http://www.leaseweb.com>LeaseWeb Netherlands B.V.</a> for providing
+The Debian Project would like to thank the
+<a href="http://www.sanger.ac.uk/">Wellcome Trust Sanger Institute</a> and
+<a href="http://www.leaseweb.com>LeaseWeb Netherlands B.V.</a> for providing
 hardware and hosting.
 
-We would also like to thank the <a href="http://www.ece.ubc.ca/">Electrical and
-Computer Engineering</a> department at the University of British Columbia,
-Canada and <a href="http://www.nordicbet.com/">Nordic Gaming</a> for providing
+We would also like to thank the
+<a href="http://www.ece.ubc.ca/">Electrical and Computer Engineering</a>
+department at the University of British Columbia, Canada and
+<a href="http://www.nordicbet.com/">Nordic Gaming</a> for providing
 hardware/hosting and hardware, respectively, in the past.
 </p>
 
