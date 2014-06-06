@@ -42,23 +42,23 @@
 ${self.body()}
 
 		<div id="bottom">
-			Made by Peter Palfrader
-			&mdash;
-			Web/Graphics design Bernhard Weitzhofer
-			&mdash;
-			<code>git://git.debian.org/mirror/snapshot.debian.org.git</code>
-			(<a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git">gitweb on alioth</a>)
-			&mdash;
-			<a href="http://www.debian.org/Bugs/Reporting">Report bugs</a> and issues against the
-			  <a href="http://bugs.debian.org/snapshot.debian.org">snapshot.debian.org package</a> on bugs.debian.org.
-			<br />
+			Application Developed by Peter Palfrader &mdash; Web/Graphics designed by Bernhard Weitzhofer
+			<br/>
+			Source code available for download via <a href="git://git.debian.org/mirror/snapshot.debian.org.git">git</a> and browseable online via <a href="http://git.debian.org/?p=mirror/snapshot.debian.org.git">gitweb</a>.
+			<br/>
+			Please <a href="http://www.debian.org/Bugs/Reporting">report bugs</a> against the <a href="http://bugs.debian.org/snapshot.debian.org">snapshot.debian.org package</a>.
+			<br/>
 			<%
 				import datetime
 				now = datetime.datetime.now()
 			%>
-			Built at ${now} on ${app_globals.thishost}
-			<br />
+			Built at ${now} on ${app_globals.thishost}.
+			<br/>
 			<a href="http://validator.w3.org/check?uri=referer">validate</a>
+			<br/>
+			<br/>
+			<br/>
+            <a href="http://www.leaseweb.com" title="LeaseWeb offers hosted infrastructure solutions, including Cloud, CDN, Dedicated Servers, Managed Hosting, Colocation, and Hybrid Solutions" target="_blank"><img src="/static/images/leaseweb.gif" alt="LeaseWeb" width="140" height="25"/></a>
 		</div>
 	</body>
 </html>
