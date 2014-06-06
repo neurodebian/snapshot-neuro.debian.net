@@ -58,7 +58,12 @@ ${self.body()}
 			<br/>
 			<br/>
 			<br/>
-            <a href="http://www.leaseweb.com" title="LeaseWeb offers hosted infrastructure solutions, including Cloud, CDN, Dedicated Servers, Managed Hosting, Colocation, and Hybrid Solutions" target="_blank"><img src="/static/images/leaseweb.gif" alt="LeaseWeb" width="140" height="25"/></a>
+			Hosting for snapshot.debian.org generously provided by our partners.
+			<div>
+				<a title="Wellcome Trust Sanger Institute" href="http://www.sanger.ac.uk"><img width="150" height="50" alt="Sanger" src="/static/images/sanger.png"/></a>
+				&nbsp;&nbsp;&nbsp;
+				<a title="LeaseWeb offers hosted infrastructure solutions, including Cloud, CDN, Dedicated Servers, Managed Hosting, Colocation, and Hybrid Solutions" href="http://www.leaseweb.com/"><img width="150" height="50" alt="LeaseWeb" src="/static/images/leaseweb.png"/></a>
+			</div>
 		</div>
 	</body>
 </html>
