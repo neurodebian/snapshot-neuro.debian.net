@@ -58,14 +58,12 @@ ${self.body()}
 			<br/>
 			<br/>
 			<br/>
-<!--
 			Hosting for snapshot.debian.org generously provided by our partners.
 			<div>
 				<a title="Wellcome Trust Sanger Institute" href="http://www.sanger.ac.uk"><img width="150" height="50" alt="Sanger" src="/static/images/sanger.png"/></a>
 				&nbsp;&nbsp;&nbsp;
 				<a title="LeaseWeb offers hosted infrastructure solutions, including Cloud, CDN, Dedicated Servers, Managed Hosting, Colocation, and Hybrid Solutions" href="http://www.leaseweb.com/"><img width="150" height="50" alt="LeaseWeb" src="/static/images/leaseweb.png"/></a>
 			</div>
-  -->
 		</div>
 	</body>
 </html>
