@@ -908,12 +908,12 @@ class PackageIndexer
 				unless prev_index.nil?
 					previously_seen = {}
 					begin
-						prev_index = BZ2::Reader.new(prev_index)
+						prev_index = Bzip2::Reader.new(prev_index)
 						prev_index.each_line(sep_string='') do |block|
 							previously_seen[Digest::SHA1.digest(block)] = 1
 						end
-					rescue BZ2::EOZError => e
-						$logger.warn("[indexrun ##{@mirrorrun_id}] previous (##{prev_run_id}) package-file.map is corrupt (BZ2::EOZError): #{e.message}")
+					rescue Bzip2::EOZError => e
+						$logger.warn("[indexrun ##{@mirrorrun_id}] previous (##{prev_run_id}) package-file.map is corrupt (Bzip2::EOZError): #{e.message}")
 						return
 					end
 				else
@@ -925,7 +925,7 @@ class PackageIndexer
 		@db.dbdo('SAVEPOINT startofindexing')
 		begin
 			lineno = 0
-			index = BZ2::Reader.new(index)
+			index = Bzip2::Reader.new(index)
 			index.each_line(sep_string='') do |block|
 				next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
 
@@ -964,9 +964,9 @@ class PackageIndexer
 					$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 				end
 			end
-		rescue BZ2::EOZError => e
+		rescue Bzip2::EOZError => e
 			@db.dbdo('ROLLBACK TO startofindexing')
-			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (BZ2::EOZError): #{e.message}")
+			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (Bzip2::EOZError): #{e.message}")
 			return
 		end
 		@db.dbdo('RELEASE SAVEPOINT startofindexing')
@@ -1480,7 +1480,7 @@ case action
 	when "import-dump"
 		snapshot.import_dump(options)
 	when 'index'
-		require 'bz2'
+		require 'bzip2'
 		snapshot.index(options)
 	when "dump"
 		snapshot.dump(options)

@@ -157,6 +157,8 @@ Web-Depends: python-pylons (that is {python-pylons,python-routes,python-nose,pyt
 Web-Recommends: libapache2-mod-wsgi apache2
 Apache config: required modules: expires headers
 
+To index binary and source packages, we currently need https://github.com/brianmario/bzip2-ruby.
+
 Basic setup
 -----------
 
