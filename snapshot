@@ -27,7 +27,7 @@ require 'dbi'
 require 'logger'
 require 'digest/sha1'
 require 'digest/md5'
-require 'ftools'
+require 'fileutils'
 require 'time'
 
 def barf(str)
@@ -656,7 +656,7 @@ class SnapshotImporter
 		uuid=`uuidgen`.chomp if uuid.nil?
 		importing_host=`hostname -f`.chomp if importing_host.nil?
 
-		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>uuid, 'importing_host'=>importing_host})['mirrorrun_id']
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date.to_s, 'mirrorrun_uuid'=>uuid, 'importing_host'=>importing_host})['mirrorrun_id']
 		return mirrorrun_id
 	end
 
@@ -1276,9 +1276,12 @@ class SnapshotDumper
 		@file.print "Contents:\n"
 		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?) ORDER BY path, name NULLS first", @mirrorrun_id) do |row|
 			case row['filetype']
-				when 'd': @file.print " #{row['filetype']} #{row['path']}\n"
-				when '-': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
-				when 'l': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['target']}\n"
+				when 'd'
+					@file.print " #{row['filetype']} #{row['path']}\n"
+				when '-'
+					@file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
+				when 'l'
+					@file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['target']}\n"
 				else
 					throw "Unknown file type #{row['filetype']}"
 			end
@@ -1434,16 +1437,16 @@ end
 
 options = {}
 ARGV.options do |opts|
-	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                 { |options['config']| }
-	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
-	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
-	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
-	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
-	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         { |options['path']| }
-	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  { |options['date']| }
-	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  { |options['quick']| }
-	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  { |options['timetravel']| }
-	opts.on_tail("-m", "--mirrorrun=<id>" , Integer, "Operate on a particular mirrorrun (index/dump)")  { |options['mirrorrun_id']| }
+	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                                    {  |x| options['config'] = x }
+	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") {  |x| options['log-to-stderr'] = x }
+	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 {  |x| options['quiet'] = x }
+	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                {  |x| options['verbose'] = x }
+	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      {  |x| options['archive'] = x }
+	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         {  |x| options['path'] = x }
+	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  {  |x| options['date'] = x }
+	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  {  |x| options['quick'] = x }
+	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  {  |x| options['timetravel'] = x }
+	opts.on_tail("-m", "--mirrorrun=<id>" , Integer, "Operate on a particular mirrorrun (index/dump)")  {  |x| options['mirrorrun_id'] = x }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
