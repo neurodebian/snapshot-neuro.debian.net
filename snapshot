@@ -91,7 +91,7 @@ class FileBackend < StorageBackend
 			fn = File.basename(target)
 
 			tmptarget = dir+"/.tmp."+randstring()+"."+(Process.pid.to_s)+"."+fn
-			File.copy(source, tmptarget)
+			FileUtils.cp(source, tmptarget)
 			begin
 				File.link(tmptarget, target)
 				add_to_journal(digest)
