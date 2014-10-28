@@ -1,12 +1,12 @@
 
-To sync the farm to a mirror, we can either run rsyncs, but these are
-expensive, so we would like to avoid having to do that often.
+To sync the farm to a mirror, we can run full rsyncs for instance.  However
+these are expensive and thus we would like to avoid having to do that often.
 
-Since the farm has a pretty specific structure, and files - once in it -
+Since the farm has a pretty specific structure, and files once in the farm
 never change, we can also do the following on a mirror:
-  Ask the master for a list of all files (or files starting with say 00),
-  compare that to a local list,
-  and request any we don't have yet.
+  Compile a list of all local and remote files or files with a specific
+  prefix, compare the lists, and directly fetch/push any the mirror does
+  not have.
 
 We have a set of scripts that help implement this:
 .    make a temporary directory, cd there,
@@ -17,6 +17,8 @@ We have a set of scripts that help implement this:
 .    process-farm-update
 .
 .    rm -rf temporary directory
+
+See sync-farm-incremental for the actual implementation.
 
 
 Other scripts in this directory:
