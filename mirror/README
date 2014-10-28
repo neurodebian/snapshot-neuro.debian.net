@@ -1,0 +1,46 @@
+
+To sync the farm to a mirror, we can either run rsyncs, but these are
+expensive, so we would like to avoid having to do that often.
+
+Since the farm has a pretty specific structure, and files - once in it -
+never change, we can also do the following on a mirror:
+  Ask the master for a list of all files (or files starting with say 00),
+  compare that to a local list,
+  and request any we don't have yet.
+
+We have a set of scripts that help implement this:
+.    make a temporary directory, cd there,
+.
+.    farm-list-entries 00 |
+.      ssh master farm-make-update-tarball 00 |
+.      tar xaf -
+.    process-farm-update
+.
+.    rm -rf temporary directory
+
+
+Other scripts in this directory:
+ - ssh-wrap:
+   ssh authorized_keys command wrapper/dispatcher script
+
+ - sync-farm-completely: 
+   Runs one rsync each for all 256 top-level directories.
+
+ - sync-incremental:
+   Triggered from the master, run on the client, will run
+   farm-journal-fetch-tarball and import any new dumps.
+
+ - farm-journal-make-tarball,
+   farm-journal-fetch-tarball,
+   farm-journal-expire:
+   A different way to keep mirrors in sync is to keep a journal of added
+   files on the master.  Then we only need to consult this list and copy
+   the new files over to the client when we have updates.  These scripts
+   implement that behavior, and also expire old journal entries.
+
+ - import-new-dumps:
+   Prior to postgres replication, we would dump out mirrorruns to flat
+   files, ship these to the mirror which would then import it.  This
+   script is the importer.
+
+weasel, Tue, 28 Oct 2014 17:39:50 +0100

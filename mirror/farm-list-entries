@@ -1,0 +1,81 @@
+#!/usr/bin/python
+
+# Copyright (c) 2010, 2014 Peter Palfrader
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Given a prefix (two nibbles), list all the elements in that part of the farm.
+# output order is undefined.
+#
+# With -d, do not list entries that already are given on stdin.
+
+import sys
+import optparse
+import os
+
+hexdigits = '0123456789abcdef'
+def is_hex(s):
+  return all(c in hexdigits for c in s)
+
+parser = optparse.OptionParser()
+parser.set_usage("%prog --config=<conffile>|--farmpath=<path> <prefix>")
+parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
+  help="Config file location.")
+parser.add_option("-p", "--farmpath", dest="farmpath", metavar="FARMPATH",
+  help="Path to the snapshot farm.")
+parser.add_option("-d", "--diff", dest="diff", action="store_true",
+  help="Only list elements not given in stdin.")
+
+(options, args) = parser.parse_args()
+if (options.conffile is None and options.farmpath is None) or len(args) != 1:
+  parser.print_help()
+  sys.exit(1)
+
+prefix = args[0]
+if len(prefix) != 2 or not is_hex(prefix):
+  print >> sys.stderr, "Invalid prefix."
+  sys.exit(1)
+
+if options.farmpath is None:
+  import yaml
+  config = yaml.safe_load(open(options.conffile).read())
+  farmpath = config['snapshot']['farmpath']
+else:
+  farmpath = options.farmpath
+
+existlist = []
+if options.diff:
+  for line in sys.stdin:
+    h = line.strip()
+    if len(h) != 40 or not is_hex(h):
+      print >>sys.stderr, "Ignoring invalid token %s"%(h)
+      continue
+    existlist.append(h)
+
+exist = set(existlist)
+
+for byte2 in xrange(256):
+  p = os.path.join(farmpath, prefix, '%02x'%byte2)
+  for filename in os.listdir(p):
+    if len(filename) == 40 and is_hex(filename) and not filename in exist:
+      print filename
+
+# vim:set et:
+# vim:set ts=4:
+# vim:set shiftwidth=4:

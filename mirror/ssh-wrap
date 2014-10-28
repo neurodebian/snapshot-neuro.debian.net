@@ -75,6 +75,19 @@ farm_journal_fetch() {
 	"$HOME"/code/mirror/farm-journal-make-tarball -c "$SNAPCONFIG" -s "$since"
 }
 
+farm_make_update_tarball() {
+	one_more_arg "$@"
+	local prefix="$1"
+
+	if ! echo "$prefix" | grep -q '^[0-9a-f][0-9a-f]$'; then
+		croak "Invalid characters encountered in prefix '$prefix'"
+	fi
+
+	info "make-update-tarball $prefix"
+	"$HOME"/code/mirror/farm-list-entries -c "$SNAPCONFIG" --diff "$prefix" |
+	  "$HOME"/code/mirror/farm-make-tarball-from-list -c "$SNAPCONFIG"
+}
+
 do_rsync() {
 	local allowed_command_prefixes
 	allowed_rsyncs=(
@@ -123,6 +136,12 @@ case "$action" in
 		require_master
 
 		farm_journal_fetch "$@"
+		;;
+
+	farm-make-update-tarball)
+		require_master
+
+		farm_make_update_tarball "$@"
 		;;
 
 	git-upload-pack)
