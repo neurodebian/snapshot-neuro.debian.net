@@ -1,6 +1,6 @@
 ## snapshot.debian.org - web frontend
 #
-# Copyright (c) 2009, 2010 Peter Palfrader
+# Copyright (c) 2009, 2010, 2015 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -365,6 +365,21 @@ class PackageController(BaseController):
         finally:
             self._db_close()
 
+    @jsonify
+    def mr_binary_version_binfiles(self, binary, binary_version):
+        try:
+            binfiles = app_globals.shm.packages_get_binary_files(self._db(), binary, binary_version)
+            if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
+            binfiles = map(lambda b: dict(b), binfiles)
+            r = { '_comment': "foo",
+                  'binary': binary,
+                  'binary_version': binary_version,
+                  'result': binfiles }
+            if ('fileinfo' in request.params) and (request.params['fileinfo'] == '1'):
+                r['fileinfo'] = self._get_fileinfo_for_mr(map(lambda x: x['hash'], binfiles))
+            return r
+        finally:
+            self._db_close()
 
     @jsonify
     def mr_fileinfo(self, hash):

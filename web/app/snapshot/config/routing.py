@@ -1,6 +1,6 @@
 ## snapshot.debian.org - web frontend
 #
-# Copyright (c) 2009, 2010 Peter Palfrader
+# Copyright (c) 2009, 2010, 2015 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,7 @@ def make_map():
     map.connect('/mr/package/{source}/{version}/allfiles', controller='package', action='mr_source_version_allfiles')
 
     map.connect('/mr/binary/{binary}/', controller='package', action='mr_binary')
+    map.connect('/mr/binary/{binary}/{binary_version}/binfiles', controller='package', action='mr_binary_version_binfiles')
 
     map.connect('/file/{hash}', controller='archive', action='file')
     map.connect('/mr/file/{hash}/info', controller='package', action='mr_fileinfo')

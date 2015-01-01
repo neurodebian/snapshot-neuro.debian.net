@@ -1,6 +1,6 @@
 ## snapshot.debian.org - web frontend
 #
-# Copyright (c) 2009, 2010 Peter Palfrader
+# Copyright (c) 2009, 2010, 2015 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -306,6 +306,17 @@ class SnapshotModel:
                            WHERE binpkg.name=%(binary)s
                            ORDER BY binpkg.version DESC""",
                 { 'binary': binary} )
+        return rows
+
+    def packages_get_binary_files(self, db, binary, binary_version):
+        rows = db.query("""SELECT hash, architecture
+                           FROM file_binpkg_mapping
+                               JOIN binpkg
+                               ON binpkg.binpkg_id=file_binpkg_mapping.binpkg_id
+                           WHERE name=%(binary)s AND version=%(binary_version)s""",
+                { 'binary': binary,
+                  'binary_version': binary_version} )
+
         return rows
 
     def packages_get_binary_files_from_id(self, db, binpkg_id):
