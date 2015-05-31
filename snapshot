@@ -907,15 +907,11 @@ class PackageIndexer
 				prev_index = open_file('/indices/package-file.map.bz2', prev_run_id)
 				unless prev_index.nil?
 					previously_seen = {}
-					begin
-						prev_index = Bzip2::Reader.new(prev_index)
-						prev_index.each_line(sep_string='') do |block|
-							previously_seen[Digest::SHA1.digest(block)] = 1
-						end
-					rescue Bzip2::EOZError => e
-						$logger.warn("[indexrun ##{@mirrorrun_id}] previous (##{prev_run_id}) package-file.map is corrupt (Bzip2::EOZError): #{e.message}")
-						return
+					prev_index = IO.popen(['bunzip2'], :in => prev_index)
+					prev_index.each_line(sep_string='') do |block|
+						previously_seen[Digest::SHA1.digest(block)] = 1
 					end
+					prev_index.close()
 				else
 					$logger.warn("[indexrun ##{@mirrorrun_id}] quick mode selected but no previous (##{prev_run_id}) package-file.map")
 				end
@@ -925,7 +921,7 @@ class PackageIndexer
 		@db.dbdo('SAVEPOINT startofindexing')
 		begin
 			lineno = 0
-			index = Bzip2::Reader.new(index)
+			index = IO.popen(['bunzip2'], :in => index)
 			index.each_line(sep_string='') do |block|
 				next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
 
@@ -964,6 +960,7 @@ class PackageIndexer
 					$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 				end
 			end
+			index.close()
 		rescue Bzip2::EOZError => e
 			@db.dbdo('ROLLBACK TO startofindexing')
 			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (Bzip2::EOZError): #{e.message}")
@@ -1480,7 +1477,6 @@ case action
 	when "import-dump"
 		snapshot.import_dump(options)
 	when 'index'
-		require 'bzip2'
 		snapshot.index(options)
 	when "dump"
 		snapshot.dump(options)
