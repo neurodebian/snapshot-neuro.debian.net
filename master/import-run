@@ -10,6 +10,13 @@ umask 022
 
 CONFIG="$BASE/etc/snapshot.conf"
 
+if [ -z "${HOME:-}" ]; then
+	HOME="$(getent passwd "`id -u`" | awk -F: '{print $6}')"
+	export HOME
+fi
+
+LC_CTYPE=C.UTF-8
+export LC_CTYPE
 
 if [ "${2:-""}" = "-v" ] ; then
 	verbose="--verbose"
