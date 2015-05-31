@@ -23,6 +23,6 @@ archive="${archive%%/}"
 #      exit 0
 #fi
 
-logger -p user.info -t "snapshot-update-trugger" "Import run for $archive"
+logger -p user.info -t "snapshot-update-trigger" "Import run for $archive"
 
 env -i /srv/snapshot.debian.org/bin/import-run "$archive"
