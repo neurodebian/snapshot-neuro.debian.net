@@ -18,6 +18,11 @@ archive="$1"
 archive="${archive##/srv/mirrors/}"
 archive="${archive%%/}"
 
+#if [ "$archive" = "debian" ]; then
+#      echo "Not accepting triggers for debian right now."
+#      exit 0
+#fi
+
 logger -p user.info -t "snapshot-update-trugger" "Import run for $archive"
 
 env -i /srv/snapshot.debian.org/bin/import-run "$archive"
