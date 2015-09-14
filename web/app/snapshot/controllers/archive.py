@@ -65,7 +65,7 @@ class SnapshotFileApp(FileApp):
         self.digest = digest
 
     def calculate_etag(self):
-        return self.digest
+        return '"%s"' % (self.digest,)
 
 class ArchiveController(BaseController):
     db = None
