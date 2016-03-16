@@ -114,7 +114,7 @@ try:
 
         h = hash_file(fn)
         if fn != h:
-            sys.stderr.write("Warning: File %s has unexected hash value %s.  Ignoring\n"%(fn, h))
+            sys.stderr.write("Warning: File %s has unexpected hash value %s.  Ignoring\n"%(fn, h))
             os.unlink(fn)
             continue
 

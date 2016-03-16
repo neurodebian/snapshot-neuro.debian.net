@@ -3,4 +3,4 @@ However, there is an awful lot of redundancy, since the difference between
 two mirrorruns of the same archive is very tiny.
 
 These tools help storing dumps in a git tree, which is pretty good at
-handling data with small differences accross many versions.
+handling data with small differences across many versions.

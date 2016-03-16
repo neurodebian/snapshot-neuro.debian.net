@@ -101,13 +101,13 @@ config = yaml.safe_load(open(options.conffile).read())
 db = DBHelper(config['db']['connectstring'])
 
 if not os.path.exists(options.snapshot) or not os.access(options.snapshot, os.X_OK):
-    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.snapshot))
+    sys.stderr.write("%s does not exist or is not executable\n"%(options.snapshot))
     sys.exit(1)
 if not os.path.exists(options.extracter) or not os.access(options.extracter, os.X_OK):
-    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.extracter))
+    sys.stderr.write("%s does not exist or is not executable\n"%(options.extracter))
     sys.exit(1)
 if not os.path.exists(options.adder) or not os.access(options.adder, os.X_OK):
-    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.adder))
+    sys.stderr.write("%s does not exist or is not executable\n"%(options.adder))
     sys.exit(1)
 
 options.extracter = os.path.abspath(options.extracter)

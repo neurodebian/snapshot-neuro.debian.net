@@ -70,7 +70,7 @@ service.
 
 <h2>2010-02-24</h2>
 <p>
-So we finally finally got a second machine up and serving a copy of snapshot.
+So we finally got a second machine up and serving a copy of snapshot.
 Of course this means that now a disk controller breaks in the snapshot-master
 machine and thus half of our disks are rendered inaccessible.  Even raid6
 doesn't like that very much.

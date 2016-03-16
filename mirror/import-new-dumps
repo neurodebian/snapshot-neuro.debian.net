@@ -62,7 +62,7 @@ db = DBHelper(config['db']['connectstring'])
 os.chdir(config['dump']['incoming-dumppath'])
 
 if not os.path.exists(options.snapshot) or not os.access(options.snapshot, os.X_OK):
-    sys.stderr.write("%s does not exist or is not exectuable\n"%(options.snapshot))
+    sys.stderr.write("%s does not exist or is not executable\n"%(options.snapshot))
     sys.exit(1)
 
 pending_import = []

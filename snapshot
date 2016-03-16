@@ -96,7 +96,7 @@ class FileBackend < StorageBackend
 				File.link(tmptarget, target)
 				add_to_journal(digest)
 			rescue Errno::EEXIST
-				# it may have jumped into existance, that's no problem.
+				# it may have jumped into existence, that's no problem.
 			end
 			File.unlink(tmptarget)
 		end
@@ -791,7 +791,7 @@ class PackageIndexer
 				cache = @binarypkgs
 				throw "need a srcpkg_id" if srcpkg_id.nil?
 			else
-				throw "Invalud type #{type}"
+				throw "Invalid type #{type}"
 		end
 
 		return cache[pkg][ver] if cache[pkg] and cache[pkg][ver]
@@ -859,7 +859,7 @@ class PackageIndexer
 			when "bin"
 				throw "need an arch" if arch.nil?
 			else
-				throw "Invalud type #{type}"
+				throw "Invalid type #{type}"
 		end
 
 		digest = get_file_digest(path)
@@ -1316,7 +1316,7 @@ class SnapshotDumpAll
 				begin
 					File.link(tmptarget, target)
 				rescue Errno::EEXIST
-					# it may have jumped into existance, that's no problem.
+					# it may have jumped into existence, that's no problem.
 				end
 			ensure
 				File.unlink(tmptarget)
