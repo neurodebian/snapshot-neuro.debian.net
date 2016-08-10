@@ -263,6 +263,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_source(self, source):
+        self._ensure_ascii(source)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source']))
             sourceversions = app_globals.shm.packages_get_source_versions(self._db(), source)
@@ -275,6 +276,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_source_version_srcfiles(self, source, version):
+        self._ensure_ascii(source)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             sourcefiles = app_globals.shm.packages_get_source_files(self._db(), source, version)
@@ -291,6 +293,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_source_version_binpackages(self, source, version):
+        self._ensure_ascii(source)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             binpkgs = app_globals.shm.packages_get_binpkgs_from_source(self._db(), source, version)
@@ -306,6 +309,8 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_source_version_binfiles(self, source, version, binary, binary_version):
+        self._ensure_ascii(source)
+        self._ensure_ascii(binary)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             binfiles = app_globals.shm.packages_get_binary_files_from_packagenames(self._db(), source, version, binary, binary_version)
@@ -325,6 +330,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_source_version_allfiles(self, source, version):
+        self._ensure_ascii(source)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source_version']))
             sourcefiles = app_globals.shm.packages_get_source_files(self._db(), source, version)
@@ -353,6 +359,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_binary(self, binary):
+        self._ensure_ascii(binary)
         try:
             set_expires(int(config['app_conf']['expires.package.mr.source']))
             binaryversions = app_globals.shm.packages_get_binary_versions_by_name(self._db(), binary)
@@ -367,6 +374,7 @@ class PackageController(BaseController):
 
     @jsonify
     def mr_binary_version_binfiles(self, binary, binary_version):
+        self._ensure_ascii(binary)
         try:
             binfiles = app_globals.shm.packages_get_binary_files(self._db(), binary, binary_version)
             if len(binfiles) == 0: abort(404, 'No such package or no binary files found')
