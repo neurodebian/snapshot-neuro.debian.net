@@ -28,8 +28,14 @@ The NeuroDebian Project wants to thank Peter Palfrader for developing
 snapshotting engine, Bernhard Weitzhofer for the original webdesign
 for the web front-end,
 and <a href="http://www.dartmouth.edu/~psych/">Department of
-Psychological and Brain Sciences, Dartmouth College</a> for providing
+Psychological and Brain Sciences, Dartmouth College</a> for originally providing
 hardware and network bandwidth.
+</p>
+
+<p>
+Currently NeuroDebian repository snapshotting service is supported as a part of 
+the <a href="http://repronim.org">ReproNim</a> project to facilitate (re)creation
+of computational environments.
 </p>
 
 <h2>Usage</h2>
@@ -91,6 +97,9 @@ If you want anything related to a specific package simply enter the
 </p>
 
 <h1>News</h1>
+<h2>2016-11-29</h2>
+<p> NeuroDebian snapshots web ui was deployed "persistently" for internal use by NeuroDebian/ReproNim projects.  </p>
+
 <h2>2011-10-03</h2>
 <p>
 Re-instantiated snapshotting service which was inactive since <a href="/archive/neurodebian/20110805T200503Z/">2011-08-05</a>.
