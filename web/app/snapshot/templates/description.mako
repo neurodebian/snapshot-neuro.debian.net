@@ -73,6 +73,15 @@ to prevent apt from disregarding snapshot entries ("Release file expired").  Use
 <code>aptitude -o Acquire::Check-Valid-Until=false update</code> or
 <code>apt-get -o Acquire::Check-Valid-Until=false update</code> for this purpose.
 </p>
+<p>
+If you use at least apt version 1.1.exp9 (stretch and later), you can use this instead:
+</p>
+<pre>
+deb     [check-valid-until=no] <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
+deb-src [check-valid-until=no] <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
+deb     [check-valid-until=no] <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+deb-src [check-valid-until=no] <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+</pre>
 
 <p style="margin-top:2em;">
 If you want anything related to a specific package simply enter the
