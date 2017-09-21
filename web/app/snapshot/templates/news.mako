@@ -1,4 +1,13 @@
 <h1>News</h1>
+<h2>2017-09-21</h2>
+<p>
+Imports of the debian-ports and debian-debug suite had failed for the last
+three weeks as individual files in those archives have exceeded the size
+representable in our database schema.  We have now updated the database to
+support file sizes up to 9,223,372,036,854,775,807 Bytes (2<sup>63</sup>-1; 8
+EiB).  Just like 640KB in ancient times, this will be truly sufficient
+indefinitely.
+
 <h2>2014-06-01</h2>
 <p>
 We added a cluster of machines generously provided by <a
