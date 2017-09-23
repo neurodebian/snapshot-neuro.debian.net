@@ -147,11 +147,16 @@ case "$action" in
 	git-upload-pack)
 		require_master
 
-		repos='/srv/snapshot.debian.org/snapshot.git'
-		if [ "$1" != "'$repos'" ]; then
-			croak "May not access other repositories"
-		fi
-		exec git-upload-pack "$repos"
+		repo_list=()
+		repo_list+=('/srv/snapshot.debian.org/snapshot.git')
+		repo_list+=('/srv/snapshot.debian.org/dumps-git')
+		for repo_idx in ${!repo_list[*]}; do
+			repos="${repo_list[$repo_idx]}"
+			if [ "$1" = "'$repos'" ]; then
+				exec git-upload-pack "$repos"
+			fi
+		done
+		croak "May not access this repository"
 		;;
 	rsync)
 		do_rsync "$@"
