@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+farm="$(readlink -f farm)"
+cd "$farm"
+for i in *; do
+  exec 200< "$i"
+  flock -e 200
+
+  tmpdir="$(mktemp -d --tmpdir="$i" ".incremental-update-XXXXXX")"
+  tmpdir="$(readlink -f "$tmpdir")"
+  trap "rm -rf '$tmpdir'" EXIT
+
+  ~/code/mirror/farm-list-entries --farmpath "$farm" "$i" |
+    ssh -4 -C snapshot-master.debian.org farm-make-update-tarball "$i" |
+    (cd $tmpdir && tar xaf -)
+
+  ~/code/mirror/process-farm-update --farmpath "$farm" "$tmpdir"
+  rm -rf "$tmpdir"
+done

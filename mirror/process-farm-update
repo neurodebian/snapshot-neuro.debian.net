@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2010 Peter Palfrader
+# Copyright (c) 2010, 2014 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,13 +21,7 @@
 # SOFTWARE.
 
 
-# This script requests a tarball of recent additions to the farm from
-# a remote farm-journal-make-tarball and puts those files into the local copy
-# of the farm, verifying the sha1sums on files.
-#
-# it keeps a statefile in the root of the farm which indicates when
-# the last such update happens so it can get only the files it hasn't
-# seen.
+# Given a directory of hash-named files, sort them into the farm.
 
 import errno
 import hashlib
@@ -39,30 +33,35 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import yaml
 
 parser = optparse.OptionParser()
-parser.set_usage("%prog --config=<conffile>")
+parser.set_usage("%prog --config=<conffile> <directory>")
 parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
   help="Config file location.")
+parser.add_option("-p", "--farmpath", dest="farmpath", metavar="FARMPATH",
+  help="Path to the snapshot farm.")
 parser.add_option("-v", "--verbose", action="store_true",
   help="Config file location.")
 
 (options, args) = parser.parse_args()
-if options.conffile is None:
-    parser.print_help()
-    sys.exit(1)
+if (options.conffile is None and options.farmpath is None) or len(args) != 1:
+  parser.print_help()
+  sys.exit(1)
 
-config = yaml.safe_load(open(options.conffile).read())
+os.chdir(args[0])
 
-def get_statefile_path():
-    return os.path.join(config['snapshot']['farmpath'], '.farm-journal-fetch.state')
+if options.farmpath is None:
+  import yaml
+  config = yaml.safe_load(open(options.conffile).read())
+  farmpath = config['snapshot']['farmpath']
+else:
+  farmpath = options.farmpath
 
 def make_path(digest):
     prefix1 = digest[0:2]
     prefix2 = digest[2:4]
 
-    dir = config['snapshot']['farmpath']
+    dir = farmpath
     for elem in (prefix1, prefix2):
         dir = os.path.join(dir, elem)
         if not os.path.exists(dir):
@@ -97,44 +96,19 @@ def move_file_with_fallback(src, dst):
 
 
 
-statefile = get_statefile_path()
-since = 0
-if os.path.exists(statefile):
-    meta = yaml.safe_load(open(statefile).read())
-    if 'latest-timestamp' in meta:
-        since = int(meta['latest-timestamp'])
+for fn in os.listdir('.'):
+    if fn == "meta": continue
 
-tmpdir = tempfile.mkdtemp(prefix='.tmp.fetch-tarball.', dir=config['snapshot']['farmpath'])
-try:
-    os.chdir(tmpdir)
-    command = 'ssh -C snapshot-master.debian.org farm-journal-fetch %d | tar xf -'%(since)
-    retcode = subprocess.check_call(command, shell=True)
-    for fn in os.listdir('.'):
-        if fn == "meta": continue
+    h = hash_file(fn)
+    if fn != h:
+        sys.stderr.write("Warning: File %s has unexpected hash value %s.  Ignoring\n"%(fn, h))
+        os.unlink(fn)
+        continue
 
-        h = hash_file(fn)
-        if fn != h:
-            sys.stderr.write("Warning: File %s has unexpected hash value %s.  Ignoring\n"%(fn, h))
-            os.unlink(fn)
-            continue
+    target = make_path(h)
 
-        target = make_path(h)
-
-        if options.verbose: print "%s -> %s"%(fn,target)
-        move_file_with_fallback(fn, target)
-
-    if os.path.exists('meta'):
-        try:
-            meta = yaml.safe_load(open('meta').read())
-            if 'latest-timestamp' in meta:
-                f = open(statefile, "w")
-                f.write(yaml.dump(meta))
-                f.close()
-        except:
-            pass
-
-finally:
-    shutil.rmtree(tmpdir)
+    if options.verbose: print "%s -> %s"%(fn,target)
+    move_file_with_fallback(fn, target)
 
 # vim:set et:
 # vim:set ts=4:

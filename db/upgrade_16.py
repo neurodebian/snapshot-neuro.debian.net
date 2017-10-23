@@ -1,6 +1,6 @@
 #!/usr/bin/python
-
-# Copyright (c) 2010 Peter Palfrader
+#
+# Copyright (c) 2017 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,38 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+def upgrade(db):
+    """We have now files >= 2gb in the archive."""
+    db.execute("""
+        ALTER TABLE file ALTER COLUMN size TYPE bigint
+        """)
 
-# The farm_journal database table keeps a journal of which files got
-# added to the farm recently.  This script outputs a tarball of the files
-# referenced in the journal to stdout.
-
-import optparse
-import os
-import sys
-import yaml
-sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
-from dbhelper import DBHelper
-
-parser = optparse.OptionParser()
-parser.set_usage("%prog --config=<conffile>")
-parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
-  help="Config file location.")
-parser.add_option("-o", "--older", dest="older", metavar="SECONDS",
-  help="Remove journal entries older than this many seconds.")
-
-(options, args) = parser.parse_args()
-if options.conffile is None:
-    parser.print_help()
-    sys.exit(1)
-
-config = yaml.safe_load(open(options.conffile).read())
-
-db = DBHelper(config['db']['connectstring'])
-args = {}
-db.execute("""DELETE FROM farm_journal
-              WHERE added < CURRENT_TIMESTAMP - %(older)s * INTERVAL '1 second'""",
-           {'older': options.older})
-db.execute("""COMMIT""")
+    db.execute("UPDATE config SET value='16' WHERE name='db_revision' AND value='15'")
 
 # vim:set et:
 # vim:set ts=4:

@@ -10,6 +10,13 @@ umask 022
 
 CONFIG="$BASE/etc/snapshot.conf"
 
+if [ -z "${HOME:-}" ]; then
+	HOME="$(getent passwd "`id -u`" | awk -F: '{print $6}')"
+	export HOME
+fi
+
+LC_CTYPE=C.UTF-8
+export LC_CTYPE
 
 if [ "${2:-""}" = "-v" ] ; then
 	verbose="--verbose"
@@ -30,10 +37,13 @@ case "$archive" in
 		fi
 		snapshot import --config "$CONFIG" --archive "$archive" --path /srv/mirrors/"$archive" $quick $verbose
 		rm -f "$force_slow_flag"
-		#snapshot dumpall --config "$CONFIG"
-		"$BASE"/code/misc/dump-tools/add-new-dumps-to-git -c "$CONFIG" -b "$BASE"/dumps-git
 
-		ssh -i "$BASE"/.ssh/id-trigger -f stabile sync-incremental < /dev/null > /dev/null 2>&1 &
+		ssh -T -i "$BASE"/.ssh/id-trigger lw01 < /dev/null > /dev/null 2>&1 &
+		ssh -T -i "$BASE"/.ssh/id-trigger lw02 < /dev/null > /dev/null 2>&1 &
+		ssh -T -i "$BASE"/.ssh/id-trigger lw03 < /dev/null > /dev/null 2>&1 &
+		ssh -T -i "$BASE"/.ssh/id-trigger lw04 < /dev/null > /dev/null 2>&1 &
+
+		"$BASE"/code/misc/dump-tools/add-new-dumps-to-git -c "$CONFIG" -b "$BASE"/dumps-git
 
 		snapshot index --config "$CONFIG" --quick $verbose
 

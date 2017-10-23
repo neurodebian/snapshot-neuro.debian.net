@@ -15,11 +15,16 @@ used by all.
 </p>
 
 <p>
-The Debian Project wants to thank <a href="http://www.sanger.ac.uk/">Wellcome
-Trust Sanger Institute</a> and the <a href="http://www.ece.ubc.ca/">UBC
-Electrical and Computer Engineering</a> for providing hardware and hosting and
-<a href="http://www.nordicbet.com/">Nordic Gaming</a> for sponsoring additional
-hardware.
+The Debian Project would like to thank the
+<a href="http://www.sanger.ac.uk/">Wellcome Trust Sanger Institute</a> and
+<a href="http://www.leaseweb.com">LeaseWeb Netherlands B.V.</a> for providing
+hardware and hosting.
+
+We would also like to thank the
+<a href="http://www.ece.ubc.ca/">Electrical and Computer Engineering</a>
+department at the University of British Columbia, Canada and
+<a href="http://www.nordicbet.com/">Nordic Gaming</a> for providing
+hardware/hosting and hardware, respectively, in the past.
 </p>
 
 <h2>Usage</h2>
@@ -62,11 +67,21 @@ is no import at the exact time you specified you will get the latest
 available timestamp which is before the time you specified.
 </p>
 <p>
-It may be necessary to ignore the Valid-Until header within Release files, in order
+To access snapshots of suites using Valid-Until that are older than a dozen days,
+it is necessary to ignore the Valid-Until header within Release files, in order
 to prevent apt from disregarding snapshot entries ("Release file expired").  Use
 <code>aptitude -o Acquire::Check-Valid-Until=false update</code> or
 <code>apt-get -o Acquire::Check-Valid-Until=false update</code> for this purpose.
 </p>
+<p>
+If you use at least apt version 1.1.exp9 (stretch and later), you can use this instead:
+</p>
+<pre>
+deb     [check-valid-until=no] <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
+deb-src [check-valid-until=no] <a href="/archive/debian/20091004T111800Z/">http://snapshot.debian.org/archive/debian/20091004T111800Z/</a> lenny main
+deb     [check-valid-until=no] <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+deb-src [check-valid-until=no] <a href="/archive/debian-security/20091004T121501Z/">http://snapshot.debian.org/archive/debian-security/20091004T121501Z/</a> lenny/updates main
+</pre>
 
 <p style="margin-top:2em;">
 If you want anything related to a specific package simply enter the

@@ -21,34 +21,65 @@
 # SOFTWARE.
 
 import psycopg2.extras
+import time
 
 class DBInstance:
+    MAX_ERR = 10
+
     def __init__(self, pool):
         self.pool = pool
         self.conn = pool.getconn()
 
-    def execute(self, *args, **kw):
+    def _reopen(self, delay=0.0):
+        if not self.conn.closed:
+            self.pool.putconn(self.conn, close=True)
+        time.sleep(delay)
+        self.conn = self.pool.getconn()
+
+    def wrap(self, call, *args, **kw):
+        delay = 0.0
+        for i in xrange(0, self.MAX_ERR):
+            try:
+                return call(*args, **kw)
+            except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                try:
+                    self._reopen(delay)
+                except:
+                    pass
+                delay += 0.1
+        return call(*args, **kw)
+
+    def _execute(self, *args, **kw):
         c = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         c.execute(*args, **kw)
         return c
-
-    def query(self, *args, **kw):
+    def _query(self, *args, **kw):
         c = self.execute(*args, **kw)
         rows = c.fetchall()
         c.close()
         return rows
-
-    def close(self):
-        self.execute('ROLLBACK').close()
-        self.pool.putconn(self.conn)
-
-    def query_one(self, *args, **kw):
+    def _query_one(self, *args, **kw):
         all = self.query(*args, **kw)
         if len(all) > 1:
             raise 'Got more than one return in query_one'
         if len(all) == 0:
             return None
         return all[0]
+
+    def execute(self, *args, **kw):
+        return self.wrap(self._execute, *args, **kw)
+    def query(self, *args, **kw):
+        return self.wrap(self._query, *args, **kw)
+    def query_one(self, *args, **kw):
+        return self.wrap(self._query_one, *args, **kw)
+
+    def close(self):
+        try:
+            self.execute('ROLLBACK').close()
+            self.pool.putconn(self.conn)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if not self.conn.closed:
+                self.pool.putconn(self.conn, close=True)
 
 # vim:set et:
 # vim:set ts=4:

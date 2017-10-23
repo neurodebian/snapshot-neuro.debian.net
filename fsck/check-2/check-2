@@ -39,7 +39,7 @@ if options.conffile is None:
     parser.print_help()
     sys.exit(1)
 
-config = yaml.load(open(options.conffile).read())
+config = yaml.safe_load(open(options.conffile).read())
 
 def make_path(digest):
   prefix1 = digest[0:2]
@@ -52,29 +52,41 @@ verbose = 3
 
 def record(filename, msg):
     errors.append((filename, msg))
-    if verbose >= 3: print "%s: %s"%(filename, msg)
+    if verbose >= 2: print "%s: %s"%(filename, msg)
+cnt = 0
 
 db = DBHelper(config['db']['connectstring'])
-c = db.execute("SELECT DISTINCT hash, size FROM file ORDER BY hash", args)
-while True:
-    f = c.fetchone()
-    if f is None: break
+for byte1 in xrange(256):
+    if verbose >= 1: print "doing %02x:"%(byte1); sys.stdout.flush()
+    for n2 in xrange(16):
+        if verbose >= 1: print "doing %02x%1x:"%(byte1,n2); sys.stdout.flush()
+        c = db.execute("SELECT DISTINCT hash, size FROM file WHERE hash LIKE %(h)s ORDER BY hash", {'h': '%02x%1x%%'%(byte1, n2)})
+        while True:
+            f = c.fetchone()
+            if f is None: break
 
-    try:
-        s = os.stat(make_path(f['hash']))
-        if s.st_size != f['size']:
-            record(f['hash'], 'wrong size (expected %d, got %d)'%(f['size'], s.st_size))
-        elif verbose >= 4: sys.stdout.write("."); sys.stdout.flush()
-    except OSError, e:
-        if e.errno == errno.ENOENT:
-            record(f['hash'], 'missing')
-        else:
-            raise
+            cnt += 1
+            try:
+                s = os.stat(make_path(f['hash']))
+                if s.st_size != f['size']:
+                    record(f['hash'], 'wrong size (expected %d, got %d)'%(f['size'], s.st_size))
+                elif verbose >= 4: sys.stdout.write("."); sys.stdout.flush()
+            except OSError, e:
+                if e.errno == errno.ENOENT:
+                    record(f['hash'], 'missing')
+                else:
+                    raise
+        c.close()
 
 print
 
+if verbose >= 1: print "checked %d files"%(cnt)
+
 for e in errors:
     print "%s: %s"%(e[0], e[1])
+
+if len(errors) > 0:
+    sys.exit(1)
 
 # vim:set ts=4:
 # vim:set et:

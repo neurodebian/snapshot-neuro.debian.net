@@ -1,4 +1,41 @@
 <h1>News</h1>
+<h2>2017-09-21</h2>
+<p>
+Imports of the debian-ports and debian-debug suite had failed for the last
+three weeks as individual files in those archives have exceeded the size
+representable in our database schema.  We have now updated the database to
+support file sizes up to 9,223,372,036,854,775,807 Bytes (2<sup>63</sup>-1; 8
+EiB).  Just like 640KB in ancient times, this will be truly sufficient
+indefinitely.
+
+<h2>2014-06-01</h2>
+<p>
+We added a cluster of machines generously provided by <a
+href="http://www.leaseweb.com/">LeaseWeb</a> to provide the snapshot.debian.org
+service.
+</p>
+<p>
+Snapshot used to run on two machines hosted at and provided by the <a
+href="http://www.sanger.ac.uk/">Wellcome Trust Sanger Institute</a> and by the
+<a href="http://www.ece.ubc.ca/">Electrical and Computer Engineering</a>
+department at the University of British Columbia, Canada.  A few months ago,
+the machine at UBC, named <code>stabile.debian.org</code>, started to die.
+Since it was approaching its storage capacity limits anyway, we began looking
+for a new second home for snapshot, and LeaseWeb offered!  Providing snapshot
+from two different places (now Sanger and LeaseWeb) allows us to survive
+temporary and not-so-temporary issues that affect any single site.</p>
+<p>
+Currently, snapshot consists of 24 terabytes of data in about 15 million files,
+and it appears to be growing at a rate of approximately 5 terabytes a year (or
+about 10 megabytes per minute).
+</p>
+
+<h2>2012-09-23</h2>
+<p>
+Just a quick datapoint: Currently snapshot has about 11 million files in a bit
+over 16 terabytes of data.
+</p>
+
 <h2>2010-12-14</h2>
 <p>
 Around 2010-11-20 the server which hosted snapshot-master stumbled into

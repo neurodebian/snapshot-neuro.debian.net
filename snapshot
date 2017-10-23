@@ -27,7 +27,7 @@ require 'dbi'
 require 'logger'
 require 'digest/sha1'
 require 'digest/md5'
-require 'ftools'
+require 'fileutils'
 require 'time'
 
 def barf(str)
@@ -91,12 +91,12 @@ class FileBackend < StorageBackend
 			fn = File.basename(target)
 
 			tmptarget = dir+"/.tmp."+randstring()+"."+(Process.pid.to_s)+"."+fn
-			File.copy(source, tmptarget)
+			FileUtils.cp(source, tmptarget)
 			begin
 				File.link(tmptarget, target)
 				add_to_journal(digest)
 			rescue Errno::EEXIST
-				# it may have jumped into existance, that's no problem.
+				# it may have jumped into existence, that's no problem.
 			end
 			File.unlink(tmptarget)
 		end
@@ -298,7 +298,7 @@ class FSNode
 	end
 
 	def update_boxed(db, table, whereclause, whereparams, isrootdir)
-		# if we have a mirrorun in the past and one in the future
+		# if we have a mirrorrun in the past and one in the future
 		# then this element might already be covered by a node that starts
 		# in the past and ends in the future.
 		query = "DELETE FROM nodes_window USING #{table}
@@ -656,7 +656,7 @@ class SnapshotImporter
 		uuid=`uuidgen`.chomp if uuid.nil?
 		importing_host=`hostname -f`.chomp if importing_host.nil?
 
-		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date, 'mirrorrun_uuid'=>uuid, 'importing_host'=>importing_host})['mirrorrun_id']
+		mirrorrun_id = @db.insert_row('mirrorrun', {'archive_id'=>archive_id, 'run'=>date.to_s, 'mirrorrun_uuid'=>uuid, 'importing_host'=>importing_host})['mirrorrun_id']
 		return mirrorrun_id
 	end
 
@@ -791,7 +791,7 @@ class PackageIndexer
 				cache = @binarypkgs
 				throw "need a srcpkg_id" if srcpkg_id.nil?
 			else
-				throw "Invalud type #{type}"
+				throw "Invalid type #{type}"
 		end
 
 		return cache[pkg][ver] if cache[pkg] and cache[pkg][ver]
@@ -859,7 +859,7 @@ class PackageIndexer
 			when "bin"
 				throw "need an arch" if arch.nil?
 			else
-				throw "Invalud type #{type}"
+				throw "Invalid type #{type}"
 		end
 
 		digest = get_file_digest(path)
@@ -907,15 +907,11 @@ class PackageIndexer
 				prev_index = open_file('/indices/package-file.map.bz2', prev_run_id)
 				unless prev_index.nil?
 					previously_seen = {}
-					begin
-						prev_index = BZ2::Reader.new(prev_index)
-						prev_index.each_line(sep_string='') do |block|
-							previously_seen[Digest::SHA1.digest(block)] = 1
-						end
-					rescue BZ2::EOZError => e
-						$logger.warn("[indexrun ##{@mirrorrun_id}] previous (##{prev_run_id}) package-file.map is corrupt (BZ2::EOZError): #{e.message}")
-						return
+					prev_index = IO.popen(['bunzip2'], :in => prev_index)
+					prev_index.each_line(sep_string='') do |block|
+						previously_seen[Digest::SHA1.digest(block)] = 1
 					end
+					prev_index.close()
 				else
 					$logger.warn("[indexrun ##{@mirrorrun_id}] quick mode selected but no previous (##{prev_run_id}) package-file.map")
 				end
@@ -925,7 +921,7 @@ class PackageIndexer
 		@db.dbdo('SAVEPOINT startofindexing')
 		begin
 			lineno = 0
-			index = BZ2::Reader.new(index)
+			index = IO.popen(['bunzip2'], :in => index)
 			index.each_line(sep_string='') do |block|
 				next if previously_seen and previously_seen.has_key? Digest::SHA1.digest(block)
 
@@ -964,9 +960,10 @@ class PackageIndexer
 					$logger.debug("[indexrun ##{@mirrorrun_id}] " + (inserted ? "Inserting" : "Skipping already existing") + " #{e['Path']} for binary #{e['Binary']} #{e['Binary-Version']}")
 				end
 			end
-		rescue BZ2::EOZError => e
+			index.close()
+		rescue Bzip2::EOZError => e
 			@db.dbdo('ROLLBACK TO startofindexing')
-			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (BZ2::EOZError): #{e.message}")
+			$logger.warn("[indexrun ##{@mirrorrun_id}] package-file.map is corrupt (Bzip2::EOZError): #{e.message}")
 			return
 		end
 		@db.dbdo('RELEASE SAVEPOINT startofindexing')
@@ -1276,9 +1273,12 @@ class SnapshotDumper
 		@file.print "Contents:\n"
 		@db.query("SELECT filetype, path, name, size, hash, target FROM dirtree(?) ORDER BY path, name NULLS first", @mirrorrun_id) do |row|
 			case row['filetype']
-				when 'd': @file.print " #{row['filetype']} #{row['path']}\n"
-				when '-': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
-				when 'l': @file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['target']}\n"
+				when 'd'
+					@file.print " #{row['filetype']} #{row['path']}\n"
+				when '-'
+					@file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['size']} #{row['hash']}\n"
+				when 'l'
+					@file.print " #{row['filetype']} #{row['path'] == '/' ? '' : row['path']}/#{row['name']} #{row['target']}\n"
 				else
 					throw "Unknown file type #{row['filetype']}"
 			end
@@ -1316,7 +1316,7 @@ class SnapshotDumpAll
 				begin
 					File.link(tmptarget, target)
 				rescue Errno::EEXIST
-					# it may have jumped into existance, that's no problem.
+					# it may have jumped into existence, that's no problem.
 				end
 			ensure
 				File.unlink(tmptarget)
@@ -1434,16 +1434,16 @@ end
 
 options = {}
 ARGV.options do |opts|
-	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                 { |options['config']| }
-	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") { |options['log-to-stderr']| }
-	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 { |options['quiet']| }
-	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                { |options['verbose']| }
-	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      { |options['archive']| }
-	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         { |options['path']| }
-	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  { |options['date']| }
-	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  { |options['quick']| }
-	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  { |options['timetravel']| }
-	opts.on_tail("-m", "--mirrorrun=<id>" , Integer, "Operate on a particular mirrorrun (index/dump)")  { |options['mirrorrun_id']| }
+	opts.on_tail("-c", "--config=<f>"   , String, "Config file")                                    {  |x| options['config'] = x }
+	opts.on_tail("-s", "--log-to-stderr", nil,    "Log to stderr instead of the configure logfile") {  |x| options['log-to-stderr'] = x }
+	opts.on_tail("-q", "--quiet"        , nil,    "Do not show info level notices")                 {  |x| options['quiet'] = x }
+	opts.on_tail("-v", "--verbose"      , nil,    "Be more verbose")                                {  |x| options['verbose'] = x }
+	opts.on_tail("-a", "--archive=<a>"  , String, "Archive to add/operate on")                      {  |x| options['archive'] = x }
+	opts.on_tail("-p", "--path=<p>"     , String, "Path to recurse/import")                         {  |x| options['path'] = x }
+	opts.on_tail("-d", "--date=<d>"     , String, "Date associated with an import (if not 'now')")  {  |x| options['date'] = x }
+	opts.on_tail("-Q", "--quick"        , nil,    "Quick import (use [cm]time and filesize, not hash), Quick index (only index files that were added in a mirrorrun)")  {  |x| options['quick'] = x }
+	opts.on_tail("-T", "--timetravel"   , nil,    "Allow imports at dates that are not later than all existing mirrorruns")  {  |x| options['timetravel'] = x }
+	opts.on_tail("-m", "--mirrorrun=<id>" , Integer, "Operate on a particular mirrorrun (index/dump)")  {  |x| options['mirrorrun_id'] = x }
 
 	opts.on_tail("-h", "--help", "Display this help screen")        { show_help(opts) }
 	opts.parse!
@@ -1477,7 +1477,6 @@ case action
 	when "import-dump"
 		snapshot.import_dump(options)
 	when 'index'
-		require 'bz2'
 		snapshot.index(options)
 	when "dump"
 		snapshot.dump(options)

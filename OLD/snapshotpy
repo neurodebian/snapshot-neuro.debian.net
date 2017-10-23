@@ -46,7 +46,7 @@ def usage(err = False):
     sys.exit(exit)
 
 def readConfig(conffile):
-    return yaml.load(open(conffile).read())
+    return yaml.safe_load(open(conffile).read())
 
 def setupLogger(conf, stdout, quiet):
     if quiet >= 2:

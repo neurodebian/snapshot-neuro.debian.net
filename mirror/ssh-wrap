@@ -75,6 +75,19 @@ farm_journal_fetch() {
 	"$HOME"/code/mirror/farm-journal-make-tarball -c "$SNAPCONFIG" -s "$since"
 }
 
+farm_make_update_tarball() {
+	one_more_arg "$@"
+	local prefix="$1"
+
+	if ! echo "$prefix" | grep -q '^[0-9a-f][0-9a-f]$'; then
+		croak "Invalid characters encountered in prefix '$prefix'"
+	fi
+
+	info "make-update-tarball $prefix"
+	"$HOME"/code/mirror/farm-list-entries -c "$SNAPCONFIG" --diff "$prefix" |
+	  "$HOME"/code/mirror/farm-make-tarball-from-list -c "$SNAPCONFIG"
+}
+
 do_rsync() {
 	local allowed_command_prefixes
 	allowed_rsyncs=(
@@ -125,14 +138,25 @@ case "$action" in
 		farm_journal_fetch "$@"
 		;;
 
+	farm-make-update-tarball)
+		require_master
+
+		farm_make_update_tarball "$@"
+		;;
+
 	git-upload-pack)
 		require_master
 
-		repos='/srv/snapshot.debian.org/snapshot.git'
-		if [ "$1" != "'$repos'" ]; then
-			croak "May not access other repositories"
-		fi
-		exec git-upload-pack "$repos"
+		repo_list=()
+		repo_list+=('/srv/snapshot.debian.org/snapshot.git')
+		repo_list+=('/srv/snapshot.debian.org/dumps-git')
+		for repo_idx in ${!repo_list[*]}; do
+			repos="${repo_list[$repo_idx]}"
+			if [ "$1" = "'$repos'" ]; then
+				exec git-upload-pack "$repos"
+			fi
+		done
+		croak "May not access this repository"
 		;;
 	rsync)
 		do_rsync "$@"

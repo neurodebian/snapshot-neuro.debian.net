@@ -34,7 +34,7 @@ The way snapshot currently stores data is actually quite simple:
 
  - The rest is stored in a postgresql database.  This database has a
    concept of an _archive_ ("debian", "debian-security", "backports.org",
-   etc.).  Each archive has any number of _mirrorun_ entries.  These
+   etc.).  Each archive has any number of _mirrorrun_ entries.  These
    correspond to one import of that mirror into the database.
 
    An actual represented filesystem tree consists of _node_s.  Each node
@@ -52,8 +52,8 @@ The way snapshot currently stores data is actually quite simple:
    order to reconstruct the original filesystem structure.  A node
    also contains pointers to the first and the last mirrorrun it appeared
    in.  Some files, like Packages.gz files, will probably only exist
-   for a single mirrorun while other files like actual packages or
-   the root directory (/) exist for many, or even all of the mirroruns
+   for a single mirrorrun while other files like actual packages or
+   the root directory (/) exist for many, or even all of the mirrorruns
    for a given archive.
 
 
@@ -156,6 +156,8 @@ FUSE-Depends: python-fuse
 Web-Depends: python-pylons (that is {python-pylons,python-routes,python-nose,python-paste,python-pastedeploy,python-pastescript,python-webob,python-weberror,python-beaker,python-mako,python-formencode,python-webhelpers,python-decorator,python-simplejson}/lenny-backports )
 Web-Recommends: libapache2-mod-wsgi apache2
 Apache config: required modules: expires headers
+
+To index binary and source packages, we currently need https://github.com/brianmario/bzip2-ruby.
 
 Basic setup
 -----------

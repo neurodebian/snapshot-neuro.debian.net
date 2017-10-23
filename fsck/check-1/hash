@@ -26,14 +26,19 @@ import os
 import re
 import sys
 import threading
+import random
 import Queue
-sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/lib/python2.5/site-packages')
+try:
+    from distutils import sysconfig
+    sys.path.append(sysconfig.get_python_lib(prefix=os.path.abspath(os.path.dirname(sys.argv[0]))))
+except ImportError:
+    sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/lib/python2.6/site-packages')
 import hasher
 
 
 
 farmpath = '/srv/snapshot-neuro.debian.net/farm'
-numthreads = 16
+numthreads = 6
 verbose = 2
 
 queuesize = numthreads*2
@@ -51,7 +56,7 @@ class HashingThread(threading.Thread):
                 actual_hash = hasher.hash_file(os.path.join(path, filename))
                 if actual_hash != filename:
                     errors.append((filename, 'Hash mismatch (%s)'%(actual_hash)))
-                    if verbose >= 2: print "%s: Hash mismatch (%s)"%(filename, actual_hash)
+                    if verbose >= 2: print "%s: Hash mismatch (%s)"%(filename, actual_hash); sys.stdout.flush()
                 else:
                     if verbose >= 4: print "%s: OK"%(filename)
                     elif verbose >= 3: sys.stdout.write("."); sys.stdout.flush()
@@ -64,22 +69,31 @@ class HashingThread(threading.Thread):
 for x in xrange ( numthreads ):
    HashingThread().start()
 
+def enqueue(q):
+    random.shuffle(q)
+    while len(q) > 0:
+        i = q.pop()
+        if verbose >= 6: print "queueing %s"%(i[1])
+        workqueue.put(i)
+
+inqueue = []
 try:
-    for byte1 in xrange(256):
-        if verbose >= 1: print "queueing %02x:"%(byte1)
-        for byte2 in xrange(256):
-            if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2)
+    for byte2 in xrange(256):
+        if verbose >= 1: print "queueing ..%02x:"%(byte2); sys.stdout.flush()
+        b = range(256)
+        random.shuffle(b)
+        for byte1 in b:
             p = os.path.join(farmpath, '%02x'%byte1, '%02x'%byte2)
-            if not os.path.exists(p):
-                # not-that-large archives as Debian might be missing some
-                continue 
-            for filename in os.listdir(p):
-                if re.match('[0-9a-f]{40}$', filename) is None:
-                    errors.append((filename, 'Invalid name'))
-                    if verbose >= 2: print "Invalid name %s"%(filename)
-                    continue
-                if verbose >= 6: print "queueing %s"%(filename)
-                workqueue.put((p, filename))
+            if os.path.exists(p):
+                if verbose >= 2: print "queueing %02x%02x:"%(byte1, byte2); sys.stdout.flush()
+                for filename in os.listdir(p):
+                    if re.match('[0-9a-f]{40}$', filename) is None:
+                        errors.append((filename, 'Invalid name'))
+                        if verbose >= 2: print "Invalid name %s"%(filename); sys.stdout.flush()
+                        continue
+                    inqueue.append((p,filename))
+                if len(inqueue) > 2000: enqueue(inqueue)
+    enqueue(inqueue)
 finally:
     for x in xrange ( numthreads ):
        workqueue.put(None)
@@ -87,6 +101,9 @@ finally:
 workqueue.join()
 for e in errors:
     print "%s: %s"%(e[0], e[1])
+
+if len(errors) > 0:
+    sys.exit(1)
 
 # vim:set ts=4:
 # vim:set et:

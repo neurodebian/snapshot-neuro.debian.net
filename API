@@ -136,6 +136,23 @@ summary: find binary package versions and corresponding source names and version
               ]
 }
 
+URL: /mr/binary/<binpkg>/<binversion>/binfiles
+Options: fileinfo=1  includes fileinfo section
+http status codes: 200 500 404 304
+summary: list all files associated with a binary package
+note: different source packages can build binaries with the same binary package name/version tuple.
+{   '_comment': "yadayadayda",
+    'binary': "tor",
+    'binary-version': '0.2.1.22-1',
+    'result':
+        [   { 'architecture': 'mipsel', hash: '2a3f98cce2f8054621e53d91c7c02d7125ea9c82' },
+            { 'architecture': 'hurd-i386', hash: 'a4e9f6abf9664a44f7c94208a236464a59a68103' },
+            { 'architecture': 'mips', hash: 'a2bfcdb202331e52b0a50cbce02623083328237e' },
+            ...
+        ]
+}
+
+
 
 
 

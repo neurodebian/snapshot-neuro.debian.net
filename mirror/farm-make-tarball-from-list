@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2010 Peter Palfrader
+# Copyright (c) 2010, 2014 Peter Palfrader
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,31 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-# The farm_journal database table keeps a journal of which files got
-# added to the farm recently.  This script outputs a tarball of the files
-# referenced in the journal to stdout.
+# Given a list of hashes from stdin, make a tarball of their files.
 
 import tarfile
 import sys
 import yaml
 import optparse
 import os
-import tempfile
-sys.path.append(os.path.abspath(os.path.dirname(sys.argv[0]))+'/../lib')
-from dbhelper import DBHelper
 
 parser = optparse.OptionParser()
 parser.set_usage("%prog --config=<conffile>")
 parser.add_option("-c", "--config", dest="conffile", metavar="CONFFILE",
   help="Config file location.")
-parser.add_option("-s", "--since", dest="since", metavar="UNIXTIME",
-  help="Only include files strictly newer than this.")
 
 (options, args) = parser.parse_args()
 if options.conffile is None:
-    parser.print_help()
-    sys.exit(1)
+  parser.print_help()
+  sys.exit(1)
 
 config = yaml.safe_load(open(options.conffile).read())
 
@@ -53,42 +45,18 @@ def make_path(digest):
   prefix2 = digest[2:4]
   return os.path.join(config['snapshot']['farmpath'], prefix1, prefix2, digest)
 
-
-newest = 0
-if options.since:
-    newest = int(options.since)
-
-db = DBHelper(config['db']['connectstring'])
-args = {}
-query = """SELECT hash,
-                  EXTRACT (EPOCH FROM date_trunc('second', added)) AS added
-           FROM farm_journal"""
-if not options.since is None:
-    query += " WHERE EXTRACT (EPOCH FROM date_trunc('second', added)) > %(since)s"
-    args['since'] = options.since
-c = db.execute(query, args)
+hexdigits = '0123456789abcdef'
+def is_hex(s):
+  return all(c in hexdigits for c in s)
 
 tar = tarfile.open(mode="w|", fileobj=sys.stdout)
-while True:
-    f = c.fetchone()
-    if f is None: break
-    hash = f['hash']
-    newest = max(newest, int(f['added']))
-
-    tar.add(make_path(hash), arcname=hash)
-
-(fd,fname) = tempfile.mkstemp(prefix='farm-journal-make-tarball.tmp')
-try:
-    f=os.fdopen(fd, "w")
-    f.write(yaml.dump({'latest-timestamp': newest}))
-    f.close()
-    tar.add(fname, arcname='meta')
-finally:
-    os.unlink(fname)
-
+for line in sys.stdin:
+  h = line.strip()
+  if len(h) != 40 or not is_hex(h):
+    print >>sys.stderr, "Ignoring invalid token %s"%(h)
+    continue
+  tar.add(make_path(h), arcname=h)
 tar.close()
-c.close()
-
 
 # vim:set et:
 # vim:set ts=4:

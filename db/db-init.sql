@@ -8,7 +8,7 @@ GRANT USAGE ON SCHEMA public TO PUBLIC;
 
 
 -- next, create the debversion types:
-\i /usr/share/postgresql/8.4/contrib/debversion.sql
+CREATE EXTENSION debversion;
 
 -- and the perl language
 CREATE LANGUAGE plperl;
