@@ -1,0 +1,195 @@
+* initial upgrade went "wrong":
+
+│ Obsolete major version 8.4                                                                                                                                                                                                                                                 │                  
+│                                                                                                                                                                                                                                                                            │                  
+│ The PostgreSQL version 8.4 is obsolete, but the server or client packages are still installed. Please install the latest packages (postgresql-9.4 and postgresql-client-9.4) and upgrade the existing  clusters with pg_upgradecluster (see manpage).                      │                  
+│                                                                                                                                                                                                                                                                            │                  
+│ Please be aware that the installation of postgresql-9.4 will automatically create a default cluster 9.4/main. If you want to upgrade the 8.4/main cluster, you need to remove the already existing 9.4 cluster (pg_dropcluster --stop 9.4 main, see manpage for details).  │                  
+│                                                                                                                                                                                                                                                                            │                  
+│ The old server and client packages are no longer supported. After the existing clusters are upgraded, the postgresql-8.4 and postgresql-client-8.4 packages should be removed.                                                                                             │                  
+│                                                                                                                                                                                                                                                                            │                  
+│ Please see /usr/share/doc/postgresql-common/README.Debian.gz for details.   
+
+
+** migrating from postgres 8.4 didn't go smoothly seems to me
+
+(snapshots)root@pymvpa:/etc/apt# pg_upgradecluster 8.4 main
+Stopping old cluster...
+Disabling connections to the old cluster during upgrade...
+Restarting old cluster with restricted connections...
+Creating new cluster 9.4/main ...
+  config /etc/postgresql/9.4/main
+  data   /var/lib/postgresql/9.4/main
+  locale C
+Flags of /var/lib/postgresql/9.4/main set as ---------------C
+  port   5433
+Disabling connections to the new cluster during upgrade...
+Roles, databases, schemas, ACLs...
+ERROR:  could not access file "$libdir/plperl": No such file or directory
+ERROR:  language "plperl" does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_cmp(debversion, debversion) does not exist
+ERROR:  function debversion_cmp(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_eq(debversion, debversion) does not exist
+ERROR:  function debversion_eq(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_ge(debversion, debversion) does not exist
+ERROR:  function debversion_ge(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_gt(debversion, debversion) does not exist
+ERROR:  function debversion_gt(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_hash(debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_larger(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_le(debversion, debversion) does not exist
+ERROR:  function debversion_le(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_lt(debversion, debversion) does not exist
+ERROR:  function debversion_lt(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_ne(debversion, debversion) does not exist
+ERROR:  function debversion_ne(debversion, debversion) does not exist
+ERROR:  could not access file "$libdir/debversion": No such file or directory
+ERROR:  function public.debversion_smaller(debversion, debversion) does not exist
+ERROR:  language "plperl" does not exist
+HINT:  Use CREATE LANGUAGE to load the language into the database.
+ERROR:  function public.stat(character varying, integer) does not exist
+ERROR:  function debversion_gt(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.> debversion
+ERROR:  operator does not exist: debversion > debversion
+ERROR:  function debversion_larger(debversion, debversion) does not exist
+ERROR:  aggregate public.max(debversion) does not exist
+ERROR:  function debversion_lt(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.< debversion
+ERROR:  operator does not exist: debversion < debversion
+ERROR:  function debversion_smaller(debversion, debversion) does not exist
+ERROR:  aggregate public.min(debversion) does not exist
+ERROR:  function debversion_le(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.<= debversion
+ERROR:  operator does not exist: debversion <= debversion
+ERROR:  function debversion_ne(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.<> debversion
+ERROR:  operator does not exist: debversion <> debversion
+ERROR:  function debversion_eq(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.= debversion
+ERROR:  operator does not exist: debversion = debversion
+ERROR:  function debversion_ge(debversion, debversion) does not exist
+ERROR:  operator does not exist: debversion public.>= debversion
+ERROR:  operator does not exist: debversion >= debversion
+ERROR:  operator does not exist: debversion < debversion
+ERROR:  operator class "public.debversion_ops" does not exist for access method "btree"
+ERROR:  operator does not exist: debversion = debversion
+ERROR:  operator class "public.debversion_ops" does not exist for access method "hash"
+Fixing hardcoded library paths for stored procedures...
+Upgrading database template1...
+Analyzing database template1...
+Fixing hardcoded library paths for stored procedures...
+Upgrading database postgres...
+Analyzing database postgres...
+Fixing hardcoded library paths for stored procedures...
+Upgrading database snapshotdb...
+Analyzing database snapshotdb...
+Re-enabling connections to the old cluster...
+Re-enabling connections to the new cluster...
+Copying old configuration files...
+Copying old start.conf...
+Copying old pg_ctl.conf...
+Copying old server.crt...
+Copying old server.key...
+Stopping target cluster...
+Stopping old cluster...
+Disabling automatic startup of old cluster...
+Configuring old cluster to use a different port (5433)...
+Starting target cluster on the original port...
+Success. Please check that the upgraded cluster works. If it does,
+you can remove the old cluster with
+  
+  pg_dropcluster 8.4 main
+
+** so I was stupid to ignore and "proceeded" but nothing worked even after I installed those
+postgresql-9.4-debversion  postgresql-plperl-9.4
+
+* redid after I apt-get installed those debverion and plperl extensions for the postgres 9.4
+
+** went fine:
+
+(snapshots)root@pymvpa:/etc# mv /var/lib/postgresql/9.4/main-aside  /var/lib/postgresql/9.4-main-aside
+(snapshots)root@pymvpa:/etc# pg_dropcluster 9.4 main
+warning: corrupted cluster: data directory does not exist
+(snapshots)root@pymvpa:/etc# pg_dropcluster 9.4 main
+Error: specified cluster does not exist
+(snapshots)root@pymvpa:/etc# pg_upgradecluster 8.4 main
+Disabling connections to the old cluster during upgrade...
+Restarting old cluster with restricted connections...
+Creating new cluster 9.4/main ...
+  config /etc/postgresql/9.4/main
+  data   /var/lib/postgresql/9.4/main
+  locale C
+Flags of /var/lib/postgresql/9.4/main set as ---------------C
+  port   5432
+Disabling connections to the new cluster during upgrade...
+Roles, databases, schemas, ACLs...
+Fixing hardcoded library paths for stored procedures...
+Upgrading database snapshotdb...
+Analyzing database snapshotdb...
+Fixing hardcoded library paths for stored procedures...
+Upgrading database template1...
+Analyzing database template1...
+Fixing hardcoded library paths for stored procedures...
+Upgrading database postgres...
+Analyzing database postgres...
+Re-enabling connections to the old cluster...
+Re-enabling connections to the new cluster...
+Copying old configuration files...
+Copying old start.conf...
+Copying old pg_ctl.conf...
+Copying old server.crt...
+Copying old server.key...
+Stopping target cluster...
+Stopping old cluster...
+Disabling automatic startup of old cluster...
+Configuring old cluster to use a different port (5432)...
+Starting target cluster on the original port...
+Success. Please check that the upgraded cluster works. If it does,
+you can remove the old cluster with
+  
+  pg_dropcluster 8.4 main
+
+(snapshots)root@pymvpa:/etc# du -scm /var/lib/postgresql/{*/main,*aside}
+179     /var/lib/postgresql/8.4/main
+252     /var/lib/postgresql/9.4/main
+250     /var/lib/postgresql/9.4-main-aside
+680     total
+
+
+** modified /etc/postgresql/9.4/main/start.conf to make it 'auto' start
+
+** upgraded snapshots DB
+
+(snapshots)snapshot@pymvpa ~/code/db (git)-[neurodebian] % ./upgrade /home/snapshot/etc/snapshot.conf
+Database is at 14                                          
+Database upgrade to 15 committed.
+Database is at 15
+Database upgrade to 16 committed.
+Database is at 16
+Database upgrade to 17 committed.
+Database is at 17
+Database upgrade to 18 committed.
+Database is at 18
+Upgrade script upgrade_19.py does not exist.  Maybe we are done.
+(snapshots)snapshot@pymvpa ~/code/db (git)-[neurodebian] % ./upgrade /home/snapshot/etc/snapshot.conf
+Database is at 18
+Upgrade script upgrade_19.py does not exist.  Maybe we are done.
+
+** testing
+
+ - [x] web frontend now does not puke and allows to list available versions (sorted)
+ - [ ] simple_workflow -- waiting to complete
+ - [ ] schroot -c snapshots /home/snapshot/bin/import-run neurodebian  -- waiting to complete
+       + seems to enable snapshots repo just fine
+
+** TODO
+ - [ ] finish migrating our customizations to the web frontend
