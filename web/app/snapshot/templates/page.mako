@@ -19,15 +19,9 @@
    <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="faq.html" title="Frequently Asked Questions"
-             accesskey="N">next</a></li>
   <li><a href="http://www.debian.org" target="_blank">Debian</a> ||</li>
-  <li><a href="http://neuro.debian.net/">Neuroscience Repository</a> :&nbsp;</li>
-  <li><a href="http://neuro.debian.net/pkgs.html">Software</a> |&nbsp;</li>
-  <li><a href="http://neuro.debian.net/datasets.html">Datasets</a> |&nbsp;</li>
-  <li><a href="http://${config['app_conf']['snapshot.domain']}">Snapshots</a> |&nbsp;</li>
-  <li><a href="http://neuro.debian.net/faq.html">FAQ</a></li>
+  <li><a href="http://neuro.debian.net/">NeuroDebian</a> :&nbsp;</li>
+  <li><a href="http://repronim.org/">ReproNim</a> :&nbsp;</li>
 
       </ul>
     </div>

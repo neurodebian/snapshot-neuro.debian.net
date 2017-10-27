@@ -7,7 +7,7 @@
 </td>
 <td>
 <div class="rootmaintext">
- <%include file="/description.mako" />
+ <%include file="/description-nd.mako" />
  <%include file="/news-nd.mako" />
 </div>
 </td>

@@ -59,8 +59,8 @@ class Globals(object):
         defaults['expires.removal'] = 1800
         defaults['expires.removal.one'] = 3600
 
-        defaults['snapshot.domain'] = 'snapshot.debian.org'
-        defaults['snapshot.masterdomain'] = 'snapshot-master.debian.org'
+        defaults['snapshot.domain'] = 'snapshot-neuro.debian.net'
+        defaults['snapshot.masterdomain'] = 'snapshot.debian.org'
 
         for key in defaults:
             if not key in config['app_conf']: config['app_conf'][key] = defaults[key]
