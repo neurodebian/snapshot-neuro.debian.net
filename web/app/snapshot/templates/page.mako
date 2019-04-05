@@ -19,15 +19,9 @@
    <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="faq.html" title="Frequently Asked Questions"
-             accesskey="N">next</a></li>
   <li><a href="http://www.debian.org" target="_blank">Debian</a> ||</li>
-  <li><a href="http://neuro.debian.net/">Neuroscience Repository</a> :&nbsp;</li>
-  <li><a href="http://neuro.debian.net/pkgs.html">Software</a> |&nbsp;</li>
-  <li><a href="http://neuro.debian.net/datasets.html">Datasets</a> |&nbsp;</li>
-  <li><a href="http://${config['app_conf']['snapshot.domain']}">Snapshots</a> |&nbsp;</li>
-  <li><a href="http://neuro.debian.net/faq.html">FAQ</a></li>
+  <li><a href="http://neuro.debian.net/">NeuroDebian</a> :&nbsp;</li>
+  <li><a href="http://repronim.org/">ReproNim</a> :&nbsp;</li>
 
       </ul>
     </div>
@@ -86,12 +80,14 @@ ${self.body()}
 			<br/>
 			<br/>
 			<br/>
+<!-- Not applicable to NeuroDebian snapshots.  TODO: promote our hosting provider(s)
 			Hosting for snapshot.debian.org generously provided by our partners.
 			<div>
 				<a title="Wellcome Trust Sanger Institute" href="http://www.sanger.ac.uk"><img width="150" height="50" alt="Sanger" src="/static/images/sanger.png"/></a>
 				&nbsp;&nbsp;&nbsp;
 				<a title="LeaseWeb offers hosted infrastructure solutions, including Cloud, CDN, Dedicated Servers, Managed Hosting, Colocation, and Hybrid Solutions" href="http://www.leaseweb.com"><img width="150" height="50" alt="LeaseWeb" src="/static/images/leaseweb.png"/></a>
 			</div>
+-->
 		</div>
 	</body>
 </html>

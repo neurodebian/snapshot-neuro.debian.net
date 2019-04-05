@@ -105,7 +105,7 @@ div#bottom {
     padding-left:330px;
     margin-top:1em;
     padding-top:0.1em;
-    background:url('/static/images/bottom.png') no-repeat top left;
+    # background:url('/static/images/bottom.png') no-repeat top left;
     text-align:right;
     font:x-small sans-serif;
     color:silver;
@@ -144,4 +144,5 @@ table.readdir {
 
 div.document {
     background-color: white;
+    background:url('http://neuro.debian.net/_static/hotbrain_bg.jpg') no-repeat bottom right;
 }

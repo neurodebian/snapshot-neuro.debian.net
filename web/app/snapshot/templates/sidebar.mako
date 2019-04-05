@@ -6,6 +6,7 @@
 	% for name in c.names:
 	<li><a href="archive/${name['quoted']}/">${name['raw']}</a></li>
 	%endfor
+	<li><a href="http://snapshot.debian.org">debian</a></li>
 </ul>
 
 <h1>Packages</h1>
